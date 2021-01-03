@@ -60,12 +60,12 @@ F 3 "http://www.vishay.com/docs/85622/1n914.pdf" H 1700 2200 50  0001 C CNN
 	0    1    1    0   
 $EndComp
 $Comp
-L Regulator_Linear:L7805 U1
+L Regulator_Linear:MC78L05_TO92 U1
 U 1 1 5FCE71F1
 P 3150 2050
 F 0 "U1" H 3150 2292 50  0000 C CNN
-F 1 "L7805" H 3150 2201 50  0000 C CNN
-F 2 "Package_TO_SOT_THT:TO-92L_Inline" H 3175 1900 50  0001 L CIN
+F 1 "L78L05" H 3150 2201 50  0000 C CNN
+F 2 "Package_TO_SOT_THT:TO-92_Inline" H 3175 1900 50  0001 L CIN
 F 3 "http://www.st.com/content/ccc/resource/technical/document/datasheet/41/4f/b3/b0/12/d4/47/88/CD00000444.pdf/files/CD00000444.pdf/jcr:content/translations/en.CD00000444.pdf" H 3150 2000 50  0001 C CNN
 	1    3150 2050
 	1    0    0    -1  
