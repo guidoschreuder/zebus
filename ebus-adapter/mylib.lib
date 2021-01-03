@@ -1,0 +1,34 @@
+EESchema-LIBRARY Version 2.4
+#encoding utf-8
+#
+# EBus-Connector
+#
+DEF EBus-Connector J 0 40 Y Y 1 F N
+F0 "J" -100 200 50 H V C CNN
+F1 "EBus-Connector" 0 -200 50 H I C CNN
+F2 "" 250 200 50 H I C CNN
+F3 "" 250 200 50 H I C CNN
+DRAW
+S 150 150 -200 -150 0 1 0 N
+X Ebus+ 1 250 50 100 L 50 50 1 1 w
+X EBus- 2 250 -50 100 L 50 50 1 1 w
+ENDDRAW
+ENDDEF
+#
+# Serial
+#
+DEF Serial J 0 40 Y Y 1 F N
+F0 "J" 0 250 50 H V C CNN
+F1 "Serial" 0 -250 50 H V C CNN
+F2 "" -200 250 50 H I C CNN
+F3 "" -200 250 50 H I C CNN
+DRAW
+S -100 200 150 -200 0 1 0 N
+X VCC 1 -200 150 100 R 50 50 1 1 w
+X RX 2 -200 50 100 R 50 50 1 1 O
+X TX 3 -200 -50 100 R 50 50 1 1 I
+X GND 4 -200 -150 100 R 50 50 1 1 w
+ENDDRAW
+ENDDEF
+#
+#End Library

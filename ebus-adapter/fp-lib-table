@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name ebus-adapter)(type KiCad)(uri ${KIPRJMOD}/ebus-adapter.pretty)(options "")(descr ""))
+)
