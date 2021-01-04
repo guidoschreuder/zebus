@@ -1,4 +1,6 @@
 *.bck
 *.kicad_pcb-bak
+*.net
 *.sch-bak
+
 **/fab/**
