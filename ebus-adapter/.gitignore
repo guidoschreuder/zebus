@@ -3,4 +3,6 @@
 *.net
 *.sch-bak
 
+_autosave-*
+
 **/fab/**
