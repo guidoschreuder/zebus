@@ -1,5 +1,5 @@
 
-#ifndef UNIT_TEST
+#if defined(ARDUINO) && !defined(UNIT_TEST)
 
 #include <Arduino.h>
 
@@ -11,4 +11,9 @@ void loop() {
   // put your main code here, to run repeatedly:
 }
 
+#else
+// keep `pio run` happy
+int main() {
+  return 0;
+}
 #endif
