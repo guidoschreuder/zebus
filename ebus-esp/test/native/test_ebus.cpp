@@ -18,6 +18,15 @@
     TEST_ASSERT_EQUAL_HEX8(auc_bytestream[sizeof(auc_bytestream) - 1], crc8_array(auc_bytestream, sizeof(auc_bytestream) - 1)); \
   } while (0);
 
+#define SEND(auc_bytestream_param)                         \
+  do {                                                     \
+    unsigned char auc_bytestream[] = auc_bytestream_param; \
+    int i;                                                 \
+    for (i = 0; i < sizeof(auc_bytestream); i++) {         \
+      process_received(auc_bytestream[i]);                 \
+    }                                                      \
+  } while (0);
+
 void test_crc() {
   TEST_CRC8(P99_PROTECT({0x03, 0x64, 0xb5, 0x12, 0x02, 0x02, 0x00, 0x66}))
   TEST_CRC8(P99_PROTECT({0x03, 0x05, 0xb5, 0x12, 0x02, 0x03, 0x00, 0xc6}))
@@ -48,10 +57,7 @@ void prepare_telegram() {
 
 void test_getter() {
   prepare_telegram();
-  process_received(0x00);
-  process_received(0x01);
-  process_received(0x02);
-  process_received(0x03);
+  SEND(P99_PROTECT({0x00, 0x01, 0x02, 0x03}));
   TEST_ASSERT_EQUAL_CHAR(0x00, g_activeTelegram.getQQ());
   TEST_ASSERT_EQUAL_CHAR(0x01, g_activeTelegram.getZZ());
   TEST_ASSERT_EQUAL_CHAR(0x02, g_activeTelegram.getPB());
@@ -60,14 +66,9 @@ void test_getter() {
 
 void test_telegram_completion() {
   prepare_telegram();
-  process_received(0x03);
-  process_received(0x64);
-  process_received(0xb5);
-  process_received(0x12);
+  SEND(P99_PROTECT({0x03, 0x64, 0xb5, 0x12}));
   TEST_ASSERT_FALSE(g_activeTelegram.isRequestComplete());
-  process_received(0x02);
-  process_received(0x02);
-  process_received(0x00);
+  SEND(P99_PROTECT({0x02, 0x02, 0x00}));
   TEST_ASSERT_FALSE(g_activeTelegram.isRequestComplete());
   process_received(0x66);
   TEST_ASSERT_TRUE(g_activeTelegram.isRequestComplete());
@@ -76,13 +77,7 @@ void test_telegram_completion() {
 
 void test_telegram_with_escape() {
   prepare_telegram();
-  process_received(0x03);
-  process_received(0x64);
-  process_received(0xb5);
-  process_received(0x12);
-  process_received(0x02);
-  process_received(0xA9);
-  process_received(0x00);
+  SEND(P99_PROTECT({0x03, 0x64, 0xb5, 0x12, 0x02, 0xA9, 0x00}));
   TEST_ASSERT_FALSE(g_activeTelegram.isRequestComplete());
   process_received(0x45);
   TEST_ASSERT_FALSE(g_activeTelegram.isRequestComplete());
@@ -94,13 +89,7 @@ void test_telegram_with_escape() {
 
 void test_telegram_master_master_completed_after_ack() {
   prepare_telegram();
-  process_received(0x03);
-  process_received(0x00);
-  process_received(0xb5);
-  process_received(0x12);
-  process_received(0x00);
-  process_received(0x62);
-
+  SEND(P99_PROTECT({0x03, 0x00, 0xb5, 0x12, 0x00, 0x62}));
   TEST_ASSERT_TRUE(g_activeTelegram.isRequestComplete());
   TEST_ASSERT_EQUAL_HEX8(g_activeTelegram.getRequestCRC(), g_activeTelegram.requestRollingCRC);
   TEST_ASSERT_TRUE(g_activeTelegram.isRequestValid());
@@ -111,12 +100,7 @@ void test_telegram_master_master_completed_after_ack() {
 
 void test_telegram_master_slave_completed_after_response_ack() {
   prepare_telegram();
-  process_received(0x03);
-  process_received(0x02);
-  process_received(0xb5);
-  process_received(0x12);
-  process_received(0x00);
-  process_received(0xDE);
+  SEND(P99_PROTECT({0x03, 0x02, 0xb5, 0x12, 0x00, 0xDE}));
 
   TEST_ASSERT_TRUE(g_activeTelegram.isRequestComplete());
   TEST_ASSERT_EQUAL_HEX8(g_activeTelegram.getRequestCRC(), g_activeTelegram.requestRollingCRC);
@@ -124,16 +108,13 @@ void test_telegram_master_slave_completed_after_response_ack() {
   TEST_ASSERT_TRUE(g_activeTelegram.response_expected());
   process_received(ACK);
 
-  process_received(0x01);
-  process_received(0xDD);
-  process_received(0x46);
+  SEND(P99_PROTECT({0x01, 0xDD, 0x46}));
   TEST_ASSERT_EQUAL_HEX8(g_activeTelegram.getResponseCRC(), g_activeTelegram.responseRollingCRC);
   TEST_ASSERT_TRUE(g_activeTelegram.isResponseValid());
   TEST_ASSERT_EQUAL_INT(EbusTelegram::EbusState::waitForResponseAck, g_activeTelegram.state);
 
   process_received(ACK);
   TEST_ASSERT_EQUAL_INT(EbusTelegram::EbusState::endCompleted, g_activeTelegram.state);
-
 }
 
 int main(int argc, char **argv) {
