@@ -1,0 +1,42 @@
+#+TITLE:     EBus
+#+AUTHOR:    Guido Schreuder
+#+EMAIL:     guido.schreuder@ruimtepuin.be
+
+* Project to manage the Valliant heater
+
+** Topology
+- room controller (ESP32 + display + temp-sensor)
+- communicates to "master" ESP32 on heater unit over ESP-NOW
+- master forwards to MQTT for monitoring/graphing
+
+
+** Challenges
+- EBUS communication protocol
+- Valliant's EBUS commands are proprietary
+
+* tasks
+*** DONE create hardware interface for EBUS
+    CLOSED: [2021-01-17 Sun 01:48]
+*** DONE get hardware interface to work with Ebusd and experiment a bit
+    CLOSED: [2021-01-17 Sun 01:48]
+*** DONE build bus power supply so testing can be done in stand-alone mode
+    CLOSED: [2021-01-17 Sun 01:50]
+*** TODO determine preferred topology to use
+consider ESP-NOW so "sensor" modules can profit from reduced "ON" time.
+
+This needs a "master" though to forward to MQTT if required.
+
+Good read and entry point is here: https://hackaday.io/project/174898-esp-now-weather-station
+*** DONE experiment with programming new ESP32 boards
+    CLOSED: [2021-01-18 Mon 03:19]
+that was easy as pie :)
+*** DONE [#A] get ESP32 to listen in on EBUS messages and forward them ad-verbum (in HEX) to MQTT for monitoring/debugging
+    CLOSED: [2021-01-18 Mon 03:20]
+*** TODO get ESP board to interface with 2.0" display
+driver IC = ST7789VW
+
+Aduino examples here : https://simple-circuit.com/arduino-st7789-ips-tft-display-example/
+
+drivers:
+ - https://github.com/adafruit/Adafruit-ST7735-Library
+ - https://github.com/adafruit/Adafruit-GFX-Library
