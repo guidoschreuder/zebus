@@ -81,19 +81,6 @@ struct EbusTelegram {
 
   void push_req_data(uint8_t cr) {
     push_buffer(cr, requestBuffer, &requestBufferPos, &requestRollingCRC, OFFSET_DATA + getNN());
-    // if (waitForEscaped) {
-    //   if (requestBufferPos < OFFSET_DATA + getNN()) {
-    //     requestRollingCRC = crc8_calc(cr, requestRollingCRC);
-    //   }
-    //   requestBuffer[requestBufferPos] = (cr == 0x0 ? ESC : SYN);
-    //   waitForEscaped = false;
-    // } else {
-    //   if (requestBufferPos < OFFSET_DATA + getNN()) {
-    //     requestRollingCRC = crc8_calc(cr, requestRollingCRC);
-    //   }
-    //   requestBuffer[requestBufferPos++] = cr;
-    //   waitForEscaped = (cr == ESC);
-    // }
   }
 
   void push_resp_data(uint8_t cr) {
@@ -180,6 +167,5 @@ struct EbusTelegram {
 extern EbusTelegram g_activeTelegram;
 extern Queue telegramHistory;
 extern Queue telegramToSend;
-
 
 #endif

@@ -1,19 +1,15 @@
 
 #if defined(ARDUINO) && !defined(UNIT_TEST)
 
-#include "Arduino.h"
-
 #include "main.h"
-#include "ebus.h"
+
+#include "Arduino.h"
 #include "driver/uart.h"
+#include "ebus.h"
 
 #define CHECK_INT_STATUS(ST, MASK) (((ST) & (MASK)) == (MASK))
 
-bool isr_called = false;
-
 static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
-  isr_called = true;
-
   uint16_t status = UART_EBUS.int_st.val;  // read UART interrupt Status
   if (status == 0) {
     return;
@@ -43,7 +39,6 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
   } else if (CHECK_INT_STATUS(status, UART_RXFIFO_FULL_INT_ST)) {
     uart_clear_intr_status(UART_NUM_EBUS, UART_RXFIFO_FULL_INT_CLR);
   }
-
 }
 
 void setupEbusUart() {
@@ -86,7 +81,7 @@ void show(void *pvParameter) {
       Serial.print(g_serialBuffer[i], HEX);
     }
     Serial.println();
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
 
@@ -94,6 +89,7 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) {
   }
+
   Serial.println("Setup");
 
   setupEbusUart();
