@@ -1,17 +1,14 @@
 #ifndef __EBUS
 #define __EBUS
 
-#include <stddef.h>
 #include <stdint.h>
 
 #ifndef QUEUE_H
-#include <queue.h>
+#include "mock-queue.h"
 extern Queue telegramHistory;
 #else
 extern QueueHandle_t telegramHistory;
 #endif
-
-#include <cstdio>  //debug
 
 // for testing in native unit test we do not have ESP32 so fake it here
 #ifndef IRAM_ATTR
@@ -79,7 +76,6 @@ struct EbusTelegram {
   };
   bool waitForEscaped = false;
   int8_t state = EbusState::waitForSyn;
-  int8_t type = Type::Unknown;
   uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {0xAA};
   uint8_t requestBufferPos = 0;
   uint8_t requestRollingCRC = 0;
@@ -169,6 +165,8 @@ struct EbusTelegram {
   bool isFinished() {
     return state <= EbusState::endCompleted;
   }
+
+
 
 };
 

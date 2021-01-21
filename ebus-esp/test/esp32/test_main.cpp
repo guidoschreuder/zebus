@@ -1,19 +1,20 @@
-#if defined(ARDUINO) && defined(UNIT_TEST)
+// test is just an incomplete stub for now
 
-#include <Arduino.h>
+#if defined(UNIT_TEST)
+
 #include "unity.h"
 
-void setup() {
+extern "C" {
+void app_main();
+}
+
+void app_main() {
   //delay(2000);
   UNITY_BEGIN();
 
   // calls to tests will go here
 
   UNITY_END();
-}
-
-void loop() {
-
 }
 
 #endif
