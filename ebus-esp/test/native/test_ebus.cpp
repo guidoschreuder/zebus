@@ -8,7 +8,7 @@
 #include <main.h>
 #include <unity.h>
 
-// #include <cstdio>  //debug
+#include <cstdio>  //debug
 #include <cstring>
 
 #define P99_PROTECT(...) __VA_ARGS__
@@ -45,14 +45,12 @@ void test_is_master() {
   TEST_ASSERT_FALSE(is_master(0b01011111));
 }
 
-// TODO: REMOVE
-// temporary method, Ebus ISR should properly switch to a new active telegram
-// on completion and put the old one on a queue/buffer/etc
 void prepare_telegram() {
-  EbusTelegram telegram;
-  memset(telegram.requestBuffer, SYN, sizeof telegram.requestBuffer);
-  g_activeTelegram = telegram;
   process_received(SYN);
+}
+
+void discard_telegram() {
+  g_activeTelegram.state = EbusTelegram::EbusState::endAbort;
 }
 
 void test_getter() {
@@ -62,6 +60,7 @@ void test_getter() {
   TEST_ASSERT_EQUAL_CHAR(0x01, g_activeTelegram.getZZ());
   TEST_ASSERT_EQUAL_CHAR(0x02, g_activeTelegram.getPB());
   TEST_ASSERT_EQUAL_CHAR(0x03, g_activeTelegram.getSB());
+  discard_telegram();
 }
 
 void test_telegram_completion() {
@@ -73,6 +72,7 @@ void test_telegram_completion() {
   process_received(0x66);
   TEST_ASSERT_TRUE(g_activeTelegram.isRequestComplete());
   TEST_ASSERT_EQUAL_HEX8(g_activeTelegram.getRequestCRC(), g_activeTelegram.requestRollingCRC);
+  discard_telegram();
 }
 
 void test_telegram_with_escape() {
@@ -85,6 +85,7 @@ void test_telegram_with_escape() {
   TEST_ASSERT_TRUE(g_activeTelegram.isRequestComplete());
   TEST_ASSERT_TRUE(g_activeTelegram.isRequestValid());
   TEST_ASSERT_TRUE(g_activeTelegram.response_expected());
+  discard_telegram();
 }
 
 void test_telegram_master_master_completed_after_ack() {
@@ -96,6 +97,7 @@ void test_telegram_master_master_completed_after_ack() {
   TEST_ASSERT_FALSE(g_activeTelegram.response_expected());
   process_received(ACK);
   TEST_ASSERT_EQUAL_INT(EbusTelegram::EbusState::endCompleted, g_activeTelegram.state);
+  discard_telegram();
 }
 
 void test_telegram_master_slave_completed_after_response_ack() {
@@ -114,7 +116,23 @@ void test_telegram_master_slave_completed_after_response_ack() {
   TEST_ASSERT_EQUAL_INT(EbusTelegram::EbusState::waitForResponseAck, g_activeTelegram.state);
 
   process_received(ACK);
+
   TEST_ASSERT_EQUAL_INT(EbusTelegram::EbusState::endCompleted, g_activeTelegram.state);
+  discard_telegram();
+}
+
+// not really a test (yet) but hey ;)
+void test_multiple() {
+  int i;
+  for (i = 0; i < 10; i++) {
+    process_received(SYN);
+    process_received(i);
+    process_received(SYN);
+  }
+  EbusTelegram* telegram;
+  while((telegram = (EbusTelegram*) telegramHistory.dequeue()) != NULL) {
+    printf("QQ: %d\n", telegram->getQQ());
+  }
 }
 
 int main(int argc, char **argv) {
@@ -127,6 +145,7 @@ int main(int argc, char **argv) {
   RUN_TEST(test_telegram_with_escape);
   RUN_TEST(test_telegram_master_master_completed_after_ack);
   RUN_TEST(test_telegram_master_slave_completed_after_response_ack);
+  RUN_TEST(test_multiple);
 
   UNITY_END();
 }

@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <queue.h>
 
 #include <cstdio>  //debug
 
@@ -66,11 +67,12 @@ struct EbusTelegram {
     endErrorRequestNackReceived = -2,
     endErrorResponseNackReceived = -3,
     endErrorInvalidCharacterReceived = -4,
+    endAbort = -99
   };
   bool waitForEscaped = false;
   int8_t state = EbusState::waitForSyn;
   int8_t type = Type::Unknown;
-  uint8_t requestBuffer[REQUEST_BUFFER_SIZE];
+  uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {0xAA};
   uint8_t requestBufferPos = 0;
   uint8_t requestRollingCRC = 0;
   uint8_t responseBuffer[RESPONSE_BUFFER_SIZE];
@@ -149,6 +151,7 @@ struct EbusTelegram {
   }
 
   bool isRequestComplete() {
+    //printf("state: %d\nbuf-pos: %d\nNN: %d\nwait-for-esc: %s\n", state, requestBufferPos, getNN(), waitForEscaped ? "t":"f");
     return state >= EbusState::waitForSyn && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
   }
 
@@ -168,8 +171,15 @@ struct EbusTelegram {
     return state >= EbusState::waitForSyn && isResponseComplete() && getResponseCRC() == responseRollingCRC;
   }
 
+  bool isFinished() {
+    return state <= EbusState::endCompleted;
+  }
+
 };
 
 extern EbusTelegram g_activeTelegram;
+extern Queue telegramHistory;
+extern Queue telegramToSend;
+
 
 #endif

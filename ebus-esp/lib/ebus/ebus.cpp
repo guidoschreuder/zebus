@@ -1,6 +1,10 @@
 #include <ebus.h>
+#include <stdlib.h>
+#include <cstring>
 
 EbusTelegram g_activeTelegram;
+Queue telegramHistory(50);
+Queue telegramToSend(50);
 
 uint8_t g_serialBuffer[EBUS_SERIAL_BUFFER_SIZE];
 volatile uint32_t g_serialBuffer_pos = 0;
@@ -71,6 +75,20 @@ void IRAM_ATTR process_received(int cr) {
     g_serialBuffer_pos = 0;
   }
 
+  if (g_activeTelegram.isFinished()) {
+    if (telegramHistory.is_full()) {
+      // discard oldest
+      EbusTelegram* discard = (EbusTelegram*) telegramHistory.dequeue();
+      free(discard);
+    }
+    EbusTelegram* copy = (EbusTelegram*) malloc(sizeof(EbusTelegram));
+    memcpy(copy, &g_activeTelegram, sizeof(struct EbusTelegram));
+    telegramHistory.enqueue(copy);
+
+    EbusTelegram newTelegram;
+    g_activeTelegram = newTelegram;
+  }
+
   switch (g_activeTelegram.state) {
   case EbusTelegram::EbusState::waitForSyn:
     if (receivedByte == SYN) {
@@ -80,11 +98,11 @@ void IRAM_ATTR process_received(int cr) {
   case EbusTelegram::EbusState::waitForRequestData:
     if (receivedByte == SYN) {
       g_activeTelegram.state = EbusTelegram::EbusState::endErrorUnexpectedSyn;
-      return;
-    }
-    g_activeTelegram.push_req_data(receivedByte);
-    if (g_activeTelegram.isRequestComplete()) {
-      g_activeTelegram.state = g_activeTelegram.ack_expected() ? EbusTelegram::EbusState::waitForRequestAck : EbusTelegram::EbusState::endCompleted;
+    } else {
+      g_activeTelegram.push_req_data(receivedByte);
+      if (g_activeTelegram.isRequestComplete()) {
+        g_activeTelegram.state = g_activeTelegram.ack_expected() ? EbusTelegram::EbusState::waitForRequestAck : EbusTelegram::EbusState::endCompleted;
+      }
     }
     break;
   case EbusTelegram::EbusState::waitForRequestAck:
@@ -102,11 +120,11 @@ void IRAM_ATTR process_received(int cr) {
   case EbusTelegram::EbusState::waitForResponseData:
     if (receivedByte == SYN) {
       g_activeTelegram.state = EbusTelegram::EbusState::endErrorUnexpectedSyn;
-      return;
-    }
-    g_activeTelegram.push_resp_data(receivedByte);
-    if (g_activeTelegram.isResponseComplete()) {
-      g_activeTelegram.state = EbusTelegram::EbusState::waitForResponseAck;
+    } else {
+      g_activeTelegram.push_resp_data(receivedByte);
+      if (g_activeTelegram.isResponseComplete()) {
+        g_activeTelegram.state = EbusTelegram::EbusState::waitForResponseAck;
+      }
     }
     break;
   case EbusTelegram::EbusState::waitForResponseAck:
@@ -122,5 +140,5 @@ void IRAM_ATTR process_received(int cr) {
     }
     break;
   }
-  
+
 }
