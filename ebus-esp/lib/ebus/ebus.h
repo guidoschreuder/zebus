@@ -3,7 +3,13 @@
 
 #include <stddef.h>
 #include <stdint.h>
+
+#ifndef QUEUE_H
 #include <queue.h>
+extern Queue telegramHistory;
+#else
+extern QueueHandle_t telegramHistory;
+#endif
 
 #include <cstdio>  //debug
 
@@ -48,6 +54,8 @@ unsigned char crc8_array(unsigned char data[], unsigned int length);
 
 bool is_master(uint8_t address);
 void IRAM_ATTR process_received(int cr);
+
+void IRAM_ATTR newActiveTelegram();
 
 struct EbusTelegram {
   enum Type {
@@ -165,7 +173,5 @@ struct EbusTelegram {
 };
 
 extern EbusTelegram g_activeTelegram;
-extern Queue telegramHistory;
-extern Queue telegramToSend;
 
 #endif

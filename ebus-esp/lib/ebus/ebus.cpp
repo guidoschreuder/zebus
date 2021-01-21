@@ -1,10 +1,15 @@
 #include <ebus.h>
 #include <stdlib.h>
+
 #include <cstring>
 
 EbusTelegram g_activeTelegram;
-Queue telegramHistory(50);
-Queue telegramToSend(50);
+
+#ifndef QUEUE_H
+Queue telegramHistory(5);
+#else
+QueueHandle_t telegramHistory;
+#endif
 
 uint8_t g_serialBuffer[EBUS_SERIAL_BUFFER_SIZE];
 volatile uint32_t g_serialBuffer_pos = 0;
@@ -67,6 +72,22 @@ bool is_master(uint8_t address) {
          is_master_nibble(get_sub_address(address));
 }
 
+void IRAM_ATTR newActiveTelegram() {
+#if !defined(QUEUE_H) && defined UNIT_TEST
+  if (telegramHistory.is_full()) {
+    // discard oldest
+    EbusTelegram* discard = (EbusTelegram*) telegramHistory.dequeue();
+    free(discard);
+  }
+  EbusTelegram* copy = (EbusTelegram*) malloc(sizeof(EbusTelegram));
+  memcpy(copy, &g_activeTelegram, sizeof(struct EbusTelegram));
+  telegramHistory.enqueue(copy);
+#endif
+
+  EbusTelegram newTelegram;
+  g_activeTelegram = newTelegram;
+}
+
 void IRAM_ATTR process_received(int cr) {
   uint8_t receivedByte = (uint8_t)cr;
 
@@ -76,17 +97,7 @@ void IRAM_ATTR process_received(int cr) {
   }
 
   if (g_activeTelegram.isFinished()) {
-    if (telegramHistory.is_full()) {
-      // discard oldest
-      EbusTelegram* discard = (EbusTelegram*) telegramHistory.dequeue();
-      free(discard);
-    }
-    EbusTelegram* copy = (EbusTelegram*) malloc(sizeof(EbusTelegram));
-    memcpy(copy, &g_activeTelegram, sizeof(struct EbusTelegram));
-    telegramHistory.enqueue(copy);
-
-    EbusTelegram newTelegram;
-    g_activeTelegram = newTelegram;
+    newActiveTelegram();
   }
 
   switch (g_activeTelegram.state) {
@@ -140,5 +151,4 @@ void IRAM_ATTR process_received(int cr) {
     }
     break;
   }
-
 }
