@@ -2,7 +2,7 @@
 
 #include <unity.h>
 #include <stdlib.h>
-#include "queue.h"
+#include "mock-queue.h"
 
 struct TestStruct {
   uint8_t int1;

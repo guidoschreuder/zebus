@@ -1,9 +1,8 @@
 #ifndef __QUEUE
 #define __QUEUE
 
-#include <stdbool.h>
+#include <cstdlib>
 #include <stdint.h>
-#include <stdlib.h>
 
 struct Queue {
   struct Node {
