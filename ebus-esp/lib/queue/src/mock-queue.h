@@ -1,8 +1,9 @@
 #ifndef __QUEUE
 #define __QUEUE
 
-#include <cstdlib>
 #include <stdint.h>
+
+#include <cstdlib>
 
 struct Queue {
   struct Node {
@@ -10,14 +11,22 @@ struct Queue {
     struct Node* next;
   };
 
+  enum OnFull {
+    ignore = 1,
+    removeOldest = 2,
+    overwriteHead = 3,
+    overwriteTail = 4,
+  };
   struct Node* head;
   struct Node* tail;
 
   uint16_t capacity;
   uint16_t size;
+  uint8_t on_full;
 
-  Queue(int max_capacity) {
+  Queue(int max_capacity, const int action_on_full) {
     capacity = max_capacity;
+    on_full = action_on_full;
   }
 
   bool is_full() {
@@ -26,7 +35,31 @@ struct Queue {
 
   int enqueue(void* data) {
     if (is_full()) {
-      return -1;
+      switch (on_full) {
+      case removeOldest:
+        struct Node* node;
+        node = head;
+        free(node->data);
+        node->data = data;
+        head = head->next;
+        tail->next = node;
+        tail = node;
+        return 0;
+        break;
+      case overwriteHead:
+        free(head->data);
+        head->data = data;
+        return 0;
+        break;
+      case overwriteTail:
+        free(tail->data);
+        tail->data = data;
+        return 0;
+        break;
+      case ignore:
+      default:
+        return -1;
+      }
     }
     struct Node* node = (struct Node*)malloc(sizeof(struct Node));
     if (node == NULL) {

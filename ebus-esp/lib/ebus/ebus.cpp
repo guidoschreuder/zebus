@@ -7,7 +7,7 @@ EbusTelegram g_activeTelegram;
 static const struct EbusTelegram EmptyTelegram;
 
 #ifdef __NATIVE
-Queue telegramHistoryMockQueue(5);
+Queue telegramHistoryMockQueue(5, Queue::OnFull::removeOldest);
 #endif
 
 unsigned char crc8_calc(unsigned char data, unsigned char crc_init) {
@@ -70,11 +70,6 @@ bool is_master(uint8_t address) {
 
 void IRAM_ATTR newActiveTelegram() {
 #ifdef __NATIVE
-  if (telegramHistoryMockQueue.is_full()) {
-    // discard oldest
-    EbusTelegram* discard = (EbusTelegram*)telegramHistoryMockQueue.dequeue();
-    free(discard);
-  }
   EbusTelegram* copy = (EbusTelegram*)malloc(sizeof(EbusTelegram));
   memcpy(copy, &g_activeTelegram, sizeof(struct EbusTelegram));
   telegramHistoryMockQueue.enqueue(copy);

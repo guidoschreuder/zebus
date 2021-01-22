@@ -128,6 +128,7 @@ void test_multiple() {
     process_received(SYN);
     process_received(i);
     process_received(SYN);
+    discard_telegram();
   }
   EbusTelegram* telegram;
   while((telegram = (EbusTelegram*) telegramHistoryMockQueue.dequeue()) != NULL) {
