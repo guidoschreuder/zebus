@@ -95,53 +95,53 @@ void IRAM_ATTR process_received(int cr) {
   }
 
   switch (g_activeTelegram.state) {
-  case EbusTelegram::EbusState::waitForSyn:
+  case EbusTelegram::State::waitForSyn:
     if (receivedByte == SYN) {
-      g_activeTelegram.state = EbusTelegram::EbusState::waitForRequestData;
+      g_activeTelegram.state = EbusTelegram::State::waitForRequestData;
     }
     break;
-  case EbusTelegram::EbusState::waitForRequestData:
+  case EbusTelegram::State::waitForRequestData:
     if (receivedByte == SYN) {
-//       g_activeTelegram.state = EbusTelegram::EbusState::endErrorUnexpectedSyn;
+//       g_activeTelegram.state = EbusTelegram::State::endErrorUnexpectedSyn;
     } else {
       g_activeTelegram.push_req_data(receivedByte);
       if (g_activeTelegram.isRequestComplete()) {
-        g_activeTelegram.state = g_activeTelegram.ack_expected() ? EbusTelegram::EbusState::waitForRequestAck : EbusTelegram::EbusState::endCompleted;
+        g_activeTelegram.state = g_activeTelegram.ack_expected() ? EbusTelegram::State::waitForRequestAck : EbusTelegram::State::endCompleted;
       }
     }
     break;
-  case EbusTelegram::EbusState::waitForRequestAck:
+  case EbusTelegram::State::waitForRequestAck:
     switch (cr) {
     case ACK:
-      g_activeTelegram.state = g_activeTelegram.response_expected() ? EbusTelegram::EbusState::waitForResponseData : EbusTelegram::EbusState::endCompleted;
+      g_activeTelegram.state = g_activeTelegram.response_expected() ? EbusTelegram::State::waitForResponseData : EbusTelegram::State::endCompleted;
       break;
     case NACK:
-      g_activeTelegram.state = EbusTelegram::EbusState::endErrorRequestNackReceived;
+      g_activeTelegram.state = EbusTelegram::State::endErrorRequestNackReceived;
       break;
     default:
-      g_activeTelegram.state = EbusTelegram::EbusState::endErrorRequestNoAck;
+      g_activeTelegram.state = EbusTelegram::State::endErrorRequestNoAck;
     }
     break;
-  case EbusTelegram::EbusState::waitForResponseData:
+  case EbusTelegram::State::waitForResponseData:
     if (receivedByte == SYN) {
-      g_activeTelegram.state = EbusTelegram::EbusState::endErrorUnexpectedSyn;
+      g_activeTelegram.state = EbusTelegram::State::endErrorUnexpectedSyn;
     } else {
       g_activeTelegram.push_resp_data(receivedByte);
       if (g_activeTelegram.isResponseComplete()) {
-        g_activeTelegram.state = EbusTelegram::EbusState::waitForResponseAck;
+        g_activeTelegram.state = EbusTelegram::State::waitForResponseAck;
       }
     }
     break;
-  case EbusTelegram::EbusState::waitForResponseAck:
+  case EbusTelegram::State::waitForResponseAck:
     switch (cr) {
     case ACK:
-      g_activeTelegram.state = EbusTelegram::EbusState::endCompleted;
+      g_activeTelegram.state = EbusTelegram::State::endCompleted;
       break;
     case NACK:
-      g_activeTelegram.state = EbusTelegram::EbusState::endErrorResponseNackReceived;
+      g_activeTelegram.state = EbusTelegram::State::endErrorResponseNackReceived;
       break;
     default:
-      g_activeTelegram.state = EbusTelegram::EbusState::endErrorResponseNoAck;
+      g_activeTelegram.state = EbusTelegram::State::endErrorResponseNoAck;
     }
     break;
   }

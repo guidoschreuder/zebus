@@ -58,7 +58,7 @@ struct EbusTelegram {
     MasterMaster = 1,
     MasterSlave = 2,
   };
-  enum EbusState {
+  enum State {
     waitForSyn = 1,  // no SYN seen yet
     waitForRequestData = 2,
     waitForRequestAck = 3,
@@ -74,7 +74,7 @@ struct EbusTelegram {
     endAbort = -99,
   };
   bool waitForEscaped = false;
-  int8_t state = EbusState::waitForSyn;
+  int8_t state = State::waitForSyn;
   uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {ESC}; // initialize QQ with ESC char to distinguish from valid master 0
   uint8_t requestBufferPos = 0;
   uint8_t requestRollingCRC = 0;
@@ -142,11 +142,11 @@ struct EbusTelegram {
 
   bool isRequestComplete() {
     //printf("state: %d\nbuf-pos: %d\nNN: %d\nwait-for-esc: %s\n", state, requestBufferPos, getNN(), waitForEscaped ? "t":"f");
-    return state >= EbusState::waitForSyn && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
+    return state >= State::waitForSyn && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
   }
 
   bool isRequestValid() {
-    return state >= EbusState::waitForSyn && isRequestComplete() && getRequestCRC() == requestRollingCRC;
+    return state >= State::waitForSyn && isRequestComplete() && getRequestCRC() == requestRollingCRC;
   }
 
   uint8_t getResponseCRC() {
@@ -154,11 +154,11 @@ struct EbusTelegram {
   }
 
   bool isResponseComplete() {
-    return state >= EbusState::waitForSyn && (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
+    return state >= State::waitForSyn && (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
   }
 
   bool isResponseValid() {
-    return state >= EbusState::waitForSyn && isResponseComplete() && getResponseCRC() == responseRollingCRC;
+    return state >= State::waitForSyn && isResponseComplete() && getResponseCRC() == responseRollingCRC;
   }
 
   bool isFinished() {
