@@ -107,6 +107,30 @@ void show(void *pvParameter) {
   }
 }
 
+void logHistoricMessages(void *pvParameter) {
+  struct EbusTelegram telegram;
+  bool gotFish;
+  while (1) {
+    gotFish = xQueueReceive(telegramHistoryQueue, &telegram, portMAX_DELAY);
+
+    printf("QQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\ndata(size: %d): ",  //
+           telegram.getQQ(),                                            //
+           telegram.getZZ(),                                            //
+           telegram.getPB(),                                            //
+           telegram.getSB(),                                            //
+           telegram.getNN());
+
+    int i;
+    for (i = 0; i < telegram.getNN(); i++) {
+      printf(" %02X", telegram.requestBuffer[i]);
+    }
+    printf("\n");
+    if (!gotFish) {
+      vTaskDelay(pdMS_TO_TICKS(100));
+    }
+  }
+}
+
 extern "C" {
 void app_main();
 }
@@ -116,7 +140,8 @@ void app_main() {
 
   setupQueues();
   setupEbusUart();
-  xTaskCreate(&show, "show", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+  //xTaskCreate(&show, "show", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+  xTaskCreate(&logHistoricMessages, "log-history", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
 }
 
 #else
