@@ -36,9 +36,6 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
     rx_fifo_len--;
   }
 
-  if (status != 256) {
-    printf("Status: %d", status);
-  }
   if (CHECK_INT_STATUS(status, UART_SW_XON_INT_ST)) {
     uart_clear_intr_status(UART_NUM_EBUS, UART_SW_XON_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_FRM_ERR_INT_ST)) {
@@ -75,58 +72,55 @@ void setupEbusUart() {
   };
   ESP_ERROR_CHECK(uart_param_config(UART_NUM_EBUS, &uart_config));
 
+  ESP_ERROR_CHECK(uart_set_pin(UART_NUM_EBUS, UART_PIN_NO_CHANGE, EBUS_UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+  ESP_ERROR_CHECK(uart_driver_install(UART_NUM_EBUS, 256, 0, 0, NULL, 0));
+
   uart_intr_config_t uart_intr = {
       .intr_enable_mask =
-          UART_RXFIFO_FULL_INT_ENA_M | UART_RXFIFO_TOUT_INT_ENA_M | UART_FRM_ERR_INT_ENA_M | UART_RXFIFO_OVF_INT_ENA_M | UART_BRK_DET_INT_ENA_M | UART_PARITY_ERR_INT_ENA_M,
+          UART_RXFIFO_FULL_INT_ENA_M,  //| UART_RXFIFO_TOUT_INT_ENA_M | UART_FRM_ERR_INT_ENA_M | UART_RXFIFO_OVF_INT_ENA_M | UART_BRK_DET_INT_ENA_M | UART_PARITY_ERR_INT_ENA_M,
       .rx_timeout_thresh = 10,
       .txfifo_empty_intr_thresh = 10,
       .rxfifo_full_thresh = 1,
   };
   ESP_ERROR_CHECK(uart_intr_config(UART_NUM_EBUS, &uart_intr));
 
-  ESP_ERROR_CHECK(uart_set_pin(UART_NUM_EBUS, UART_PIN_NO_CHANGE, EBUS_UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-  ESP_ERROR_CHECK(uart_driver_install(UART_NUM_EBUS, 256, 0, 0, NULL, 0));
-
   ESP_ERROR_CHECK(uart_isr_free(UART_NUM_EBUS));
   ESP_ERROR_CHECK(uart_isr_register(UART_NUM_EBUS, ebus_uart_intr_handle, NULL, ESP_INTR_FLAG_IRAM, NULL));
   ESP_ERROR_CHECK(uart_enable_rx_intr(UART_NUM_EBUS));
 }
 
-void show(void *pvParameter) {
-  int32_t i;
-  while (1) {
-    printf("%d: ", g_serialBuffer_pos);
-    for (i = 0; i < EBUS_SERIAL_BUFFER_SIZE; i++) {
-      if (i == g_serialBuffer_pos) {
-        printf(">");
-      }
-      printf("%02X", g_serialBuffer[i]);
-    }
-    printf("\n");
-    vTaskDelay(pdMS_TO_TICKS(100));
-  }
-}
-
 void logHistoricMessages(void *pvParameter) {
   struct EbusTelegram telegram;
-  bool gotFish;
   while (1) {
-    gotFish = xQueueReceive(telegramHistoryQueue, &telegram, portMAX_DELAY);
+    if (xQueueReceive(telegramHistoryQueue, &telegram, portMAX_DELAY)) {
+      printf(
+          "===========\n \
+            state: %d\n \
+            QQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\n \
+            req(size: %d, CRC: %02x): ",  //
+          telegram.state,                 //
+          telegram.getQQ(),               //
+          telegram.getZZ(),               //
+          telegram.getPB(),               //
+          telegram.getSB(),               //
+          telegram.getNN(),
+          telegram.getResponseCRC());
 
-    printf("QQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\ndata(size: %d): ",  //
-           telegram.getQQ(),                                            //
-           telegram.getZZ(),                                            //
-           telegram.getPB(),                                            //
-           telegram.getSB(),                                            //
-           telegram.getNN());
-
-    int i;
-    for (i = 0; i < telegram.getNN(); i++) {
-      printf(" %02X", telegram.requestBuffer[i]);
-    }
-    printf("\n");
-    if (!gotFish) {
-      vTaskDelay(pdMS_TO_TICKS(100));
+      int i;
+      for (i = 0; i < telegram.getNN(); i++) {
+        printf(" %02X", telegram.requestBuffer[OFFSET_DATA + i]);
+      }
+      printf("\n");
+      if (telegram.response_expected()) {
+        printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
+        for (i = 0; i < telegram.getResponseNN(); i++) {
+          printf(" %02X", telegram.responseBuffer[RESPONSE_OFFSET + i]);
+        }
+        printf("\n");
+      }
+      taskYIELD();
+    } else {
+      vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }
 }
@@ -136,12 +130,11 @@ void app_main();
 }
 
 void app_main() {
-  printf("Setup");
+  printf("Setup\n");
 
   setupQueues();
   setupEbusUart();
-  //xTaskCreate(&show, "show", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
-  xTaskCreate(&logHistoricMessages, "log-history", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+  xTaskCreate(&logHistoricMessages, "log-history", 2048, NULL, 5, NULL);
 }
 
 #else

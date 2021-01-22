@@ -4,13 +4,11 @@
 #include <cstring>
 
 EbusTelegram g_activeTelegram;
+static const struct EbusTelegram EmptyTelegram;
 
 #ifdef __NATIVE
 Queue telegramHistoryMockQueue(5);
 #endif
-
-uint8_t g_serialBuffer[EBUS_SERIAL_BUFFER_SIZE];
-volatile uint32_t g_serialBuffer_pos = 0;
 
 unsigned char crc8_calc(unsigned char data, unsigned char crc_init) {
   unsigned char crc;
@@ -81,20 +79,21 @@ void IRAM_ATTR newActiveTelegram() {
   memcpy(copy, &g_activeTelegram, sizeof(struct EbusTelegram));
   telegramHistoryMockQueue.enqueue(copy);
 #else
-  xQueueSend(telegramHistoryQueue, &g_activeTelegram, 0);
+
+  BaseType_t xHigherPriorityTaskWoken;
+  xHigherPriorityTaskWoken = pdFALSE;
+  xQueueSendToBackFromISR(telegramHistoryQueue, &g_activeTelegram, &xHigherPriorityTaskWoken);
+
+  if (xHigherPriorityTaskWoken) {
+    portYIELD_FROM_ISR();
+  }
 #endif
 
-  EbusTelegram newTelegram;
-  g_activeTelegram = newTelegram;
+  g_activeTelegram = EmptyTelegram;
 }
 
 void IRAM_ATTR process_received(int cr) {
   uint8_t receivedByte = (uint8_t)cr;
-
-  g_serialBuffer[g_serialBuffer_pos % EBUS_SERIAL_BUFFER_SIZE] = receivedByte;
-  if (++g_serialBuffer_pos == EBUS_SERIAL_BUFFER_SIZE) {
-    g_serialBuffer_pos = 0;
-  }
 
   if (g_activeTelegram.isFinished()) {
     newActiveTelegram();
@@ -108,7 +107,7 @@ void IRAM_ATTR process_received(int cr) {
     break;
   case EbusTelegram::EbusState::waitForRequestData:
     if (receivedByte == SYN) {
-      g_activeTelegram.state = EbusTelegram::EbusState::endErrorUnexpectedSyn;
+//       g_activeTelegram.state = EbusTelegram::EbusState::endErrorUnexpectedSyn;
     } else {
       g_activeTelegram.push_req_data(receivedByte);
       if (g_activeTelegram.isRequestComplete()) {
@@ -125,7 +124,7 @@ void IRAM_ATTR process_received(int cr) {
       g_activeTelegram.state = EbusTelegram::EbusState::endErrorRequestNackReceived;
       break;
     default:
-      g_activeTelegram.state = EbusTelegram::EbusState::endErrorInvalidCharacterReceived;
+      g_activeTelegram.state = EbusTelegram::EbusState::endErrorRequestNoAck;
     }
     break;
   case EbusTelegram::EbusState::waitForResponseData:
@@ -147,7 +146,7 @@ void IRAM_ATTR process_received(int cr) {
       g_activeTelegram.state = EbusTelegram::EbusState::endErrorResponseNackReceived;
       break;
     default:
-      g_activeTelegram.state = EbusTelegram::EbusState::endErrorInvalidCharacterReceived;
+      g_activeTelegram.state = EbusTelegram::EbusState::endErrorResponseNoAck;
     }
     break;
   }

@@ -43,10 +43,6 @@ extern Queue telegramHistory;
     return BUFFER[OFFSET_##POS]; \
   }
 
-// ring buffer for debug
-extern uint8_t g_serialBuffer[EBUS_SERIAL_BUFFER_SIZE];
-extern volatile uint32_t g_serialBuffer_pos;
-
 unsigned char crc8_calc(unsigned char data, unsigned char crc_init);
 unsigned char crc8_array(unsigned char data[], unsigned int length);
 
@@ -68,19 +64,21 @@ struct EbusTelegram {
     waitForRequestAck = 3,
     waitForResponseData = 4,
     waitForResponseAck = 5,
-    endCompleted = 0,
+    unknown = 0,
     endErrorUnexpectedSyn = -1,
     endErrorRequestNackReceived = -2,
     endErrorResponseNackReceived = -3,
-    endErrorInvalidCharacterReceived = -4,
-    endAbort = -99
+    endErrorResponseNoAck = -4,
+    endErrorRequestNoAck = -4,
+    endCompleted = -32,
+    endAbort = -99,
   };
   bool waitForEscaped = false;
   int8_t state = EbusState::waitForSyn;
-  uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {0xAA};
+  uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {ESC}; // initialize QQ with ESC char to distinguish from valid master 0
   uint8_t requestBufferPos = 0;
   uint8_t requestRollingCRC = 0;
-  uint8_t responseBuffer[RESPONSE_BUFFER_SIZE];
+  uint8_t responseBuffer[RESPONSE_BUFFER_SIZE] = {0};
   uint8_t responseBufferPos = 0;
   uint8_t responseRollingCRC = 0;
 
@@ -164,7 +162,7 @@ struct EbusTelegram {
   }
 
   bool isFinished() {
-    return state <= EbusState::endCompleted;
+    return state < 0;
   }
 };
 
