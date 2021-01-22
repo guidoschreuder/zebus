@@ -3,11 +3,12 @@
 
 #include <stdint.h>
 
-#ifndef QUEUE_H
+#ifdef __NATIVE
 #include "mock-queue.h"
 extern Queue telegramHistory;
 #else
-extern QueueHandle_t telegramHistory;
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #endif
 
 // for testing in native unit test we do not have ESP32 so fake it here
@@ -165,11 +166,14 @@ struct EbusTelegram {
   bool isFinished() {
     return state <= EbusState::endCompleted;
   }
-
-
-
 };
 
 extern EbusTelegram g_activeTelegram;
+
+#ifdef __NATIVE
+extern Queue telegramHistoryMockQueue;
+#else
+extern QueueHandle_t telegramHistoryQueue;
+#endif
 
 #endif

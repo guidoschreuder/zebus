@@ -5,10 +5,8 @@
 
 EbusTelegram g_activeTelegram;
 
-#ifndef QUEUE_H
-Queue telegramHistory(5);
-#else
-QueueHandle_t telegramHistory;
+#ifdef __NATIVE
+Queue telegramHistoryMockQueue(5);
 #endif
 
 uint8_t g_serialBuffer[EBUS_SERIAL_BUFFER_SIZE];
@@ -73,15 +71,17 @@ bool is_master(uint8_t address) {
 }
 
 void IRAM_ATTR newActiveTelegram() {
-#if !defined(QUEUE_H) && defined UNIT_TEST
-  if (telegramHistory.is_full()) {
+#ifdef __NATIVE
+  if (telegramHistoryMockQueue.is_full()) {
     // discard oldest
-    EbusTelegram* discard = (EbusTelegram*) telegramHistory.dequeue();
+    EbusTelegram* discard = (EbusTelegram*)telegramHistoryMockQueue.dequeue();
     free(discard);
   }
-  EbusTelegram* copy = (EbusTelegram*) malloc(sizeof(EbusTelegram));
+  EbusTelegram* copy = (EbusTelegram*)malloc(sizeof(EbusTelegram));
   memcpy(copy, &g_activeTelegram, sizeof(struct EbusTelegram));
-  telegramHistory.enqueue(copy);
+  telegramHistoryMockQueue.enqueue(copy);
+#else
+  xQueueSend(telegramHistoryQueue, &g_activeTelegram, 0);
 #endif
 
   EbusTelegram newTelegram;

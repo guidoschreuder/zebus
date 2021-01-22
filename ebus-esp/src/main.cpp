@@ -20,6 +20,7 @@
 
 #define CHECK_INT_STATUS(ST, MASK) (((ST) & (MASK)) == (MASK))
 
+QueueHandle_t telegramHistoryQueue;
 StaticQueue_t telegramQueueBuffer;
 uint8_t telegramQueueStorage[EBUS_TELEGRAM_HISTORY * sizeof(EbusTelegram)];
 
@@ -55,10 +56,11 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
 }
 
 void setupQueues() {
-  telegramHistory = xQueueCreateStatic(EBUS_TELEGRAM_HISTORY,       //
-                                       sizeof(EbusTelegram),        //
-                                       &(telegramQueueStorage[0]),  //
-                                       &telegramQueueBuffer);
+  telegramHistoryQueue = xQueueCreateStatic(
+      EBUS_TELEGRAM_HISTORY,       //
+      sizeof(EbusTelegram),        //
+      &(telegramQueueStorage[0]),  //
+      &telegramQueueBuffer);
 }
 
 void setupEbusUart() {

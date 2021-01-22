@@ -130,7 +130,7 @@ void test_multiple() {
     process_received(SYN);
   }
   EbusTelegram* telegram;
-  while((telegram = (EbusTelegram*) telegramHistory.dequeue()) != NULL) {
+  while((telegram = (EbusTelegram*) telegramHistoryMockQueue.dequeue()) != NULL) {
     printf("QQ: %d\n", telegram->getQQ());
   }
 }
