@@ -10,7 +10,7 @@ struct TestStruct {
 };
 
 void test_queue() {
-  Queue q(5);
+  Queue q(5, Queue::OnFull::ignore);
   struct TestStruct *obj1 = (struct TestStruct*)malloc(sizeof(struct TestStruct));
   obj1->int1 = 14;
   obj1->int2 = 32;
