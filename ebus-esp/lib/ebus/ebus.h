@@ -50,60 +50,44 @@ void IRAM_ATTR ebus_process_received_char(int cr);
 
 void IRAM_ATTR new_active_telegram();
 
-struct EbusTelegram {
-  enum Type {
-    Unknown = -1,
-    Broadcast = 0,
-    MasterMaster = 1,
-    MasterSlave = 2,
-  };
-  enum State {
-    waitForSyn = 1,  // no SYN seen yet
-    waitForRequestData = 2,
-    waitForRequestAck = 3,
-    waitForResponseData = 4,
-    waitForResponseAck = 5,
-    unknown = 0,
-    endErrorUnexpectedSyn = -1,
-    endErrorRequestNackReceived = -2,
-    endErrorResponseNackReceived = -3,
-    endErrorResponseNoAck = -4,
-    endErrorRequestNoAck = -4,
-    endCompleted = -32,
-    endAbort = -99,
-  };
+namespace Ebus {
+
+enum TelegramType : int8_t {
+  Unknown = -1,
+  Broadcast = 0,
+  MasterMaster = 1,
+  MasterSlave = 2,
+};
+enum TelegramState : int8_t {
+  waitForSyn = 1,  // no SYN seen yet
+  waitForRequestData = 2,
+  waitForRequestAck = 3,
+  waitForResponseData = 4,
+  waitForResponseAck = 5,
+  unknown = 0,
+  endErrorUnexpectedSyn = -1,
+  endErrorRequestNackReceived = -2,
+  endErrorResponseNackReceived = -3,
+  endErrorResponseNoAck = -4,
+  endErrorRequestNoAck = -4,
+  endCompleted = -32,
+  endAbort = -99,
+};
+
+class Telegram {
+  TelegramState state = TelegramState::waitForSyn;
   bool waitForEscaped = false;
-  int8_t state = State::waitForSyn;
-  uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {ESC, ESC}; // initialize QQ and ZZ with ESC char to distinguish from valid master 0
+  uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {ESC, ESC};  // initialize QQ and ZZ with ESC char to distinguish from valid master 0
   uint8_t requestBufferPos = 0;
   uint8_t requestRollingCRC = 0;
   uint8_t responseBuffer[RESPONSE_BUFFER_SIZE] = {0};
   uint8_t responseBufferPos = 0;
   uint8_t responseRollingCRC = 0;
+  void pushBuffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *crc, int max_pos);
+  TelegramType getType();
 
-  void push_req_data(uint8_t cr) {
-    push_buffer(cr, requestBuffer, &requestBufferPos, &requestRollingCRC, OFFSET_DATA + getNN());
-  }
-
-  void push_resp_data(uint8_t cr) {
-    push_buffer(cr, responseBuffer, &responseBufferPos, &responseRollingCRC, RESPONSE_OFFSET + getResponseNN());
-  }
-
-  void push_buffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *crc, int max_pos) {
-    if (waitForEscaped) {
-      if (*pos < max_pos) {
-        *crc = crc8_calc(cr, *crc);
-      }
-      buffer[(*pos)] = (cr == 0x0 ? ESC : SYN);
-      waitForEscaped = false;
-    } else {
-      if (*pos < max_pos) {
-        *crc = crc8_calc(cr, *crc);
-      }
-      buffer[(*pos)++] = cr;
-      waitForEscaped = (cr == ESC);
-    }
-  }
+  public:
+  Telegram();
 
   _GETTER(requestBuffer, QQ);
   _GETTER(requestBuffer, ZZ);
@@ -114,57 +98,27 @@ struct EbusTelegram {
     return responseBuffer[0];
   }
 
-  int8_t get_type() {
-    if (getZZ() == ESC) {
-      return Type::Unknown;
-    }
-    if (getZZ() == BROADCAST_ADDRESS) {
-      return Type::Broadcast;
-    }
-    if (is_master(getZZ())) {
-      return Type::MasterMaster;
-    }
-    return Type::MasterSlave;
-  }
+  TelegramState getState();
+  void setState(TelegramState newState);
 
-  bool isAckExpected() {
-    return (get_type() != Type::Broadcast);
-  }
+  int16_t getRequestByte(uint8_t pos);
+  uint8_t getRequestCRC();
+  int16_t getResponseByte(uint8_t pos);
+  uint8_t getResponseCRC();
 
-  bool isResponseExpected() {
-    return (get_type() == Type::MasterSlave);
-  }
-
-  uint8_t getRequestCRC() {
-    return requestBuffer[OFFSET_DATA + getNN()];
-  }
-
-  bool isRequestComplete() {
-    return state >= State::waitForSyn && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
-  }
-
-  bool isRequestValid() {
-    return isRequestComplete() && getRequestCRC() == requestRollingCRC;
-  }
-
-  uint8_t getResponseCRC() {
-    return responseBuffer[RESPONSE_OFFSET + getResponseNN()];
-  }
-
-  bool isResponseComplete() {
-    return state >= State::waitForSyn && (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
-  }
-
-  bool isResponseValid() {
-    return isResponseComplete() && getResponseCRC() == responseRollingCRC;
-  }
-
-  bool isFinished() {
-    return state < 0;
-  }
+  void pushReqData(uint8_t cr);
+  void pushRespData(uint8_t cr);
+  bool isAckExpected();
+  bool isResponseExpected();
+  bool isRequestComplete();
+  bool isRequestValid();
+  bool isResponseComplete();
+  bool isResponseValid();
+  bool isFinished();
 };
+}  // namespace Ebus
 
-extern EbusTelegram g_activeTelegram;
+extern Ebus::Telegram g_activeTelegram;
 
 #ifdef __NATIVE
 extern Queue telegramHistoryMockQueue;

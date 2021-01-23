@@ -22,7 +22,7 @@
 
 QueueHandle_t telegramHistoryQueue;
 StaticQueue_t telegramQueueBuffer;
-uint8_t telegramQueueStorage[EBUS_TELEGRAM_HISTORY * sizeof(EbusTelegram)];
+uint8_t telegramQueueStorage[EBUS_TELEGRAM_HISTORY * sizeof(Ebus::Telegram)];
 
 static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
   uint16_t status = UART_EBUS.int_st.val;  // read UART interrupt Status
@@ -54,9 +54,9 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
 
 void setupQueues() {
   telegramHistoryQueue = xQueueCreateStatic(
-      EBUS_TELEGRAM_HISTORY,       //
-      sizeof(EbusTelegram),        //
-      &(telegramQueueStorage[0]),  //
+      EBUS_TELEGRAM_HISTORY,
+      sizeof(Ebus::Telegram),
+      &(telegramQueueStorage[0]),
       &telegramQueueBuffer);
 }
 
@@ -90,7 +90,7 @@ void setupEbusUart() {
 }
 
 void logHistoricMessages(void *pvParameter) {
-  struct EbusTelegram telegram;
+  Ebus::Telegram telegram;
   while (1) {
     if (xQueueReceive(telegramHistoryQueue, &telegram, portMAX_DELAY)) {
       printf(
@@ -98,23 +98,23 @@ void logHistoricMessages(void *pvParameter) {
             state: %d\n \
             QQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\n \
             req(size: %d, CRC: %02x): ",  //
-          telegram.state,                 //
-          telegram.getQQ(),               //
-          telegram.getZZ(),               //
-          telegram.getPB(),               //
-          telegram.getSB(),               //
+          telegram.getState(),
+          telegram.getQQ(),
+          telegram.getZZ(),
+          telegram.getPB(),
+          telegram.getSB(),
           telegram.getNN(),
           telegram.getResponseCRC());
 
       int i;
       for (i = 0; i < telegram.getNN(); i++) {
-        printf(" %02X", telegram.requestBuffer[OFFSET_DATA + i]);
+        printf(" %02X", telegram.getRequestByte(i));
       }
       printf("\n");
       if (telegram.isResponseExpected()) {
         printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
         for (i = 0; i < telegram.getResponseNN(); i++) {
-          printf(" %02X", telegram.responseBuffer[RESPONSE_OFFSET + i]);
+          printf(" %02X", telegram.getResponseByte(i));
         }
         printf("\n");
       }

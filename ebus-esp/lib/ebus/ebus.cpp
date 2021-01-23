@@ -3,8 +3,7 @@
 
 #include <cstring>
 
-EbusTelegram g_activeTelegram;
-static const struct EbusTelegram EmptyTelegram;
+Ebus::Telegram g_activeTelegram = Ebus::Telegram();
 
 #ifdef __NATIVE
 Queue telegramHistoryMockQueue(5, Queue::OnFull::removeOldest);
@@ -42,6 +41,109 @@ unsigned char crc8_array(unsigned char data[], unsigned int length) {
   return (uc_crc);
 }
 
+namespace Ebus {
+
+Telegram::Telegram() {
+
+}
+
+void Telegram::pushBuffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *crc, int max_pos) {
+  if (waitForEscaped) {
+    if (*pos < max_pos) {
+      *crc = crc8_calc(cr, *crc);
+    }
+    buffer[(*pos)] = (cr == 0x0 ? ESC : SYN);
+    waitForEscaped = false;
+  } else {
+    if (*pos < max_pos) {
+      *crc = crc8_calc(cr, *crc);
+    }
+    buffer[(*pos)++] = cr;
+    waitForEscaped = (cr == ESC);
+  }
+}
+
+TelegramState Telegram::getState() {
+  return state;
+}
+
+void Telegram::setState(TelegramState newState) {
+  state = newState;
+}
+
+int16_t Telegram::getRequestByte(uint8_t pos) {
+  if (pos >= getNN()) {
+    return -1;
+  }
+  return requestBuffer[OFFSET_DATA + pos];
+}
+
+uint8_t Telegram::getRequestCRC() {
+  return requestBuffer[OFFSET_DATA + getNN()];
+}
+
+int16_t Telegram::getResponseByte(uint8_t pos) {
+  if (pos >= getResponseNN()) {
+    return -1;
+  }
+  return responseBuffer[RESPONSE_OFFSET + pos];
+}
+
+uint8_t Telegram::getResponseCRC() {
+  return responseBuffer[RESPONSE_OFFSET + getResponseNN()];
+}
+
+
+void Telegram::pushReqData(uint8_t cr) {
+  pushBuffer(cr, requestBuffer, &requestBufferPos, &requestRollingCRC, OFFSET_DATA + getNN());
+}
+void Telegram::pushRespData(uint8_t cr) {
+  pushBuffer(cr, responseBuffer, &responseBufferPos, &responseRollingCRC, RESPONSE_OFFSET + getResponseNN());
+}
+
+TelegramType Telegram::getType() {
+  if (getZZ() == ESC) {
+    return TelegramType::Unknown;
+  }
+  if (getZZ() == BROADCAST_ADDRESS) {
+    return TelegramType::Broadcast;
+  }
+  if (is_master(getZZ())) {
+    return TelegramType::MasterMaster;
+  }
+  return TelegramType::MasterSlave;
+}
+
+bool Telegram::isAckExpected() {
+  return (getType() != TelegramType::Broadcast);
+}
+
+bool Ebus::Telegram::isResponseExpected() {
+  return (getType() == TelegramType::MasterSlave);
+}
+
+bool Telegram::isRequestComplete() {
+  return state >= TelegramState::waitForSyn && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
+}
+
+bool Telegram::isRequestValid() {
+  return isRequestComplete() && getRequestCRC() == requestRollingCRC;
+}
+
+bool Telegram::isResponseComplete() {
+  return state >= TelegramState::waitForSyn && (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
+}
+
+bool Telegram::isResponseValid() {
+  return isResponseComplete() && getResponseCRC() == responseRollingCRC;
+}
+
+bool Telegram::isFinished() {
+  return state < 0;
+}
+
+}  // namespace Ebus
+
 int is_master_nibble(uint8_t nibble) {
   switch (nibble) {
   case 0b0000:
@@ -70,8 +172,8 @@ bool is_master(uint8_t address) {
 
 void IRAM_ATTR new_active_telegram() {
 #ifdef __NATIVE
-  EbusTelegram* copy = (EbusTelegram*)malloc(sizeof(EbusTelegram));
-  memcpy(copy, &g_activeTelegram, sizeof(struct EbusTelegram));
+  Ebus::Telegram *copy = (Ebus::Telegram *)malloc(sizeof(Ebus::Telegram));
+  memcpy(copy, &g_activeTelegram, sizeof(Ebus::Telegram));
   telegramHistoryMockQueue.enqueue(copy);
 #else
 
@@ -84,7 +186,7 @@ void IRAM_ATTR new_active_telegram() {
   }
 #endif
 
-  g_activeTelegram = EmptyTelegram;
+  g_activeTelegram = Ebus::Telegram();
 }
 
 void IRAM_ATTR ebus_process_received_char(int cr) {
@@ -94,55 +196,57 @@ void IRAM_ATTR ebus_process_received_char(int cr) {
     new_active_telegram();
   }
 
-  switch (g_activeTelegram.state) {
-  case EbusTelegram::State::waitForSyn:
+  switch (g_activeTelegram.getState()) {
+  case Ebus::TelegramState::waitForSyn:
     if (receivedByte == SYN) {
-      g_activeTelegram.state = EbusTelegram::State::waitForRequestData;
+      g_activeTelegram.setState(Ebus::TelegramState::waitForRequestData);
     }
     break;
-  case EbusTelegram::State::waitForRequestData:
+  case Ebus::TelegramState::waitForRequestData:
     if (receivedByte == SYN) {
       //       g_activeTelegram.state = EbusTelegram::State::endErrorUnexpectedSyn;
     } else {
-      g_activeTelegram.push_req_data(receivedByte);
+      g_activeTelegram.pushReqData(receivedByte);
       if (g_activeTelegram.isRequestComplete()) {
-        g_activeTelegram.state = g_activeTelegram.isAckExpected() ? EbusTelegram::State::waitForRequestAck : EbusTelegram::State::endCompleted;
+        g_activeTelegram.setState(g_activeTelegram.isAckExpected() ? Ebus::TelegramState::waitForRequestAck : Ebus::TelegramState::endCompleted);
       }
     }
     break;
-  case EbusTelegram::State::waitForRequestAck:
+  case Ebus::TelegramState::waitForRequestAck:
     switch (cr) {
     case ACK:
-      g_activeTelegram.state = g_activeTelegram.isResponseExpected() ? EbusTelegram::State::waitForResponseData : EbusTelegram::State::endCompleted;
+      g_activeTelegram.setState(g_activeTelegram.isResponseExpected() ? Ebus::TelegramState::waitForResponseData : Ebus::TelegramState::endCompleted);
       break;
     case NACK:
-      g_activeTelegram.state = EbusTelegram::State::endErrorRequestNackReceived;
+      g_activeTelegram.setState(Ebus::TelegramState::endErrorRequestNackReceived);
       break;
     default:
-      g_activeTelegram.state = EbusTelegram::State::endErrorRequestNoAck;
+      g_activeTelegram.setState(Ebus::TelegramState::endErrorRequestNoAck);
     }
     break;
-  case EbusTelegram::State::waitForResponseData:
+  case Ebus::TelegramState::waitForResponseData:
     if (receivedByte == SYN) {
-      g_activeTelegram.state = EbusTelegram::State::endErrorUnexpectedSyn;
+      g_activeTelegram.setState(Ebus::TelegramState::endErrorUnexpectedSyn);
     } else {
-      g_activeTelegram.push_resp_data(receivedByte);
+      g_activeTelegram.pushRespData(receivedByte);
       if (g_activeTelegram.isResponseComplete()) {
-        g_activeTelegram.state = EbusTelegram::State::waitForResponseAck;
+        g_activeTelegram.setState(Ebus::TelegramState::waitForResponseAck);
       }
     }
     break;
-  case EbusTelegram::State::waitForResponseAck:
+  case Ebus::TelegramState::waitForResponseAck:
     switch (cr) {
     case ACK:
-      g_activeTelegram.state = EbusTelegram::State::endCompleted;
+      g_activeTelegram.setState(Ebus::TelegramState::endCompleted);
       break;
     case NACK:
-      g_activeTelegram.state = EbusTelegram::State::endErrorResponseNackReceived;
+      g_activeTelegram.setState(Ebus::TelegramState::endErrorResponseNackReceived);
       break;
     default:
-      g_activeTelegram.state = EbusTelegram::State::endErrorResponseNoAck;
+      g_activeTelegram.setState(Ebus::TelegramState::endErrorResponseNoAck);
     }
+    break;
+  default:
     break;
   }
 }
