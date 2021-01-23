@@ -68,7 +68,7 @@ bool is_master(uint8_t address) {
          is_master_nibble(get_sub_address(address));
 }
 
-void IRAM_ATTR newActiveTelegram() {
+void IRAM_ATTR new_active_telegram() {
 #ifdef __NATIVE
   EbusTelegram* copy = (EbusTelegram*)malloc(sizeof(EbusTelegram));
   memcpy(copy, &g_activeTelegram, sizeof(struct EbusTelegram));
@@ -87,11 +87,11 @@ void IRAM_ATTR newActiveTelegram() {
   g_activeTelegram = EmptyTelegram;
 }
 
-void IRAM_ATTR process_received(int cr) {
+void IRAM_ATTR ebus_process_received_char(int cr) {
   uint8_t receivedByte = (uint8_t)cr;
 
   if (g_activeTelegram.isFinished()) {
-    newActiveTelegram();
+    new_active_telegram();
   }
 
   switch (g_activeTelegram.state) {
@@ -102,18 +102,18 @@ void IRAM_ATTR process_received(int cr) {
     break;
   case EbusTelegram::State::waitForRequestData:
     if (receivedByte == SYN) {
-//       g_activeTelegram.state = EbusTelegram::State::endErrorUnexpectedSyn;
+      //       g_activeTelegram.state = EbusTelegram::State::endErrorUnexpectedSyn;
     } else {
       g_activeTelegram.push_req_data(receivedByte);
       if (g_activeTelegram.isRequestComplete()) {
-        g_activeTelegram.state = g_activeTelegram.ack_expected() ? EbusTelegram::State::waitForRequestAck : EbusTelegram::State::endCompleted;
+        g_activeTelegram.state = g_activeTelegram.isAckExpected() ? EbusTelegram::State::waitForRequestAck : EbusTelegram::State::endCompleted;
       }
     }
     break;
   case EbusTelegram::State::waitForRequestAck:
     switch (cr) {
     case ACK:
-      g_activeTelegram.state = g_activeTelegram.response_expected() ? EbusTelegram::State::waitForResponseData : EbusTelegram::State::endCompleted;
+      g_activeTelegram.state = g_activeTelegram.isResponseExpected() ? EbusTelegram::State::waitForResponseData : EbusTelegram::State::endCompleted;
       break;
     case NACK:
       g_activeTelegram.state = EbusTelegram::State::endErrorRequestNackReceived;

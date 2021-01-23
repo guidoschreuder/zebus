@@ -17,7 +17,6 @@ extern Queue telegramHistory;
 #endif
 
 #define EBUS_SLAVE_ADDRESS(MASTER) (((MASTER) + 5) % 0xFF)
-#define EBUS_SERIAL_BUFFER_SIZE 64
 
 #define SYN 0xAA
 #define ESC 0xA9
@@ -47,9 +46,9 @@ unsigned char crc8_calc(unsigned char data, unsigned char crc_init);
 unsigned char crc8_array(unsigned char data[], unsigned int length);
 
 bool is_master(uint8_t address);
-void IRAM_ATTR process_received(int cr);
+void IRAM_ATTR ebus_process_received_char(int cr);
 
-void IRAM_ATTR newActiveTelegram();
+void IRAM_ATTR new_active_telegram();
 
 struct EbusTelegram {
   enum Type {
@@ -75,7 +74,7 @@ struct EbusTelegram {
   };
   bool waitForEscaped = false;
   int8_t state = State::waitForSyn;
-  uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {ESC}; // initialize QQ with ESC char to distinguish from valid master 0
+  uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {ESC, ESC}; // initialize QQ and ZZ with ESC char to distinguish from valid master 0
   uint8_t requestBufferPos = 0;
   uint8_t requestRollingCRC = 0;
   uint8_t responseBuffer[RESPONSE_BUFFER_SIZE] = {0};
@@ -116,7 +115,7 @@ struct EbusTelegram {
   }
 
   int8_t get_type() {
-    if (getZZ() == 0xAA) {
+    if (getZZ() == ESC) {
       return Type::Unknown;
     }
     if (getZZ() == BROADCAST_ADDRESS) {
@@ -128,11 +127,11 @@ struct EbusTelegram {
     return Type::MasterSlave;
   }
 
-  bool ack_expected() {
+  bool isAckExpected() {
     return (get_type() != Type::Broadcast);
   }
 
-  bool response_expected() {
+  bool isResponseExpected() {
     return (get_type() == Type::MasterSlave);
   }
 
@@ -141,12 +140,11 @@ struct EbusTelegram {
   }
 
   bool isRequestComplete() {
-    //printf("state: %d\nbuf-pos: %d\nNN: %d\nwait-for-esc: %s\n", state, requestBufferPos, getNN(), waitForEscaped ? "t":"f");
     return state >= State::waitForSyn && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
   }
 
   bool isRequestValid() {
-    return state >= State::waitForSyn && isRequestComplete() && getRequestCRC() == requestRollingCRC;
+    return isRequestComplete() && getRequestCRC() == requestRollingCRC;
   }
 
   uint8_t getResponseCRC() {
@@ -158,7 +156,7 @@ struct EbusTelegram {
   }
 
   bool isResponseValid() {
-    return state >= State::waitForSyn && isResponseComplete() && getResponseCRC() == responseRollingCRC;
+    return isResponseComplete() && getResponseCRC() == responseRollingCRC;
   }
 
   bool isFinished() {

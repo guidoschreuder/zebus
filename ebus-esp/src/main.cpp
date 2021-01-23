@@ -32,7 +32,7 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
 
   uint16_t rx_fifo_len = UART_EBUS.status.rxfifo_cnt;  // read number of bytes in UART buffer
   while (rx_fifo_len) {
-    process_received(UART_EBUS.fifo.rw_byte);
+    ebus_process_received_char(UART_EBUS.fifo.rw_byte);
     rx_fifo_len--;
   }
 
@@ -111,7 +111,7 @@ void logHistoricMessages(void *pvParameter) {
         printf(" %02X", telegram.requestBuffer[OFFSET_DATA + i]);
       }
       printf("\n");
-      if (telegram.response_expected()) {
+      if (telegram.isResponseExpected()) {
         printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
         for (i = 0; i < telegram.getResponseNN(); i++) {
           printf(" %02X", telegram.responseBuffer[RESPONSE_OFFSET + i]);
