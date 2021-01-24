@@ -108,7 +108,7 @@ class Ebus {
   Telegram activeTelegram;
 
   public:
-  Ebus(uint8_t master);
+  explicit Ebus(uint8_t master);
   void setUartSendFunction(void (*uartSend)(const char *, int16_t size));
   void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
   void IRAM_ATTR processReceivedChar(int cr);

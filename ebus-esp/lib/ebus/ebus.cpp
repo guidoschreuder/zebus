@@ -191,7 +191,6 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
           activeTelegram.getSB() == 0x04) {
         buf[len++] = ACK;
         uint8_t fixedResponse[] = {0xA, 0xDD, 0x47, 0x75, 0x69, 0x64, 0x6F, 0x01, 0x02, 0x03, 0x04, 0x31};
-        int i;
         for (int i = 0; i < sizeof(fixedResponse) / sizeof(uint8_t); i++) {
           buf[len++] = (uint8_t) fixedResponse[i];
         }
@@ -215,10 +214,9 @@ Telegram Ebus::getActiveTelegram() {
 unsigned char Ebus::Elf::crc8Calc(unsigned char data, unsigned char crc_init) {
   unsigned char crc;
   unsigned char polynom;
-  int i;
 
   crc = crc_init;
-  for (i = 0; i < 8; i++) {
+  for (int i = 0; i < 8; i++) {
     if (crc & 0x80) {
       polynom = (unsigned char)0x9B;
     } else {
@@ -235,10 +233,9 @@ unsigned char Ebus::Elf::crc8Calc(unsigned char data, unsigned char crc_init) {
 }
 
 unsigned char Ebus::Elf::crc8Array(unsigned char data[], unsigned int length) {
-  int i;
   unsigned char uc_crc;
   uc_crc = (unsigned char)0;
-  for (i = 0; i < length; i++) {
+  for (int i = 0; i < length; i++) {
     uc_crc = crc8Calc(data[i], uc_crc);
   }
   return (uc_crc);

@@ -123,14 +123,13 @@ void logHistoricMessages(void *pvParameter) {
           telegram.getNN(),
           telegram.getResponseCRC());
 
-      int i;
-      for (i = 0; i < telegram.getNN(); i++) {
+      for (int i = 0; i < telegram.getNN(); i++) {
         printf(" %02X", telegram.getRequestByte(i));
       }
       printf("\n");
       if (telegram.isResponseExpected()) {
         printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
-        for (i = 0; i < telegram.getResponseNN(); i++) {
+        for (int i = 0; i < telegram.getResponseNN(); i++) {
           printf(" %02X", telegram.getResponseByte(i));
         }
         printf("\n");

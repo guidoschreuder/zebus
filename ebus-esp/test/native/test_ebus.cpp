@@ -23,8 +23,7 @@
 #define SEND(auc_bytestream_param)                         \
   do {                                                     \
     unsigned char auc_bytestream[] = auc_bytestream_param; \
-    int i;                                                 \
-    for (i = 0; i < sizeof(auc_bytestream); i++) {         \
+    for (int i = 0; i < sizeof(auc_bytestream); i++) {     \
       ebus.processReceivedChar(auc_bytestream[i]);         \
     }                                                      \
   } while (0);
@@ -53,8 +52,7 @@ void test_is_master() {
 }
 
 void uartSend(const char* src, int16_t size) {
-  int i;
-  for (i = 0; i < size; i++) {
+  for (int i = 0; i < size; i++) {
     ebus.processReceivedChar((uint8_t) src[i]);
   }
 }
@@ -162,8 +160,7 @@ void test_telegram_identity_response() {
 
 // not really a test (yet) but hey ;)
 void test_multiple() {
-  int i;
-  for (i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++) {
     ebus.processReceivedChar(SYN);
     ebus.processReceivedChar(i);
     ebus.processReceivedChar(SYN);
