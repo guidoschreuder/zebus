@@ -1,62 +1,20 @@
 #include <ebus.h>
-#include <stdlib.h>
-
-#include <cstring>
-
-Ebus::Telegram g_activeTelegram = Ebus::Telegram();
-
-#ifdef __NATIVE
-Queue telegramHistoryMockQueue(5, Queue::OnFull::removeOldest);
-#endif
-
-unsigned char crc8_calc(unsigned char data, unsigned char crc_init) {
-  unsigned char crc;
-  unsigned char polynom;
-  int i;
-
-  crc = crc_init;
-  for (i = 0; i < 8; i++) {
-    if (crc & 0x80) {
-      polynom = (unsigned char)0x9B;
-    } else {
-      polynom = (unsigned char)0;
-    }
-    crc = (unsigned char)((crc & ~0x80) << 1);
-    if (data & 0x80) {
-      crc = (unsigned char)(crc | 1);
-    }
-    crc = (unsigned char)(crc ^ polynom);
-    data = (unsigned char)(data << 1);
-  }
-  return (crc);
-}
-
-unsigned char crc8_array(unsigned char data[], unsigned int length) {
-  int i;
-  unsigned char uc_crc;
-  uc_crc = (unsigned char)0;
-  for (i = 0; i < length; i++) {
-    uc_crc = crc8_calc(data[i], uc_crc);
-  }
-  return (uc_crc);
-}
 
 namespace Ebus {
 
 Telegram::Telegram() {
-
 }
 
 void Telegram::pushBuffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *crc, int max_pos) {
   if (waitForEscaped) {
     if (*pos < max_pos) {
-      *crc = crc8_calc(cr, *crc);
+      *crc = Ebus::Elf::crc8Calc(cr, *crc);
     }
     buffer[(*pos)] = (cr == 0x0 ? ESC : SYN);
     waitForEscaped = false;
   } else {
     if (*pos < max_pos) {
-      *crc = crc8_calc(cr, *crc);
+      *crc = Ebus::Elf::crc8Calc(cr, *crc);
     }
     buffer[(*pos)++] = cr;
     waitForEscaped = (cr == ESC);
@@ -93,7 +51,6 @@ uint8_t Telegram::getResponseCRC() {
   return responseBuffer[RESPONSE_OFFSET + getResponseNN()];
 }
 
-
 void Telegram::pushReqData(uint8_t cr) {
   pushBuffer(cr, requestBuffer, &requestBufferPos, &requestRollingCRC, OFFSET_DATA + getNN());
 }
@@ -108,7 +65,7 @@ TelegramType Telegram::getType() {
   if (getZZ() == BROADCAST_ADDRESS) {
     return TelegramType::Broadcast;
   }
-  if (is_master(getZZ())) {
+  if (Ebus::Elf::isMaster(getZZ())) {
     return TelegramType::MasterMaster;
   }
   return TelegramType::MasterSlave;
@@ -118,12 +75,12 @@ bool Telegram::isAckExpected() {
   return (getType() != TelegramType::Broadcast);
 }
 
-bool Ebus::Telegram::isResponseExpected() {
+bool Telegram::isResponseExpected() {
   return (getType() == TelegramType::MasterSlave);
 }
 
 bool Telegram::isRequestComplete() {
-  return state >= TelegramState::waitForSyn && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
+  return (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
 }
 
 bool Telegram::isRequestValid() {
@@ -131,7 +88,7 @@ bool Telegram::isRequestValid() {
 }
 
 bool Telegram::isResponseComplete() {
-  return state >= TelegramState::waitForSyn && (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
+  return (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
 }
 
 bool Telegram::isResponseValid() {
@@ -139,12 +96,160 @@ bool Telegram::isResponseValid() {
 }
 
 bool Telegram::isFinished() {
-  return state < 0;
+  return state < TelegramState::unknown;
 }
 
-}  // namespace Ebus
+Ebus::Ebus(uint8_t master) {
+  masterAddress = master;
+}
 
-int is_master_nibble(uint8_t nibble) {
+void Ebus::setUartSendFunction(void (*uart_send)(const char *, int16_t)) {
+  uartSend = uart_send;
+}
+void Ebus::setQueueHistoricFunction(void (*queue_historic)(Telegram)) {
+  queueHistoric = queue_historic;
+}
+
+void IRAM_ATTR Ebus::processReceivedChar(int cr) {
+  if (activeTelegram.isFinished()) {
+    if (queueHistoric) {
+      queueHistoric(activeTelegram);
+    }
+    activeTelegram = Telegram();
+  }
+
+  if (cr < 0) {
+    activeTelegram.setState(TelegramState::endAbort);
+    return;
+  }
+
+  uint8_t receivedByte = (uint8_t)cr;
+
+  switch (activeTelegram.getState()) {
+  case TelegramState::waitForSyn:
+    if (receivedByte == SYN) {
+      activeTelegram.setState(TelegramState::waitForRequestData);
+    }
+    break;
+  case TelegramState::waitForRequestData:
+    if (receivedByte == SYN) {
+      //       g_activeTelegram.state = EbusTelegram::State::endErrorUnexpectedSyn;
+    } else {
+      activeTelegram.pushReqData(receivedByte);
+      if (activeTelegram.isRequestComplete()) {
+        activeTelegram.setState(activeTelegram.isAckExpected() ? TelegramState::waitForRequestAck : TelegramState::endCompleted);
+      }
+    }
+    break;
+  case TelegramState::waitForRequestAck:
+    switch (cr) {
+    case ACK:
+      activeTelegram.setState(activeTelegram.isResponseExpected() ? TelegramState::waitForResponseData : TelegramState::endCompleted);
+      break;
+    case NACK:
+      activeTelegram.setState(TelegramState::endErrorRequestNackReceived);
+      break;
+    default:
+      activeTelegram.setState(TelegramState::endErrorRequestNoAck);
+    }
+    break;
+  case TelegramState::waitForResponseData:
+    if (receivedByte == SYN) {
+      activeTelegram.setState(TelegramState::endErrorUnexpectedSyn);
+    } else {
+      activeTelegram.pushRespData(receivedByte);
+      if (activeTelegram.isResponseComplete()) {
+        activeTelegram.setState(TelegramState::waitForResponseAck);
+      }
+    }
+    break;
+  case TelegramState::waitForResponseAck:
+    switch (cr) {
+    case ACK:
+      activeTelegram.setState(TelegramState::endCompleted);
+      break;
+    case NACK:
+      activeTelegram.setState(TelegramState::endErrorResponseNackReceived);
+      break;
+    default:
+      activeTelegram.setState(TelegramState::endErrorResponseNoAck);
+    }
+    break;
+  default:
+    break;
+  }
+
+  if (activeTelegram.getState() == TelegramState::waitForRequestAck &&
+      activeTelegram.getZZ() == EBUS_SLAVE_ADDRESS(masterAddress)) {
+    char buf[RESPONSE_BUFFER_SIZE] = {0};
+    int len = 0;
+    // we are requested to respond
+    if (activeTelegram.isRequestValid()) {
+      // TODO: below needs to be refactored to be more generic
+      // request to identification request
+      if (activeTelegram.getPB() == 0x07 &&
+          activeTelegram.getSB() == 0x04) {
+        buf[len++] = ACK;
+        uint8_t fixedResponse[] = {0xA, 0xDD, 0x47, 0x75, 0x69, 0x64, 0x6F, 0x01, 0x02, 0x03, 0x04, 0x31};
+        int i;
+        for (int i = 0; i < sizeof(fixedResponse) / sizeof(uint8_t); i++) {
+          buf[len++] = (uint8_t) fixedResponse[i];
+        }
+      }
+    } else {
+      buf[len++] = NACK;
+    }
+    // only ACK known commands
+    if (len) {
+      uartSend(buf, len);
+    }
+  }
+}
+
+#ifdef UNIT_TEST
+Telegram Ebus::getActiveTelegram() {
+  return activeTelegram;
+}
+#endif
+
+unsigned char Ebus::Elf::crc8Calc(unsigned char data, unsigned char crc_init) {
+  unsigned char crc;
+  unsigned char polynom;
+  int i;
+
+  crc = crc_init;
+  for (i = 0; i < 8; i++) {
+    if (crc & 0x80) {
+      polynom = (unsigned char)0x9B;
+    } else {
+      polynom = (unsigned char)0;
+    }
+    crc = (unsigned char)((crc & ~0x80) << 1);
+    if (data & 0x80) {
+      crc = (unsigned char)(crc | 1);
+    }
+    crc = (unsigned char)(crc ^ polynom);
+    data = (unsigned char)(data << 1);
+  }
+  return (crc);
+}
+
+unsigned char Ebus::Elf::crc8Array(unsigned char data[], unsigned int length) {
+  int i;
+  unsigned char uc_crc;
+  uc_crc = (unsigned char)0;
+  for (i = 0; i < length; i++) {
+    uc_crc = crc8Calc(data[i], uc_crc);
+  }
+  return (uc_crc);
+}
+
+bool Ebus::Elf::isMaster(uint8_t address) {
+  return isMasterNibble(getPriorityClass(address)) &&  //
+         isMasterNibble(getSubAddress(address));
+}
+
+int Ebus::Elf::isMasterNibble(uint8_t nibble) {
   switch (nibble) {
   case 0b0000:
   case 0b0001:
@@ -157,96 +262,12 @@ int is_master_nibble(uint8_t nibble) {
   }
 }
 
-uint8_t get_priority_class(uint8_t address) {
+uint8_t Ebus::Elf::getPriorityClass(uint8_t address) {
   return (address & 0x0F);
 }
 
-uint8_t get_sub_address(uint8_t address) {
+uint8_t Ebus::Elf::getSubAddress(uint8_t address) {
   return (address >> 4);
 }
 
-bool is_master(uint8_t address) {
-  return is_master_nibble(get_priority_class(address)) &&  //
-         is_master_nibble(get_sub_address(address));
-}
-
-void IRAM_ATTR new_active_telegram() {
-#ifdef __NATIVE
-  Ebus::Telegram *copy = (Ebus::Telegram *)malloc(sizeof(Ebus::Telegram));
-  memcpy(copy, &g_activeTelegram, sizeof(Ebus::Telegram));
-  telegramHistoryMockQueue.enqueue(copy);
-#else
-
-  BaseType_t xHigherPriorityTaskWoken;
-  xHigherPriorityTaskWoken = pdFALSE;
-  xQueueSendToBackFromISR(telegramHistoryQueue, &g_activeTelegram, &xHigherPriorityTaskWoken);
-
-  if (xHigherPriorityTaskWoken) {
-    portYIELD_FROM_ISR();
-  }
-#endif
-
-  g_activeTelegram = Ebus::Telegram();
-}
-
-void IRAM_ATTR ebus_process_received_char(int cr) {
-  uint8_t receivedByte = (uint8_t)cr;
-
-  if (g_activeTelegram.isFinished()) {
-    new_active_telegram();
-  }
-
-  switch (g_activeTelegram.getState()) {
-  case Ebus::TelegramState::waitForSyn:
-    if (receivedByte == SYN) {
-      g_activeTelegram.setState(Ebus::TelegramState::waitForRequestData);
-    }
-    break;
-  case Ebus::TelegramState::waitForRequestData:
-    if (receivedByte == SYN) {
-      //       g_activeTelegram.state = EbusTelegram::State::endErrorUnexpectedSyn;
-    } else {
-      g_activeTelegram.pushReqData(receivedByte);
-      if (g_activeTelegram.isRequestComplete()) {
-        g_activeTelegram.setState(g_activeTelegram.isAckExpected() ? Ebus::TelegramState::waitForRequestAck : Ebus::TelegramState::endCompleted);
-      }
-    }
-    break;
-  case Ebus::TelegramState::waitForRequestAck:
-    switch (cr) {
-    case ACK:
-      g_activeTelegram.setState(g_activeTelegram.isResponseExpected() ? Ebus::TelegramState::waitForResponseData : Ebus::TelegramState::endCompleted);
-      break;
-    case NACK:
-      g_activeTelegram.setState(Ebus::TelegramState::endErrorRequestNackReceived);
-      break;
-    default:
-      g_activeTelegram.setState(Ebus::TelegramState::endErrorRequestNoAck);
-    }
-    break;
-  case Ebus::TelegramState::waitForResponseData:
-    if (receivedByte == SYN) {
-      g_activeTelegram.setState(Ebus::TelegramState::endErrorUnexpectedSyn);
-    } else {
-      g_activeTelegram.pushRespData(receivedByte);
-      if (g_activeTelegram.isResponseComplete()) {
-        g_activeTelegram.setState(Ebus::TelegramState::waitForResponseAck);
-      }
-    }
-    break;
-  case Ebus::TelegramState::waitForResponseAck:
-    switch (cr) {
-    case ACK:
-      g_activeTelegram.setState(Ebus::TelegramState::endCompleted);
-      break;
-    case NACK:
-      g_activeTelegram.setState(Ebus::TelegramState::endErrorResponseNackReceived);
-      break;
-    default:
-      g_activeTelegram.setState(Ebus::TelegramState::endErrorResponseNoAck);
-    }
-    break;
-  default:
-    break;
-  }
-}
+}  // namespace Ebus

@@ -24,6 +24,8 @@ QueueHandle_t telegramHistoryQueue;
 StaticQueue_t telegramQueueBuffer;
 uint8_t telegramQueueStorage[EBUS_TELEGRAM_HISTORY * sizeof(Ebus::Telegram)];
 
+Ebus::Ebus ebus = Ebus::Ebus(EBUS_MASTER_ADDRESS);
+
 static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
   uint16_t status = UART_EBUS.int_st.val;  // read UART interrupt Status
   if (status == 0) {
@@ -32,7 +34,7 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
 
   uint16_t rx_fifo_len = UART_EBUS.status.rxfifo_cnt;  // read number of bytes in UART buffer
   while (rx_fifo_len) {
-    ebus_process_received_char(UART_EBUS.fifo.rw_byte);
+    ebus.processReceivedChar(UART_EBUS.fifo.rw_byte);
     rx_fifo_len--;
   }
 
@@ -72,7 +74,7 @@ void setupEbusUart() {
   };
   ESP_ERROR_CHECK(uart_param_config(UART_NUM_EBUS, &uart_config));
 
-  ESP_ERROR_CHECK(uart_set_pin(UART_NUM_EBUS, UART_PIN_NO_CHANGE, EBUS_UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+  ESP_ERROR_CHECK(uart_set_pin(UART_NUM_EBUS, EBUS_UART_TX_PIN, EBUS_UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
   ESP_ERROR_CHECK(uart_driver_install(UART_NUM_EBUS, 256, 0, 0, NULL, 0));
 
   uart_intr_config_t uart_intr = {
@@ -89,15 +91,30 @@ void setupEbusUart() {
   ESP_ERROR_CHECK(uart_enable_rx_intr(UART_NUM_EBUS));
 }
 
+void ebusUartSend(const char *src, int16_t size) {
+  uart_write_bytes(UART_NUM_EBUS, src, size);
+}
+
+void IRAM_ATTR ebusQueue(Ebus::Telegram telegram) {
+  BaseType_t xHigherPriorityTaskWoken;
+  xHigherPriorityTaskWoken = pdFALSE;
+  xQueueSendToBackFromISR(telegramHistoryQueue, &telegram, &xHigherPriorityTaskWoken);
+  if (xHigherPriorityTaskWoken) {
+    portYIELD_FROM_ISR();
+  }
+}
+
+void setupEbus() {
+  ebus.setUartSendFunction(ebusUartSend);
+  ebus.setQueueHistoricFunction(ebusQueue);
+}
+
 void logHistoricMessages(void *pvParameter) {
   Ebus::Telegram telegram;
   while (1) {
     if (xQueueReceive(telegramHistoryQueue, &telegram, portMAX_DELAY)) {
       printf(
-          "===========\n \
-            state: %d\n \
-            QQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\n \
-            req(size: %d, CRC: %02x): ",  //
+          "===========\nstate: %d\nQQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\nreq(size: %d, CRC: %02x): ",  //
           telegram.getState(),
           telegram.getQQ(),
           telegram.getZZ(),
@@ -134,6 +151,7 @@ void app_main() {
 
   setupQueues();
   setupEbusUart();
+  setupEbus();
   xTaskCreate(&logHistoricMessages, "log-history", 2048, NULL, 5, NULL);
 }
 

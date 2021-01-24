@@ -1,4 +1,4 @@
-//#ifdef UNIT_TEST
+#ifdef UNIT_TEST
 
 #include <unity.h>
 #include <stdlib.h>
@@ -29,4 +29,4 @@ int main(int argc, char **argv) {
   UNITY_END();
 }
 
-//#endif
+#endif

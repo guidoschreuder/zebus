@@ -3,14 +3,6 @@
 
 #include <stdint.h>
 
-#ifdef __NATIVE
-#include "mock-queue.h"
-extern Queue telegramHistory;
-#else
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
-#endif
-
 // for testing in native unit test we do not have ESP32 so fake it here
 #ifndef IRAM_ATTR
 #define IRAM_ATTR
@@ -41,14 +33,6 @@ extern Queue telegramHistory;
   uint8_t get##POS() {           \
     return BUFFER[OFFSET_##POS]; \
   }
-
-unsigned char crc8_calc(unsigned char data, unsigned char crc_init);
-unsigned char crc8_array(unsigned char data[], unsigned int length);
-
-bool is_master(uint8_t address);
-void IRAM_ATTR ebus_process_received_char(int cr);
-
-void IRAM_ATTR new_active_telegram();
 
 namespace Ebus {
 
@@ -116,14 +100,35 @@ class Telegram {
   bool isResponseValid();
   bool isFinished();
 };
-}  // namespace Ebus
 
-extern Ebus::Telegram g_activeTelegram;
+class Ebus {
+  uint8_t masterAddress;
+  void (*uartSend)(const char *, int16_t);
+  void (*queueHistoric)(Telegram);
+  Telegram activeTelegram;
 
-#ifdef __NATIVE
-extern Queue telegramHistoryMockQueue;
-#else
-extern QueueHandle_t telegramHistoryQueue;
+  public:
+  Ebus(uint8_t master);
+  void setUartSendFunction(void (*uartSend)(const char *, int16_t size));
+  void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
+  void IRAM_ATTR processReceivedChar(int cr);
+  class Elf {
+public:
+    static unsigned char crc8Calc(unsigned char data, unsigned char crc_init);
+    static unsigned char crc8Array(unsigned char data[], unsigned int length);
+    static bool isMaster(uint8_t address);
+    static int isMasterNibble(uint8_t nibble);
+    static uint8_t getPriorityClass(uint8_t address);
+    static uint8_t getSubAddress(uint8_t address);
+
+  };
+
+#ifdef UNIT_TEST
+  Telegram
+  getActiveTelegram();
 #endif
+};
+
+}  // namespace Ebus
 
 #endif
