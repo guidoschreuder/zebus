@@ -2,7 +2,24 @@
 #+AUTHOR:    Guido Schreuder
 #+EMAIL:     guido.schreuder@ruimtepuin.be
 
-* Project to manage the Valliant heater
+* Manage the Valliant heater
+
+** Goals
+Create system to control the heater
+
+Conceived features:
+- room controller:
+  - display to represent status
+  - sensor for actual temperature
+  - controls to set required temperature
+- communicate date and temperature to heater unit
+- control remotely using telegram
+- display graphs of some relevant values like:
+  - temperature requested
+  - temperatures measured by heater, i.e.:
+    - outgoing temp
+    - return temp
+    - pump on/off
 
 ** Topology
 - room controller (ESP32 + display + temp-sensor)
@@ -30,9 +47,25 @@ Good read and entry point is here: https://hackaday.io/project/174898-esp-now-we
 *** DONE experiment with programming new ESP32 boards
     CLOSED: [2021-01-18 Mon 03:19]
 that was easy as pie :)
-*** DONE [#A] get ESP32 to listen in on EBUS messages and forward them ad-verbum (in HEX) to MQTT for monitoring/debugging
-    CLOSED: [2021-01-18 Mon 03:20]
+*** DONE get ESP32 to listen in on EBUS messages and forward them ad-verbum to serial port for monitoring/debugging
+    CLOSED: [2021-01-24 Sun 05:14]
+*** TODO implement queues for actions "to be done" and "messages completed"
+status:
+
+implemented a pretty dumb queue, but only using it for testing, since later i found out about the provided facilities of FreeRTOS (live and learn...)
+
+actual implementation will use FreeRTOS queues provided by ESP-IDF
+**** DONE learn how to use FreeRTOS queues
+     CLOSED: [2021-01-24 Sun 05:13]
+**** DONE use queues for storing historic message
+     CLOSED: [2021-01-24 Sun 05:15]
+
+*** DONE reply to "Identification (Service 07h 04h)"
+    CLOSED: [2021-01-24 Sun 04:28]
+
 *** TODO get ESP board to interface with 2.0" display
+item: https://www.aliexpress.com/item/4000830895622.html
+
 driver IC = ST7789VW
 
 Aduino examples here : https://simple-circuit.com/arduino-st7789-ips-tft-display-example/
