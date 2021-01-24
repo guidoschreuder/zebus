@@ -13,10 +13,12 @@ Conceived features:
   - sensor for actual temperature
   - controls to set required temperature
 - communicate date and temperature to heater unit
-- control remotely using telegram
+- control remotely using a telegram bot, that way we do not need to open any ports to the outside
 - display graphs of some relevant values like:
   - temperature requested
   - temperatures measured by heater, i.e.:
+    - requested room temp
+    - current room temp
     - outgoing temp
     - return temp
     - pump on/off
@@ -32,38 +34,43 @@ Conceived features:
 - Valliant's EBUS commands are proprietary
 
 * tasks
-*** DONE create hardware interface for EBUS
+** DONE create hardware interface for EBUS
     CLOSED: [2021-01-17 Sun 01:48]
-*** DONE get hardware interface to work with Ebusd and experiment a bit
+** DONE get hardware interface to work with Ebusd and experiment a bit
     CLOSED: [2021-01-17 Sun 01:48]
-*** DONE build bus power supply so testing can be done in stand-alone mode
+** DONE build bus power supply so testing can be done in stand-alone mode
     CLOSED: [2021-01-17 Sun 01:50]
-*** TODO determine preferred topology to use
+** TODO determine preferred topology to use
 consider ESP-NOW so "sensor" modules can profit from reduced "ON" time.
 
 This needs a "master" though to forward to MQTT if required.
 
 Good read and entry point is here: https://hackaday.io/project/174898-esp-now-weather-station
-*** DONE experiment with programming new ESP32 boards
+** DONE experiment with programming new ESP32 boards
     CLOSED: [2021-01-18 Mon 03:19]
 that was easy as pie :)
-*** DONE get ESP32 to listen in on EBUS messages and forward them ad-verbum to serial port for monitoring/debugging
+** DONE get ESP32 to listen in on EBUS messages and forward them ad-verbum to serial port for monitoring/debugging
     CLOSED: [2021-01-24 Sun 05:14]
-*** TODO implement queues for actions "to be done" and "messages completed"
+** TODO implement queues for actions "to be done" and "messages completed"
 status:
 
-implemented a pretty dumb queue, but only using it for testing, since later i found out about the provided facilities of FreeRTOS (live and learn...)
+implemented a pretty simple queue
 
-actual implementation will use FreeRTOS queues provided by ESP-IDF
-**** DONE learn how to use FreeRTOS queues
+later i found out about the provided facilities of FreeRTOS (live and learn...)
+
+the simple mock queue is however still very usefull for unit-testing in native mode
+
+actual implementation will use FreeRTOS queues provided by ESP-IDF/FreeRTOS
+** DONE learn how to use FreeRTOS queues
      CLOSED: [2021-01-24 Sun 05:13]
-**** DONE use queues for storing historic message
+** DONE use queues for storing historic message
      CLOSED: [2021-01-24 Sun 05:15]
 
-*** DONE reply to "Identification (Service 07h 04h)"
+** DONE reply to "Identification (Service 07h 04h)"
     CLOSED: [2021-01-24 Sun 04:28]
 
-*** TODO get ESP board to interface with 2.0" display
+** TODO tackle the arbitration challenge
+** TODO get ESP board to interface with 2.0" display
 item: https://www.aliexpress.com/item/4000830895622.html
 
 driver IC = ST7789VW
