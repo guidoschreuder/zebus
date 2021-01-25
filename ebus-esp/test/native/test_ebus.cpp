@@ -84,60 +84,60 @@ void setupEbus() {
 void test_getter() {
   setupEbus();
   SEND(P99_PROTECT({0x00, 0x01, 0x02, 0x03}));
-  TEST_ASSERT_EQUAL_CHAR(0x00, ebus.getActiveTelegram().getQQ());
-  TEST_ASSERT_EQUAL_CHAR(0x01, ebus.getActiveTelegram().getZZ());
-  TEST_ASSERT_EQUAL_CHAR(0x02, ebus.getActiveTelegram().getPB());
-  TEST_ASSERT_EQUAL_CHAR(0x03, ebus.getActiveTelegram().getSB());
+  TEST_ASSERT_EQUAL_CHAR(0x00, ebus.getReceivingTelegram().getQQ());
+  TEST_ASSERT_EQUAL_CHAR(0x01, ebus.getReceivingTelegram().getZZ());
+  TEST_ASSERT_EQUAL_CHAR(0x02, ebus.getReceivingTelegram().getPB());
+  TEST_ASSERT_EQUAL_CHAR(0x03, ebus.getReceivingTelegram().getSB());
 }
 
 void test_telegram_completion() {
   setupEbus();
   SEND(P99_PROTECT({0x03, 0x64, 0xb5, 0x12}));
-  TEST_ASSERT_FALSE(ebus.getActiveTelegram().isRequestComplete());
+  TEST_ASSERT_FALSE(ebus.getReceivingTelegram().isRequestComplete());
   SEND(P99_PROTECT({0x02, 0x02, 0x00}));
-  TEST_ASSERT_FALSE(ebus.getActiveTelegram().isRequestComplete());
+  TEST_ASSERT_FALSE(ebus.getReceivingTelegram().isRequestComplete());
   ebus.processReceivedChar(0x66);
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestValid());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isRequestValid());
 }
 
 void test_telegram_with_escape() {
   setupEbus();
   SEND(P99_PROTECT({0x03, 0x64, 0xb5, 0x12, 0x02, 0xA9, 0x00}));
-  TEST_ASSERT_FALSE(ebus.getActiveTelegram().isRequestComplete());
+  TEST_ASSERT_FALSE(ebus.getReceivingTelegram().isRequestComplete());
   ebus.processReceivedChar(0x45);
-  TEST_ASSERT_FALSE(ebus.getActiveTelegram().isRequestComplete());
+  TEST_ASSERT_FALSE(ebus.getReceivingTelegram().isRequestComplete());
   ebus.processReceivedChar(0x4D);
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestComplete());
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestValid());
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isResponseExpected());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isRequestComplete());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isRequestValid());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isResponseExpected());
 }
 
 void test_telegram_master_master_completed_after_ack() {
   setupEbus();
   SEND(P99_PROTECT({0x03, 0x00, 0xb5, 0x12, 0x00, 0x62}));
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestComplete());
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestValid());
-  TEST_ASSERT_FALSE(ebus.getActiveTelegram().isResponseExpected());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isRequestComplete());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isRequestValid());
+  TEST_ASSERT_FALSE(ebus.getReceivingTelegram().isResponseExpected());
   ebus.processReceivedChar(ACK);
-  TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::endCompleted, ebus.getActiveTelegram().getState());
+  TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::endCompleted, ebus.getReceivingTelegram().getState());
 }
 
 void test_telegram_master_slave_completed_after_response_ack() {
   setupEbus();
   SEND(P99_PROTECT({0x03, 0x02, 0xb5, 0x12, 0x00, 0xDE}));
 
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestComplete());
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestValid());
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isResponseExpected());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isRequestComplete());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isRequestValid());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isResponseExpected());
   ebus.processReceivedChar(ACK);
 
   SEND(P99_PROTECT({0x01, 0xDD, 0x46}));
-  TEST_ASSERT_TRUE(ebus.getActiveTelegram().isResponseValid());
-  TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::waitForResponseAck, ebus.getActiveTelegram().getState());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isResponseValid());
+  TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::waitForResponseAck, ebus.getReceivingTelegram().getState());
 
   ebus.processReceivedChar(ACK);
 
-  TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::endCompleted, ebus.getActiveTelegram().getState());
+  TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::endCompleted, ebus.getReceivingTelegram().getState());
 }
 
 void test_telegram_identity_response() {
@@ -160,11 +160,11 @@ void test_telegram_identity_response() {
 void test_ebus_in_arbitration() {
   setupEbus();
   SEND(P99_PROTECT({0x03, SYN}));
-  TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::endArbitration, ebus.getActiveTelegram().getState());
+  TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::endArbitration, ebus.getReceivingTelegram().getState());
 
   // next message should be valid
   SEND(P99_PROTECT({0x03, 0x64, 0xb5, 0x12}));
-  TEST_ASSERT_FALSE(ebus.getActiveTelegram().isRequestComplete());
+  TEST_ASSERT_FALSE(ebus.getReceivingTelegram().isRequestComplete());
 }
 
 // not really a test (yet) but hey ;)

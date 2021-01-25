@@ -2,9 +2,10 @@
 #define __EBUS
 
 #include <stdint.h>
-#include "ebus-enums.h"
+
 #include "Command.h"
 #include "Telegram.h"
+#include "ebus-enums.h"
 
 namespace Ebus {
 
@@ -13,7 +14,7 @@ class Ebus {
   void (*uartSend)(const char *, int16_t);
   void (*queueHistoric)(Telegram);
   bool (*dequeueCommand)(void *const command);
-  Telegram activeTelegram;
+  Telegram receivingTelegram;
 
   public:
   explicit Ebus(uint8_t master);
@@ -32,8 +33,7 @@ public:
   };
 
 #ifdef UNIT_TEST
-  Telegram
-  getActiveTelegram();
+  Telegram getReceivingTelegram();
 #endif
 };
 

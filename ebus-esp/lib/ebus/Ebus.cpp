@@ -19,92 +19,92 @@ void IRAM_ATTR Ebus::setDeueueCommandFunction(bool (*dequeue_command)(void * con
 }
 
 void IRAM_ATTR Ebus::processReceivedChar(int cr) {
-  if (activeTelegram.isFinished()) {
+  if (receivingTelegram.isFinished()) {
     if (queueHistoric) {
-      queueHistoric(activeTelegram);
+      queueHistoric(receivingTelegram);
     }
-    activeTelegram = Telegram();
+    receivingTelegram = Telegram();
   }
 
   if (cr < 0) {
-    activeTelegram.setState(TelegramState::endAbort);
+    receivingTelegram.setState(TelegramState::endAbort);
     return;
   }
 
   uint8_t receivedByte = (uint8_t)cr;
 
-  switch (activeTelegram.getState()) {
+  switch (receivingTelegram.getState()) {
   case TelegramState::waitForSyn:
     if (receivedByte == SYN) {
-      activeTelegram.setState(TelegramState::waitForArbitration);
+      receivingTelegram.setState(TelegramState::waitForArbitration);
     }
     break;
   case TelegramState::waitForArbitration:
-      activeTelegram.pushReqData(receivedByte);
-      activeTelegram.setState(TelegramState::waitForRequestData);
+      receivingTelegram.pushReqData(receivedByte);
+      receivingTelegram.setState(TelegramState::waitForRequestData);
       break;
   case TelegramState::waitForRequestData:
     if (receivedByte == SYN) {
-      if (activeTelegram.getZZ() == ESC) {
-        activeTelegram.setState(TelegramState::endArbitration);
+      if (receivingTelegram.getZZ() == ESC) {
+        receivingTelegram.setState(TelegramState::endArbitration);
       } else {
-        activeTelegram.setState(TelegramState::endErrorUnexpectedSyn);
+        receivingTelegram.setState(TelegramState::endErrorUnexpectedSyn);
       }
     } else {
-      activeTelegram.pushReqData(receivedByte);
-      if (activeTelegram.isRequestComplete()) {
-        activeTelegram.setState(activeTelegram.isAckExpected() ? TelegramState::waitForRequestAck : TelegramState::endCompleted);
+      receivingTelegram.pushReqData(receivedByte);
+      if (receivingTelegram.isRequestComplete()) {
+        receivingTelegram.setState(receivingTelegram.isAckExpected() ? TelegramState::waitForRequestAck : TelegramState::endCompleted);
       }
     }
     break;
   case TelegramState::waitForRequestAck:
     switch (cr) {
     case ACK:
-      activeTelegram.setState(activeTelegram.isResponseExpected() ? TelegramState::waitForResponseData : TelegramState::endCompleted);
+      receivingTelegram.setState(receivingTelegram.isResponseExpected() ? TelegramState::waitForResponseData : TelegramState::endCompleted);
       break;
     case NACK:
-      activeTelegram.setState(TelegramState::endErrorRequestNackReceived);
+      receivingTelegram.setState(TelegramState::endErrorRequestNackReceived);
       break;
     default:
-      activeTelegram.setState(TelegramState::endErrorRequestNoAck);
+      receivingTelegram.setState(TelegramState::endErrorRequestNoAck);
     }
     break;
   case TelegramState::waitForResponseData:
     if (receivedByte == SYN) {
-      activeTelegram.setState(TelegramState::endErrorUnexpectedSyn);
+      receivingTelegram.setState(TelegramState::endErrorUnexpectedSyn);
     } else {
-      activeTelegram.pushRespData(receivedByte);
-      if (activeTelegram.isResponseComplete()) {
-        activeTelegram.setState(TelegramState::waitForResponseAck);
+      receivingTelegram.pushRespData(receivedByte);
+      if (receivingTelegram.isResponseComplete()) {
+        receivingTelegram.setState(TelegramState::waitForResponseAck);
       }
     }
     break;
   case TelegramState::waitForResponseAck:
     switch (cr) {
     case ACK:
-      activeTelegram.setState(TelegramState::endCompleted);
+      receivingTelegram.setState(TelegramState::endCompleted);
       break;
     case NACK:
-      activeTelegram.setState(TelegramState::endErrorResponseNackReceived);
+      receivingTelegram.setState(TelegramState::endErrorResponseNackReceived);
       break;
     default:
-      activeTelegram.setState(TelegramState::endErrorResponseNoAck);
+      receivingTelegram.setState(TelegramState::endErrorResponseNoAck);
     }
     break;
   default:
     break;
   }
 
-  if (activeTelegram.getState() == TelegramState::waitForRequestAck &&
-      activeTelegram.getZZ() == EBUS_SLAVE_ADDRESS(masterAddress)) {
+  if (receivingTelegram.getState() == TelegramState::waitForRequestAck &&
+      receivingTelegram.getZZ() == EBUS_SLAVE_ADDRESS(masterAddress)) {
     char buf[RESPONSE_BUFFER_SIZE] = {0};
     int len = 0;
     // we are requested to respond
-    if (activeTelegram.isRequestValid()) {
+    if (receivingTelegram.isRequestValid()) {
       // TODO: below needs to be refactored to be more generic
       // request to identification request
-      if (activeTelegram.getPB() == 0x07 &&
-          activeTelegram.getSB() == 0x04) {
+      if (receivingTelegram.getPB() == 0x07 &&
+          receivingTelegram.getSB() == 0x04) {
         buf[len++] = ACK;
         uint8_t fixedResponse[] = {0xA, 0xDD, 0x47, 0x75, 0x69, 0x64, 0x6F, 0x01, 0x02, 0x03, 0x04, 0x31};
         for (int i = 0; i < sizeof(fixedResponse) / sizeof(uint8_t); i++) {
@@ -122,8 +122,8 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
 }
 
 #ifdef UNIT_TEST
-Telegram Ebus::getActiveTelegram() {
-  return activeTelegram;
+Telegram Ebus::getReceivingTelegram() {
+  return receivingTelegram;
 }
 #endif
 
