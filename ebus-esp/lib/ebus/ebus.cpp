@@ -80,7 +80,7 @@ bool Telegram::isResponseExpected() {
 }
 
 bool Telegram::isRequestComplete() {
-  return (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
+  return (state > TelegramState::waitForSyn || state == TelegramState::endCompleted) && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
 }
 
 bool Telegram::isRequestValid() {
@@ -88,7 +88,7 @@ bool Telegram::isRequestValid() {
 }
 
 bool Telegram::isResponseComplete() {
-  return (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
+  return (state > TelegramState::waitForSyn || state == TelegramState::endCompleted) && (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
 }
 
 bool Telegram::isResponseValid() {
@@ -128,12 +128,20 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
   switch (activeTelegram.getState()) {
   case TelegramState::waitForSyn:
     if (receivedByte == SYN) {
-      activeTelegram.setState(TelegramState::waitForRequestData);
+      activeTelegram.setState(TelegramState::waitForArbitration);
     }
     break;
+  case TelegramState::waitForArbitration:
+      activeTelegram.pushReqData(receivedByte);
+      activeTelegram.setState(TelegramState::waitForRequestData);
+      break;
   case TelegramState::waitForRequestData:
     if (receivedByte == SYN) {
-      //       g_activeTelegram.state = EbusTelegram::State::endErrorUnexpectedSyn;
+      if (activeTelegram.getZZ() == ESC) {
+        activeTelegram.setState(TelegramState::endArbitration);
+      } else {
+        activeTelegram.setState(TelegramState::endErrorUnexpectedSyn);
+      }
     } else {
       activeTelegram.pushReqData(receivedByte);
       if (activeTelegram.isRequestComplete()) {

@@ -70,11 +70,6 @@ void setupEbus() {
   ebus.processReceivedChar(SYN);
 }
 
-void discard_telegram() {
-  ebus.processReceivedChar(-1);
-  ebus.processReceivedChar(SYN);
-}
-
 void test_getter() {
   setupEbus();
   SEND(P99_PROTECT({0x00, 0x01, 0x02, 0x03}));
@@ -82,7 +77,6 @@ void test_getter() {
   TEST_ASSERT_EQUAL_CHAR(0x01, ebus.getActiveTelegram().getZZ());
   TEST_ASSERT_EQUAL_CHAR(0x02, ebus.getActiveTelegram().getPB());
   TEST_ASSERT_EQUAL_CHAR(0x03, ebus.getActiveTelegram().getSB());
-  discard_telegram();
 }
 
 void test_telegram_completion() {
@@ -93,7 +87,6 @@ void test_telegram_completion() {
   TEST_ASSERT_FALSE(ebus.getActiveTelegram().isRequestComplete());
   ebus.processReceivedChar(0x66);
   TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestValid());
-  discard_telegram();
 }
 
 void test_telegram_with_escape() {
@@ -106,7 +99,6 @@ void test_telegram_with_escape() {
   TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestComplete());
   TEST_ASSERT_TRUE(ebus.getActiveTelegram().isRequestValid());
   TEST_ASSERT_TRUE(ebus.getActiveTelegram().isResponseExpected());
-  discard_telegram();
 }
 
 void test_telegram_master_master_completed_after_ack() {
@@ -117,7 +109,6 @@ void test_telegram_master_master_completed_after_ack() {
   TEST_ASSERT_FALSE(ebus.getActiveTelegram().isResponseExpected());
   ebus.processReceivedChar(ACK);
   TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::endCompleted, ebus.getActiveTelegram().getState());
-  discard_telegram();
 }
 
 void test_telegram_master_slave_completed_after_response_ack() {
@@ -136,7 +127,6 @@ void test_telegram_master_slave_completed_after_response_ack() {
   ebus.processReceivedChar(ACK);
 
   TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::endCompleted, ebus.getActiveTelegram().getState());
-  discard_telegram();
 }
 
 void test_telegram_identity_response() {
@@ -154,21 +144,28 @@ void test_telegram_identity_response() {
 
   TEST_ASSERT_TRUE(telegram->isRequestValid());
   TEST_ASSERT_TRUE(telegram->isResponseValid());
+}
 
-  discard_telegram();
+void test_ebus_in_arbitration() {
+  setupEbus();
+  SEND(P99_PROTECT({0x03, SYN}));
+  TEST_ASSERT_EQUAL_INT(Ebus::TelegramState::endArbitration, ebus.getActiveTelegram().getState());
+
+  // next message should be valid
+  SEND(P99_PROTECT({0x03, 0x64, 0xb5, 0x12}));
+  TEST_ASSERT_FALSE(ebus.getActiveTelegram().isRequestComplete());
 }
 
 // not really a test (yet) but hey ;)
 void test_multiple() {
+  setupEbus();
   for (int i = 0; i < 10; i++) {
-    ebus.processReceivedChar(SYN);
     ebus.processReceivedChar(i);
     ebus.processReceivedChar(SYN);
-    discard_telegram();
   }
   Ebus::Telegram* telegram;
   while ((telegram = (Ebus::Telegram*)telegramHistoryMockQueue.dequeue()) != NULL) {
-    printf("QQ: %02x\n", telegram->getQQ());
+    printf("QQ: %02x, state: %d\n", telegram->getQQ(), telegram->getState());
   }
 }
 
@@ -183,6 +180,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_telegram_master_master_completed_after_ack);
   RUN_TEST(test_telegram_master_slave_completed_after_response_ack);
   RUN_TEST(test_telegram_identity_response);
+  RUN_TEST(test_ebus_in_arbitration);
   RUN_TEST(test_multiple);
 
   UNITY_END();
