@@ -29,6 +29,12 @@ enum TelegramState : int8_t {
   endAbort = -99,
 };
 
+enum SendCommandState : int8_t {
+  waitForSend = 1,
+  waitForSendArbitration = 6,
+  endSendCompleted = -32,
+};
+
 }
 
 #endif

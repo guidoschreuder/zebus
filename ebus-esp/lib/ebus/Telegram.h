@@ -1,18 +1,19 @@
 #ifndef _EBUS_TELEGRAM
 #define _EBUS_TELEGRAM
 
-#include "Command.h"
+#include "TelegramBase.h"
 
 namespace Ebus {
-class Telegram : public Command {
+class Telegram : public TelegramBase {
+  TelegramState state = TelegramState::waitForSyn;
   uint8_t responseBuffer[RESPONSE_BUFFER_SIZE] = {0};
   uint8_t responseBufferPos = 0;
   uint8_t responseRollingCRC = 0;
 
   public:
   Telegram();
-
-  Telegram(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data);
+  TelegramState getState();
+  void setState(TelegramState newState);
 
   uint8_t getResponseNN() {
     return responseBuffer[0];
@@ -24,6 +25,9 @@ class Telegram : public Command {
   void pushRespData(uint8_t cr);
   bool isResponseComplete();
   bool isResponseValid();
+  bool isRequestComplete();
+  bool isRequestValid();
+  bool isFinished();
 };
 
 }  // namespace Ebus

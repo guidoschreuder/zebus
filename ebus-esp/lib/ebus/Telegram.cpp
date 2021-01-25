@@ -3,6 +3,15 @@
 namespace Ebus {
 
 Telegram::Telegram() {
+  state = TelegramState::waitForSyn;
+}
+
+TelegramState Telegram::getState() {
+  return state;
+}
+
+void Telegram::setState(TelegramState newState) {
+  state = newState;
 }
 
 int16_t Telegram::getResponseByte(uint8_t pos) {
@@ -26,6 +35,17 @@ bool Telegram::isResponseComplete() {
 
 bool Telegram::isResponseValid() {
   return isResponseComplete() && getResponseCRC() == responseRollingCRC;
+}
+
+bool Telegram::isRequestComplete() {
+  return (state > TelegramState::waitForSyn || state == TelegramState::endCompleted) && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
+}
+bool Telegram::isRequestValid() {
+  return isRequestComplete() && getRequestCRC() == requestRollingCRC;
+}
+
+bool Telegram::isFinished() {
+  return state < TelegramState::unknown;
 }
 
 }

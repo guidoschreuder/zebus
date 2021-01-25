@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#include "Command.h"
 #include "Telegram.h"
+#include "SendCommand.h"
 #include "ebus-enums.h"
 
 namespace Ebus {
@@ -15,6 +15,7 @@ class Ebus {
   void (*queueHistoric)(Telegram);
   bool (*dequeueCommand)(void *const command);
   Telegram receivingTelegram;
+  SendCommand activeCommand;
 
   public:
   explicit Ebus(uint8_t master);
