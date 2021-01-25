@@ -75,6 +75,8 @@ class Telegram {
   public:
   Telegram();
 
+  Telegram(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data);
+
   _GETTER(requestBuffer, QQ);
   _GETTER(requestBuffer, ZZ);
   _GETTER(requestBuffer, PB);
@@ -107,13 +109,15 @@ class Ebus {
   uint8_t masterAddress;
   void (*uartSend)(const char *, int16_t);
   void (*queueHistoric)(Telegram);
+  bool (*dequeueSend)(void * const telegram);
   Telegram activeTelegram;
 
   public:
   explicit Ebus(uint8_t master);
   void setUartSendFunction(void (*uartSend)(const char *, int16_t size));
   void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
-  void IRAM_ATTR processReceivedChar(int cr);
+  void setDeueueSendFunction(bool (*dequeue_send)(void * const telegram));
+  void processReceivedChar(int cr);
   class Elf {
 public:
     static unsigned char crc8Calc(unsigned char data, unsigned char crc_init);

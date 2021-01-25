@@ -5,6 +5,19 @@ namespace Ebus {
 Telegram::Telegram() {
 }
 
+Telegram::Telegram(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data) {
+  state = TelegramState::unknown;
+  pushReqData(QQ);
+  pushReqData(ZZ);
+  pushReqData(PB);
+  pushReqData(SB);
+  pushReqData(NN);
+  for (int i = 0; i < NN; i++) {
+    pushReqData(data[i]);
+  }
+  pushReqData(requestRollingCRC);
+}
+
 void Telegram::pushBuffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *crc, int max_pos) {
   if (waitForEscaped) {
     if (*pos < max_pos) {
@@ -103,11 +116,16 @@ Ebus::Ebus(uint8_t master) {
   masterAddress = master;
 }
 
-void Ebus::setUartSendFunction(void (*uart_send)(const char *, int16_t)) {
+void IRAM_ATTR Ebus::setUartSendFunction(void (*uart_send)(const char *, int16_t)) {
   uartSend = uart_send;
 }
-void Ebus::setQueueHistoricFunction(void (*queue_historic)(Telegram)) {
+
+void IRAM_ATTR Ebus::setQueueHistoricFunction(void (*queue_historic)(Telegram)) {
   queueHistoric = queue_historic;
+}
+
+void IRAM_ATTR Ebus::setDeueueSendFunction(bool (*dequeue_send)(void * const telegram)) {
+  dequeueSend = dequeue_send;
 }
 
 void IRAM_ATTR Ebus::processReceivedChar(int cr) {

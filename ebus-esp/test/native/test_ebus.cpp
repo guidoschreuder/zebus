@@ -29,6 +29,7 @@
   } while (0);
 
 Queue telegramHistoryMockQueue(5, Queue::OnFull::removeOldest);
+Queue telegramSendMockQueue(5, Queue::OnFull::ignore);
 Ebus::Ebus ebus = Ebus::Ebus(0);
 
 void test_crc() {
@@ -53,7 +54,7 @@ void test_is_master() {
 
 void uartSend(const char* src, int16_t size) {
   for (int i = 0; i < size; i++) {
-    ebus.processReceivedChar((uint8_t) src[i]);
+    ebus.processReceivedChar((uint8_t)src[i]);
   }
 }
 
@@ -63,10 +64,20 @@ void ebusQueue(Ebus::Telegram telegram) {
   telegramHistoryMockQueue.enqueue(copy);
 }
 
+bool ebusDequeueSend(void* const telegram) {
+  Ebus::Telegram* telegramDequeue;
+  if (telegramDequeue = (Ebus::Telegram*)telegramSendMockQueue.dequeue()) {
+    memcpy(telegram, telegramDequeue, sizeof(Ebus::Telegram));
+    return true;
+  }
+  return false;
+}
+
 void setupEbus() {
   ebus = Ebus::Ebus(0);
   ebus.setUartSendFunction(uartSend);
   ebus.setQueueHistoricFunction(ebusQueue);
+  ebus.setDeueueSendFunction(ebusDequeueSend);
   ebus.processReceivedChar(SYN);
 }
 
@@ -169,6 +180,22 @@ void test_multiple() {
   }
 }
 
+void test_ebusDequeueSend() {
+  uint8_t payload[2] = {0x5, 0x06};
+  Ebus::Telegram command = Ebus::Telegram(0x00, 0x24, 0x01, 0x02, sizeof(payload), payload);
+
+  telegramSendMockQueue.enqueue(&command);
+
+  Ebus::Telegram dequeued;
+
+  TEST_ASSERT_TRUE(ebusDequeueSend(&dequeued));
+
+  TEST_ASSERT_EQUAL_HEX8(0x00, dequeued.getQQ());
+  TEST_ASSERT_EQUAL_HEX8(0x24, dequeued.getZZ());
+  TEST_ASSERT_EQUAL_HEX8(0x01, dequeued.getPB());
+  TEST_ASSERT_EQUAL_HEX8(0x02, dequeued.getSB());
+}
+
 int main(int argc, char** argv) {
   UNITY_BEGIN();
 
@@ -182,6 +209,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_telegram_identity_response);
   RUN_TEST(test_ebus_in_arbitration);
   RUN_TEST(test_multiple);
+  RUN_TEST(test_ebusDequeueSend);
 
   UNITY_END();
 }
