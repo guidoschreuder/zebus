@@ -10,7 +10,7 @@
 
 #include "driver/gpio.h"
 #include "driver/uart.h"
-#include "ebus.h"
+#include "Ebus.h"
 #include "esp_intr_alloc.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
