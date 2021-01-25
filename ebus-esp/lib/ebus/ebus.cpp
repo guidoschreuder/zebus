@@ -2,23 +2,7 @@
 
 namespace Ebus {
 
-Telegram::Telegram() {
-}
-
-Telegram::Telegram(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data) {
-  state = TelegramState::unknown;
-  pushReqData(QQ);
-  pushReqData(ZZ);
-  pushReqData(PB);
-  pushReqData(SB);
-  pushReqData(NN);
-  for (int i = 0; i < NN; i++) {
-    pushReqData(data[i]);
-  }
-  pushReqData(requestRollingCRC);
-}
-
-void Telegram::pushBuffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *crc, int max_pos) {
+void Command::pushBuffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *crc, int max_pos) {
   if (waitForEscaped) {
     if (*pos < max_pos) {
       *crc = Ebus::Elf::crc8Calc(cr, *crc);
@@ -34,23 +18,79 @@ void Telegram::pushBuffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *cr
   }
 }
 
-TelegramState Telegram::getState() {
+Command::Command() {
+}
+
+Command::Command(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data) {
+  pushReqData(QQ);
+  pushReqData(ZZ);
+  pushReqData(PB);
+  pushReqData(SB);
+  pushReqData(NN);
+  for (int i = 0; i < NN; i++) {
+    pushReqData(data[i]);
+  }
+  pushReqData(requestRollingCRC);
+}
+
+TelegramState Command::getState() {
   return state;
 }
 
-void Telegram::setState(TelegramState newState) {
+void Command::setState(TelegramState newState) {
   state = newState;
 }
 
-int16_t Telegram::getRequestByte(uint8_t pos) {
+TelegramType Command::getType() {
+  if (getZZ() == ESC) {
+    return TelegramType::Unknown;
+  }
+  if (getZZ() == BROADCAST_ADDRESS) {
+    return TelegramType::Broadcast;
+  }
+  if (Ebus::Elf::isMaster(getZZ())) {
+    return TelegramType::MasterMaster;
+  }
+  return TelegramType::MasterSlave;
+}
+
+int16_t Command::getRequestByte(uint8_t pos) {
   if (pos >= getNN()) {
     return -1;
   }
   return requestBuffer[OFFSET_DATA + pos];
 }
 
-uint8_t Telegram::getRequestCRC() {
+uint8_t Command::getRequestCRC() {
   return requestBuffer[OFFSET_DATA + getNN()];
+}
+
+void Command::pushReqData(uint8_t cr) {
+  pushBuffer(cr, requestBuffer, &requestBufferPos, &requestRollingCRC, OFFSET_DATA + getNN());
+}
+
+bool Command::isAckExpected() {
+  return (getType() != TelegramType::Broadcast);
+}
+
+bool Command::isResponseExpected() {
+  return (getType() == TelegramType::MasterSlave);
+}
+
+bool Command::isRequestComplete() {
+  return (state > TelegramState::waitForSyn || state == TelegramState::endCompleted) && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
+}
+bool Command::isRequestValid() {
+  return isRequestComplete() && getRequestCRC() == requestRollingCRC;
+}
+
+bool Command::isFinished() {
+  return state < TelegramState::unknown;
+}
+
+
+
+Telegram::Telegram() {
 }
 
 int16_t Telegram::getResponseByte(uint8_t pos) {
@@ -64,52 +104,16 @@ uint8_t Telegram::getResponseCRC() {
   return responseBuffer[RESPONSE_OFFSET + getResponseNN()];
 }
 
-void Telegram::pushReqData(uint8_t cr) {
-  pushBuffer(cr, requestBuffer, &requestBufferPos, &requestRollingCRC, OFFSET_DATA + getNN());
-}
 void Telegram::pushRespData(uint8_t cr) {
   pushBuffer(cr, responseBuffer, &responseBufferPos, &responseRollingCRC, RESPONSE_OFFSET + getResponseNN());
 }
 
-TelegramType Telegram::getType() {
-  if (getZZ() == ESC) {
-    return TelegramType::Unknown;
-  }
-  if (getZZ() == BROADCAST_ADDRESS) {
-    return TelegramType::Broadcast;
-  }
-  if (Ebus::Elf::isMaster(getZZ())) {
-    return TelegramType::MasterMaster;
-  }
-  return TelegramType::MasterSlave;
-}
-
-bool Telegram::isAckExpected() {
-  return (getType() != TelegramType::Broadcast);
-}
-
-bool Telegram::isResponseExpected() {
-  return (getType() == TelegramType::MasterSlave);
-}
-
-bool Telegram::isRequestComplete() {
-  return (state > TelegramState::waitForSyn || state == TelegramState::endCompleted) && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
-}
-
-bool Telegram::isRequestValid() {
-  return isRequestComplete() && getRequestCRC() == requestRollingCRC;
-}
-
 bool Telegram::isResponseComplete() {
-  return (state > TelegramState::waitForSyn || state == TelegramState::endCompleted) && (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
+  return (getState() > TelegramState::waitForSyn || getState() == TelegramState::endCompleted) && (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
 }
 
 bool Telegram::isResponseValid() {
   return isResponseComplete() && getResponseCRC() == responseRollingCRC;
-}
-
-bool Telegram::isFinished() {
-  return state < TelegramState::unknown;
 }
 
 Ebus::Ebus(uint8_t master) {
@@ -124,8 +128,8 @@ void IRAM_ATTR Ebus::setQueueHistoricFunction(void (*queue_historic)(Telegram)) 
   queueHistoric = queue_historic;
 }
 
-void IRAM_ATTR Ebus::setDeueueSendFunction(bool (*dequeue_send)(void * const telegram)) {
-  dequeueSend = dequeue_send;
+void IRAM_ATTR Ebus::setDeueueCommandFunction(bool (*dequeue_command)(void * const command)) {
+  dequeueCommand = dequeue_command;
 }
 
 void IRAM_ATTR Ebus::processReceivedChar(int cr) {

@@ -64,10 +64,10 @@ void ebusQueue(Ebus::Telegram telegram) {
   telegramHistoryMockQueue.enqueue(copy);
 }
 
-bool ebusDequeueSend(void* const telegram) {
-  Ebus::Telegram* telegramDequeue;
-  if (telegramDequeue = (Ebus::Telegram*)telegramSendMockQueue.dequeue()) {
-    memcpy(telegram, telegramDequeue, sizeof(Ebus::Telegram));
+bool ebusDequeueCommand(void* const command) {
+  Ebus::Command* commandDequeue;
+  if (commandDequeue = (Ebus::Command*)telegramSendMockQueue.dequeue()) {
+    memcpy(command, commandDequeue, sizeof(Ebus::Command));
     return true;
   }
   return false;
@@ -77,7 +77,7 @@ void setupEbus() {
   ebus = Ebus::Ebus(0);
   ebus.setUartSendFunction(uartSend);
   ebus.setQueueHistoricFunction(ebusQueue);
-  ebus.setDeueueSendFunction(ebusDequeueSend);
+  ebus.setDeueueCommandFunction(ebusDequeueCommand);
   ebus.processReceivedChar(SYN);
 }
 
@@ -182,13 +182,13 @@ void test_multiple() {
 
 void test_ebusDequeueSend() {
   uint8_t payload[2] = {0x5, 0x06};
-  Ebus::Telegram command = Ebus::Telegram(0x00, 0x24, 0x01, 0x02, sizeof(payload), payload);
+  Ebus::Command command = Ebus::Command(0x00, 0x24, 0x01, 0x02, sizeof(payload), payload);
 
   telegramSendMockQueue.enqueue(&command);
 
-  Ebus::Telegram dequeued;
+  Ebus::Command dequeued;
 
-  TEST_ASSERT_TRUE(ebusDequeueSend(&dequeued));
+  TEST_ASSERT_TRUE(ebusDequeueCommand(&dequeued));
 
   TEST_ASSERT_EQUAL_HEX8(0x00, dequeued.getQQ());
   TEST_ASSERT_EQUAL_HEX8(0x24, dequeued.getZZ());

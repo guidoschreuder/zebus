@@ -23,9 +23,9 @@
 QueueHandle_t telegramHistoryQueue;
 StaticQueue_t telegramHistoryQueueBuffer;
 uint8_t telegramHistoryQueueStorage[EBUS_TELEGRAM_HISTORY_QUEUE_SIZE * sizeof(Ebus::Telegram)];
-QueueHandle_t telegramSendQueue;
-StaticQueue_t telegramSendQueueBuffer;
-uint8_t telegramSendQueueStorage[EBUS_TELEGRAM_SEND_QUEUE_SIZE * sizeof(Ebus::Telegram)];
+QueueHandle_t telegramCommandQueue;
+StaticQueue_t telegramCommandQueueBuffer;
+uint8_t telegramCommandQueueStorage[EBUS_TELEGRAM_SEND_QUEUE_SIZE * sizeof(Ebus::Telegram)];
 
 Ebus::Ebus ebus = Ebus::Ebus(EBUS_MASTER_ADDRESS);
 
@@ -63,11 +63,11 @@ void setupQueues() {
       sizeof(Ebus::Telegram),
       &(telegramHistoryQueueStorage[0]),
       &telegramHistoryQueueBuffer);
-  telegramSendQueue = xQueueCreateStatic(
+  telegramCommandQueue = xQueueCreateStatic(
       EBUS_TELEGRAM_SEND_QUEUE_SIZE,
       sizeof(Ebus::Telegram),
-      &(telegramSendQueueStorage[0]),
-      &telegramSendQueueBuffer);
+      &(telegramCommandQueueStorage[0]),
+      &telegramCommandQueueBuffer);
 }
 
 void setupEbusUart() {
@@ -112,9 +112,9 @@ void IRAM_ATTR ebusQueue(Ebus::Telegram telegram) {
   }
 }
 
-bool IRAM_ATTR ebusDequeue(void* const telegram) {
+bool IRAM_ATTR ebusDequeueCommand(void* const command) {
   BaseType_t xTaskWokenByReceive = pdFALSE;
-  if (xQueueReceiveFromISR(telegramHistoryQueue, (void *)&telegram, &xTaskWokenByReceive) == pdFALSE) {
+  if (xQueueReceiveFromISR(telegramCommandQueue, (void *)&command, &xTaskWokenByReceive) == pdFALSE) {
     if (xTaskWokenByReceive) {
       portYIELD_FROM_ISR();
     }
@@ -126,6 +126,7 @@ bool IRAM_ATTR ebusDequeue(void* const telegram) {
 void setupEbus() {
   ebus.setUartSendFunction(ebusUartSend);
   ebus.setQueueHistoricFunction(ebusQueue);
+  ebus.setDeueueCommandFunction(ebusDequeueCommand);
 }
 
 void logHistoricMessages(void *pvParameter) {

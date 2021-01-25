@@ -60,63 +60,73 @@ enum TelegramState : int8_t {
   endAbort = -99,
 };
 
-class Telegram {
+class Command {
   TelegramState state = TelegramState::waitForSyn;
-  bool waitForEscaped = false;
   uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {ESC, ESC};  // initialize QQ and ZZ with ESC char to distinguish from valid master 0
   uint8_t requestBufferPos = 0;
   uint8_t requestRollingCRC = 0;
-  uint8_t responseBuffer[RESPONSE_BUFFER_SIZE] = {0};
-  uint8_t responseBufferPos = 0;
-  uint8_t responseRollingCRC = 0;
+
+  protected:
+  bool waitForEscaped = false;
   void pushBuffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *crc, int max_pos);
-  TelegramType getType();
 
   public:
-  Telegram();
-
-  Telegram(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data);
+  Command();
+  Command(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data);
 
   _GETTER(requestBuffer, QQ);
   _GETTER(requestBuffer, ZZ);
   _GETTER(requestBuffer, PB);
   _GETTER(requestBuffer, SB);
   _GETTER(requestBuffer, NN);
-  uint8_t getResponseNN() {
-    return responseBuffer[0];
-  }
 
   TelegramState getState();
   void setState(TelegramState newState);
-
+  TelegramType getType();
   int16_t getRequestByte(uint8_t pos);
   uint8_t getRequestCRC();
-  int16_t getResponseByte(uint8_t pos);
-  uint8_t getResponseCRC();
-
   void pushReqData(uint8_t cr);
-  void pushRespData(uint8_t cr);
   bool isAckExpected();
   bool isResponseExpected();
   bool isRequestComplete();
   bool isRequestValid();
+  bool isFinished();
+};
+
+class Telegram: public Command {
+  uint8_t responseBuffer[RESPONSE_BUFFER_SIZE] = {0};
+  uint8_t responseBufferPos = 0;
+  uint8_t responseRollingCRC = 0;
+
+  public:
+  Telegram();
+
+  Telegram(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data);
+
+  uint8_t getResponseNN() {
+    return responseBuffer[0];
+  }
+
+  int16_t getResponseByte(uint8_t pos);
+  uint8_t getResponseCRC();
+
+  void pushRespData(uint8_t cr);
   bool isResponseComplete();
   bool isResponseValid();
-  bool isFinished();
 };
 
 class Ebus {
   uint8_t masterAddress;
   void (*uartSend)(const char *, int16_t);
   void (*queueHistoric)(Telegram);
-  bool (*dequeueSend)(void * const telegram);
+  bool (*dequeueCommand)(void *const command);
   Telegram activeTelegram;
 
   public:
   explicit Ebus(uint8_t master);
   void setUartSendFunction(void (*uartSend)(const char *, int16_t size));
   void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
-  void setDeueueSendFunction(bool (*dequeue_send)(void * const telegram));
+  void setDeueueCommandFunction(bool (*dequeue_command)(void *const command));
   void processReceivedChar(int cr);
   class Elf {
 public:
@@ -126,7 +136,6 @@ public:
     static int isMasterNibble(uint8_t nibble);
     static uint8_t getPriorityClass(uint8_t address);
     static uint8_t getSubAddress(uint8_t address);
-
   };
 
 #ifdef UNIT_TEST
