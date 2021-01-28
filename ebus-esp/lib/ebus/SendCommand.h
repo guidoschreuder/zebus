@@ -17,6 +17,7 @@ class SendCommand : public TelegramBase {
   SendCommandState getState();
   void setState(SendCommandState new_state);
   bool canRetry(int8_t max_tries);
+  uint8_t getCRC();
 };
 
 }  // namespace Ebus

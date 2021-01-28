@@ -30,4 +30,8 @@ bool SendCommand::canRetry(int8_t max_tries) {
   return numTries++ < max_tries;
 }
 
+uint8_t SendCommand::getCRC() {
+  return requestRollingCRC;
+}
+
 }  // namespace Ebus

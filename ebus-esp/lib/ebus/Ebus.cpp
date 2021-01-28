@@ -20,8 +20,20 @@ void Ebus::setDeueueCommandFunction(bool (*dequeue_command)(void *const command)
 }
 
 void Ebus::uartSendChar(uint8_t cr) {
-  const char buffer[1] = {(char) cr};
-  uartSend(buffer, 1);
+  char buffer[2];
+  uint8_t len = 1;
+    if (cr == ESC) {
+      buffer[0] = ESC;
+      buffer[1] = 0x00;
+      len = 2;
+    } else if (cr == SYN) {
+      buffer[0] = ESC;
+      buffer[1] = 0x01;
+      len = 2;
+    } else {
+      buffer[0] = cr;
+    }
+  uartSend(buffer, len);
 }
 
 void Ebus::uartSendRemainingRequestPart(SendCommand command) {
@@ -30,18 +42,10 @@ void Ebus::uartSendRemainingRequestPart(SendCommand command) {
   uartSendChar(command.getSB());
   uartSendChar(command.getNN());
   // NOTE: use <= in loop, so we also get CRC
-  for (int i = 0; i <= command.getNN(); i++) {
-    uint8_t el = (uint8_t) command.getRequestByte(i);
-    if (el == ESC) {
-      uartSendChar(ESC);
-      uartSendChar(0x00);
-    } else if (el == SYN) {
-      uartSendChar(ESC);
-      uartSendChar(0x01);
-    } else {
-      uartSendChar(el);
-    }
+  for (int i = 0; i < command.getNN(); i++) {
+    uartSendChar((uint8_t) command.getRequestByte(i));
   }
+  uartSendChar(command.getCRC());
 }
 
 void IRAM_ATTR Ebus::processReceivedChar(int cr) {

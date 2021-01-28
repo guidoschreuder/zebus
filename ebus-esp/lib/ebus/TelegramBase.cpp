@@ -37,7 +37,7 @@ TelegramType TelegramBase::getType() {
 }
 
 int16_t TelegramBase::getRequestByte(uint8_t pos) {
-  if (pos >= getNN()) {
+  if (pos > getNN()) {
     return -1;
   }
   return requestBuffer[OFFSET_DATA + pos];
