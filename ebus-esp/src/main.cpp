@@ -46,9 +46,11 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
     uart_clear_intr_status(UART_NUM_EBUS, UART_SW_XON_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_FRM_ERR_INT_ST)) {
     // process error (Triggered when the receiver detects a data frame error)
+    ebus.processReceivedChar(-1);
     uart_clear_intr_status(UART_NUM_EBUS, UART_FRM_ERR_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_BRK_DET_INT_ST)) {
     // process error (Triggered when the receiver detects a 0 level after the STOP bit)
+    ebus.processReceivedChar(-1);
     uart_clear_intr_status(UART_NUM_EBUS, UART_BRK_DET_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_TXFIFO_EMPTY_INT_ST)) {
     // all good (Triggered when the amount of data in the transmit-FIFO is less than what tx_mem_cnttxfifo_cnt specifies)
