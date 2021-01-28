@@ -12,6 +12,8 @@ namespace Ebus {
 class Ebus {
   uint8_t masterAddress;
   uint8_t maxTries;
+  uint8_t maxLockCounter;
+  uint8_t lockCounter = 0;
   uint8_t charCountSinceLastSyn = 0;
   EbusState state = EbusState::arbitration;
   Telegram receivingTelegram;
@@ -23,7 +25,7 @@ class Ebus {
   void uartSendRemainingRequestPart(SendCommand command);
 
   public:
-  explicit Ebus(uint8_t master, uint8_t max_tries);
+  explicit Ebus(uint8_t master, uint8_t max_tries, uint8_t max_lock_counter);
   void setUartSendFunction(void (*uartSend)(const char *, int16_t size));
   void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
   void setDeueueCommandFunction(bool (*dequeue_command)(void *const command));

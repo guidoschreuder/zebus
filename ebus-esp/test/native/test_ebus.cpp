@@ -30,7 +30,7 @@
 
 Queue telegramHistoryMockQueue(5, Queue::OnFull::removeOldest);
 Queue telegramSendMockQueue(5, Queue::OnFull::ignore);
-Ebus::Ebus ebus = Ebus::Ebus(0, 1);
+Ebus::Ebus ebus = Ebus::Ebus(0, 1, 2);
 
 void test_crc() {
   TEST_CRC8(P99_PROTECT({0x03, 0x64, 0xb5, 0x12, 0x02, 0x02, 0x00, 0x66}))
@@ -74,7 +74,7 @@ bool ebusDequeueCommand(void* command) {
 }
 
 void setupEbus() {
-  ebus = Ebus::Ebus(0, 1);
+  ebus = Ebus::Ebus(0, 1, 2);
   ebus.setUartSendFunction(uartSend);
   ebus.setQueueHistoricFunction(ebusQueue);
   ebus.setDeueueCommandFunction(ebusDequeueCommand);

@@ -2,9 +2,10 @@
 
 namespace Ebus {
 
-Ebus::Ebus(uint8_t master, uint8_t max_tries) {
+Ebus::Ebus(uint8_t master, uint8_t max_tries, uint8_t max_lock_counter) {
   masterAddress = master;
   maxTries = max_tries;
+  maxLockCounter = max_lock_counter;
 }
 
 void Ebus::setUartSendFunction(void (*uart_send)(const char *, int16_t)) {
@@ -54,6 +55,11 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
   if (cr == SYN) {
     state = charCountSinceLastSyn == 1 ? EbusState::arbitration : EbusState::normal;
     charCountSinceLastSyn = 0;
+
+    if (lockCounter > 0 && state == EbusState::normal) {
+      lockCounter--;
+    }
+
   } else {
     charCountSinceLastSyn++;
   }
@@ -145,7 +151,7 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
 
   switch (activeCommand.getState()) {
   case TelegramState::waitForSend:
-    if (cr == SYN && state == EbusState::normal) {
+    if (cr == SYN && state == EbusState::normal && lockCounter == 0) {
       activeCommand.setState(TelegramState::waitForArbitration);
       uartSendChar(activeCommand.getQQ());
     }
@@ -154,7 +160,12 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
     if (cr == activeCommand.getQQ()) {
       // we won arbitration
       uartSendRemainingRequestPart(activeCommand);
-      activeCommand.setState(activeCommand.isAckExpected() ? TelegramState::waitForCommandAck : TelegramState::endCompleted);
+      if (activeCommand.isAckExpected()) {
+        activeCommand.setState(TelegramState::waitForCommandAck);
+      } else {
+        activeCommand.setState(TelegramState::endCompleted);
+        lockCounter = maxLockCounter;
+      }
     } else if (Elf::getPriorityClass(cr) == Elf::getPriorityClass(activeCommand.getQQ())) {
       // eligible for round 2
       activeCommand.setState(TelegramState::waitForArbitration2nd);
@@ -169,7 +180,12 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
     } else if (cr == activeCommand.getQQ()) {
       // won round 2
       uartSendRemainingRequestPart(activeCommand);
-      activeCommand.setState(activeCommand.isAckExpected() ? TelegramState::waitForCommandAck : TelegramState::endCompleted);
+      if (activeCommand.isAckExpected()) {
+        activeCommand.setState(TelegramState::waitForCommandAck);
+      } else {
+        activeCommand.setState(TelegramState::endCompleted);
+        lockCounter = maxLockCounter;
+      }
     } else {
       // try again later if retries left
       activeCommand.setState(activeCommand.canRetry(maxTries) ? TelegramState::waitForSend : TelegramState::endSendFailed);
@@ -178,6 +194,7 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
   case TelegramState::waitForCommandAck:
     if (cr == ACK) {
       activeCommand.setState(TelegramState::endCompleted);
+      lockCounter = maxLockCounter;
     } else {
       activeCommand.setState(activeCommand.canRetry(maxTries) ? TelegramState::waitForSend : TelegramState::endSendFailed);
     }
