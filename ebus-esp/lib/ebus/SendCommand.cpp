@@ -19,13 +19,6 @@ SendCommand::SendCommand(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t
   pushReqData(requestRollingCRC);
 }
 
-TelegramState SendCommand::getState() {
-  return state;
-}
-void SendCommand::setState(TelegramState new_state) {
-  state = new_state;
-}
-
 bool SendCommand::canRetry(int8_t max_tries) {
   return numTries++ < max_tries;
 }

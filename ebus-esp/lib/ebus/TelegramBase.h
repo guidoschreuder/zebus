@@ -26,6 +26,7 @@ namespace Ebus {
 
 class TelegramBase {
   protected:
+  TelegramState state;
   uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {ESC, ESC};  // initialize QQ and ZZ with ESC char to distinguish from valid master 0
   uint8_t requestBufferPos = 0;
   uint8_t requestRollingCRC = 0;
@@ -49,6 +50,8 @@ class TelegramBase {
   void pushReqData(uint8_t cr);
   bool isAckExpected();
   bool isResponseExpected();
+  bool isFinished();
+
 };
 
 }

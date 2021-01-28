@@ -7,6 +7,15 @@ namespace Ebus {
 TelegramBase::TelegramBase() {
 }
 
+TelegramState TelegramBase::getState() {
+  return state;
+}
+
+void TelegramBase::setState(TelegramState newState) {
+  state = newState;
+}
+
+
 void TelegramBase::pushBuffer(uint8_t cr, uint8_t *buffer, uint8_t *pos, uint8_t *crc, int max_pos) {
   if (waitForEscaped) {
     if (*pos < max_pos) {
@@ -57,6 +66,10 @@ bool TelegramBase::isAckExpected() {
 
 bool TelegramBase::isResponseExpected() {
   return (getType() == TelegramType::MasterSlave);
+}
+
+bool TelegramBase::isFinished() {
+  return state < TelegramState::unknown;
 }
 
 }  // namespace Ebus

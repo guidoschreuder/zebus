@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "Ebus.h"
 #include "driver/gpio.h"
 #include "driver/uart.h"
 #include "esp_intr_alloc.h"
@@ -17,6 +16,8 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
+
+#include "Ebus.h"
 
 #define CHECK_INT_STATUS(ST, MASK) (((ST) & (MASK)) == (MASK))
 
@@ -162,7 +163,7 @@ void logHistoricMessages(void *pvParameter) {
 }
 
 void periodic(void *pvParameter) {
-  Ebus::SendCommand command = Ebus::SendCommand(0x00, 0x01, 0x07, 0x04, 0, NULL);
+  Ebus::SendCommand command = Ebus::SendCommand(0x00, 0x05, 0x07, 0x04, 0, NULL);
   while (1) {
     xQueueSendToBack(telegramCommandQueue, &command, portMAX_DELAY);
     printf("queued command\n");

@@ -6,14 +6,6 @@ Telegram::Telegram() {
   state = TelegramState::waitForSyn;
 }
 
-TelegramState Telegram::getState() {
-  return state;
-}
-
-void Telegram::setState(TelegramState newState) {
-  state = newState;
-}
-
 int16_t Telegram::getResponseByte(uint8_t pos) {
   if (pos > getResponseNN()) {
     return -1;
@@ -42,10 +34,6 @@ bool Telegram::isRequestComplete() {
 }
 bool Telegram::isRequestValid() {
   return isRequestComplete() && getRequestCRC() == requestRollingCRC;
-}
-
-bool Telegram::isFinished() {
-  return state < TelegramState::unknown;
 }
 
 }

@@ -65,7 +65,7 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
     receivingTelegram = Telegram();
   }
 
-  if ((activeCommand.getState() < 0) && dequeueCommand) {
+  if (activeCommand.isFinished() && dequeueCommand) {
     SendCommand dequeued;
     if (dequeueCommand(&dequeued)) {
       activeCommand = dequeued;
