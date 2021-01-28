@@ -15,7 +15,7 @@ void Telegram::setState(TelegramState newState) {
 }
 
 int16_t Telegram::getResponseByte(uint8_t pos) {
-  if (pos >= getResponseNN()) {
+  if (pos > getResponseNN()) {
     return -1;
   }
   return responseBuffer[RESPONSE_OFFSET + pos];

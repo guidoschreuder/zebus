@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "Ebus.h"
 #include "driver/gpio.h"
 #include "driver/uart.h"
-#include "Ebus.h"
 #include "esp_intr_alloc.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -27,7 +27,7 @@ QueueHandle_t telegramCommandQueue;
 StaticQueue_t telegramCommandQueueBuffer;
 uint8_t telegramCommandQueueStorage[EBUS_TELEGRAM_SEND_QUEUE_SIZE * sizeof(Ebus::Telegram)];
 
-Ebus::Ebus ebus = Ebus::Ebus(EBUS_MASTER_ADDRESS);
+Ebus::Ebus ebus = Ebus::Ebus(EBUS_MASTER_ADDRESS, EBUS_MAX_TRIES);
 
 static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
   uint16_t status = UART_EBUS.int_st.val;  // read UART interrupt Status
@@ -112,9 +112,9 @@ void IRAM_ATTR ebusQueue(Ebus::Telegram telegram) {
   }
 }
 
-bool IRAM_ATTR ebusDequeueCommand(void* const command) {
+bool IRAM_ATTR ebusDequeueCommand(void *const command) {
   BaseType_t xTaskWokenByReceive = pdFALSE;
-  if (xQueueReceiveFromISR(telegramCommandQueue, (void *)&command, &xTaskWokenByReceive) == pdFALSE) {
+  if (xQueueReceiveFromISR(telegramCommandQueue, command, &xTaskWokenByReceive)) {
     if (xTaskWokenByReceive) {
       portYIELD_FROM_ISR();
     }
@@ -161,6 +161,15 @@ void logHistoricMessages(void *pvParameter) {
   }
 }
 
+void periodic(void *pvParameter) {
+  Ebus::SendCommand command = Ebus::SendCommand(0x00, 0x01, 0x07, 0x04, 0, NULL);
+  while (1) {
+    xQueueSendToBack(telegramCommandQueue, &command, portMAX_DELAY);
+    printf("queued command\n");
+    vTaskDelay(pdMS_TO_TICKS(10000));
+  }
+}
+
 extern "C" {
 void app_main();
 }
@@ -172,6 +181,7 @@ void app_main() {
   setupEbusUart();
   setupEbus();
   xTaskCreate(&logHistoricMessages, "log-history", 2048, NULL, 5, NULL);
+  xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
 }
 
 #else

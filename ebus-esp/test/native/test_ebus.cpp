@@ -30,7 +30,7 @@
 
 Queue telegramHistoryMockQueue(5, Queue::OnFull::removeOldest);
 Queue telegramSendMockQueue(5, Queue::OnFull::ignore);
-Ebus::Ebus ebus = Ebus::Ebus(0);
+Ebus::Ebus ebus = Ebus::Ebus(0, 1);
 
 void test_crc() {
   TEST_CRC8(P99_PROTECT({0x03, 0x64, 0xb5, 0x12, 0x02, 0x02, 0x00, 0x66}))
@@ -64,7 +64,7 @@ void ebusQueue(Ebus::Telegram telegram) {
   telegramHistoryMockQueue.enqueue(copy);
 }
 
-bool ebusDequeueCommand(void* const command) {
+bool ebusDequeueCommand(void* command) {
   Ebus::SendCommand* commandDequeue;
   if (commandDequeue = (Ebus::SendCommand*)telegramSendMockQueue.dequeue()) {
     memcpy(command, commandDequeue, sizeof(Ebus::SendCommand));
@@ -74,7 +74,7 @@ bool ebusDequeueCommand(void* const command) {
 }
 
 void setupEbus() {
-  ebus = Ebus::Ebus(0);
+  ebus = Ebus::Ebus(0, 1);
   ebus.setUartSendFunction(uartSend);
   ebus.setQueueHistoricFunction(ebusQueue);
   ebus.setDeueueCommandFunction(ebusDequeueCommand);
@@ -196,12 +196,34 @@ void test_ebusDequeueSend() {
   TEST_ASSERT_EQUAL_HEX8(0x02, dequeued.getSB());
 }
 
+void test_send_command() {
+  setupEbus();
+  Ebus::SendCommand command = Ebus::SendCommand(0x00, 0x05, 0x07, 0x04, 0, NULL);
+  telegramSendMockQueue.enqueue(&command);
+  ebus.processReceivedChar(SYN);
+
+  Ebus::Telegram* telegram;
+  while ((telegram = (Ebus::Telegram*)telegramHistoryMockQueue.dequeue()) != NULL) {
+    printf("QQ: %02x, state: %d\n", telegram->getQQ(), telegram->getState());
+  }
+
+  TEST_ASSERT_EQUAL_HEX8(0x00, ebus.getReceivingTelegram().getQQ());
+  TEST_ASSERT_EQUAL_HEX8(0x07, ebus.getReceivingTelegram().getPB());
+  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isRequestValid());
+
+  printf("response: ");
+  for (int i = 0; i < ebus.getReceivingTelegram().getResponseNN(); i++) {
+    printf("%02x ", ebus.getReceivingTelegram().getResponseByte(i));
+  }
+  printf("\n");
+}
+
 int main(int argc, char** argv) {
   UNITY_BEGIN();
 
-  printf("==== sizeof Ebus::TelegramBase : %d\n", (uint16_t) sizeof(Ebus::TelegramBase));
-  printf("==== sizeof Ebus::Telegram     : %d\n", (uint16_t) sizeof(Ebus::Telegram));
-  printf("==== sizeof Ebus::SendCommand  : %d\n\n", (uint16_t) sizeof(Ebus::SendCommand));
+  printf("==== sizeof Ebus::TelegramBase : %d\n", (uint16_t)sizeof(Ebus::TelegramBase));
+  printf("==== sizeof Ebus::Telegram     : %d\n", (uint16_t)sizeof(Ebus::Telegram));
+  printf("==== sizeof Ebus::SendCommand  : %d\n\n", (uint16_t)sizeof(Ebus::SendCommand));
 
   RUN_TEST(test_crc);
   RUN_TEST(test_is_master);
@@ -214,6 +236,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_ebus_in_arbitration);
   RUN_TEST(test_multiple);
   RUN_TEST(test_ebusDequeueSend);
+  RUN_TEST(test_send_command);
 
   UNITY_END();
 }

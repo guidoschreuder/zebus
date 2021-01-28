@@ -11,14 +11,19 @@ namespace Ebus {
 
 class Ebus {
   uint8_t masterAddress;
+  uint8_t maxTries;
+  uint8_t charCountSinceLastSyn = 0;
+  EbusState state = EbusState::arbitration;
+  Telegram receivingTelegram;
+  SendCommand activeCommand;
   void (*uartSend)(const char *, int16_t);
   void (*queueHistoric)(Telegram);
   bool (*dequeueCommand)(void *const command);
-  Telegram receivingTelegram;
-  SendCommand activeCommand;
+  void uartSendChar(uint8_t cr);
+  void uartSendRemainingRequestPart(SendCommand command);
 
   public:
-  explicit Ebus(uint8_t master);
+  explicit Ebus(uint8_t master, uint8_t max_tries);
   void setUartSendFunction(void (*uartSend)(const char *, int16_t size));
   void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
   void setDeueueCommandFunction(bool (*dequeue_command)(void *const command));

@@ -2,23 +2,58 @@
 
 namespace Ebus {
 
-Ebus::Ebus(uint8_t master) {
+Ebus::Ebus(uint8_t master, uint8_t max_tries) {
   masterAddress = master;
+  maxTries = max_tries;
 }
 
-void IRAM_ATTR Ebus::setUartSendFunction(void (*uart_send)(const char *, int16_t)) {
+void Ebus::setUartSendFunction(void (*uart_send)(const char *, int16_t)) {
   uartSend = uart_send;
 }
 
-void IRAM_ATTR Ebus::setQueueHistoricFunction(void (*queue_historic)(Telegram)) {
+void Ebus::setQueueHistoricFunction(void (*queue_historic)(Telegram)) {
   queueHistoric = queue_historic;
 }
 
-void IRAM_ATTR Ebus::setDeueueCommandFunction(bool (*dequeue_command)(void * const command)) {
+void Ebus::setDeueueCommandFunction(bool (*dequeue_command)(void *const command)) {
   dequeueCommand = dequeue_command;
 }
 
+void Ebus::uartSendChar(uint8_t cr) {
+  const char buffer[1] = {(char) cr};
+  uartSend(buffer, 1);
+}
+
+void Ebus::uartSendRemainingRequestPart(SendCommand command) {
+  uartSendChar(command.getZZ());
+  uartSendChar(command.getPB());
+  uartSendChar(command.getSB());
+  uartSendChar(command.getNN());
+  // NOTE: use <= in loop, so we also get CRC
+  for (int i = 0; i <= command.getNN(); i++) {
+    uint8_t el = (uint8_t) command.getRequestByte(i);
+    if (el == ESC) {
+      uartSendChar(ESC);
+      uartSendChar(0x00);
+    } else if (el == SYN) {
+      uartSendChar(ESC);
+      uartSendChar(0x01);
+    } else {
+      uartSendChar(el);
+    }
+  }
+}
+
 void IRAM_ATTR Ebus::processReceivedChar(int cr) {
+  // keep track of number of character between last 2 SYN chars
+  // this is needed in case of arbitration
+  if (cr == SYN) {
+    state = charCountSinceLastSyn == 1 ? EbusState::arbitration : EbusState::normal;
+    charCountSinceLastSyn = 0;
+  } else {
+    charCountSinceLastSyn++;
+  }
+
   if (receivingTelegram.isFinished()) {
     if (queueHistoric) {
       queueHistoric(receivingTelegram);
@@ -26,10 +61,12 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
     receivingTelegram = Telegram();
   }
 
-  // if (activeCommand.isFinished() && dequeueCommand) {
-  //   // see if we can dequeue a new command
-  //   dequeueCommand(&activeCommand);
-  // }
+  if ((activeCommand.getState() < 0) && dequeueCommand) {
+    SendCommand dequeued;
+    if (dequeueCommand(&dequeued)) {
+      activeCommand = dequeued;
+    }
+  }
 
   if (cr < 0) {
     receivingTelegram.setState(TelegramState::endAbort);
@@ -45,9 +82,11 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
     }
     break;
   case TelegramState::waitForArbitration:
+    if (receivedByte != SYN) {
       receivingTelegram.pushReqData(receivedByte);
       receivingTelegram.setState(TelegramState::waitForRequestData);
-      break;
+    }
+    break;
   case TelegramState::waitForRequestData:
     if (receivedByte == SYN) {
       if (receivingTelegram.getZZ() == ESC) {
@@ -100,6 +139,49 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
     break;
   }
 
+  switch (activeCommand.getState()) {
+  case SendCommandState::waitForSend:
+    if (cr == SYN && state == EbusState::normal) {
+      activeCommand.setState(SendCommandState::waitForSendArbitration1st);
+      uartSendChar(activeCommand.getQQ());
+    }
+    break;
+  case SendCommandState::waitForSendArbitration1st:
+    if (cr == activeCommand.getQQ()) {
+      // we won arbitration
+      uartSendRemainingRequestPart(activeCommand);
+      activeCommand.setState(activeCommand.isAckExpected() ? SendCommandState::waitForCommandAck : SendCommandState::endSendCompleted);
+    } else if (Elf::getPriorityClass(cr) == Elf::getPriorityClass(activeCommand.getQQ())) {
+      // eligible for round 2
+      activeCommand.setState(SendCommandState::waitForSendArbitration2nd);
+    } else {
+      // lost arbitration, try again later if retries left
+      activeCommand.setState(activeCommand.canRetry(maxTries) ? SendCommandState::waitForSend : SendCommandState::endSendFailed);
+    }
+    break;
+  case SendCommandState::waitForSendArbitration2nd:
+    if (cr == SYN) {
+      uartSendChar(activeCommand.getQQ());
+    } else if (cr == activeCommand.getQQ()) {
+      // won round 2
+      uartSendRemainingRequestPart(activeCommand);
+      activeCommand.setState(activeCommand.isAckExpected() ? SendCommandState::waitForCommandAck : SendCommandState::endSendCompleted);
+    } else {
+      // try again later if retries left
+      activeCommand.setState(activeCommand.canRetry(maxTries) ? SendCommandState::waitForSend : SendCommandState::endSendFailed);
+    }
+    break;
+  case SendCommandState::waitForCommandAck:
+    if (cr == ACK) {
+      activeCommand.setState(SendCommandState::endSendCompleted);
+    } else {
+      activeCommand.setState(activeCommand.canRetry(maxTries) ? SendCommandState::waitForSend : SendCommandState::endSendFailed);
+    }
+    break;
+  default:
+    break;
+  }
+
   if (receivingTelegram.getState() == TelegramState::waitForRequestAck &&
       receivingTelegram.getZZ() == EBUS_SLAVE_ADDRESS(masterAddress)) {
     char buf[RESPONSE_BUFFER_SIZE] = {0};
@@ -113,7 +195,7 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
         buf[len++] = ACK;
         uint8_t fixedResponse[] = {0xA, 0xDD, 0x47, 0x75, 0x69, 0x64, 0x6F, 0x01, 0x02, 0x03, 0x04, 0x31};
         for (int i = 0; i < sizeof(fixedResponse) / sizeof(uint8_t); i++) {
-          buf[len++] = (uint8_t) fixedResponse[i];
+          buf[len++] = (uint8_t)fixedResponse[i];
         }
       }
     } else {

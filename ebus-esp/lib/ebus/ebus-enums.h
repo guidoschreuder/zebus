@@ -5,6 +5,11 @@
 
 namespace Ebus {
 
+enum EbusState : int8_t {
+  normal,
+  arbitration,
+};
+
 enum TelegramType : int8_t {
   Unknown = -1,
   Broadcast = 0,
@@ -25,16 +30,19 @@ enum TelegramState : int8_t {
   endErrorResponseNoAck = -4,
   endErrorRequestNoAck = -4,
   endArbitration = -5,
-  endCompleted = -32,
-  endAbort = -99,
+  endCompleted = -16,
+  endAbort = -20,
 };
 
 enum SendCommandState : int8_t {
   waitForSend = 1,
-  waitForSendArbitration = 6,
-  endSendCompleted = -32,
+  waitForSendArbitration1st = 6,
+  waitForSendArbitration2nd = 7,
+  waitForCommandAck = 8,
+  endSendCompleted = -16,
+  endSendFailed = -17,
 };
 
-}
+}  // namespace Ebus
 
 #endif

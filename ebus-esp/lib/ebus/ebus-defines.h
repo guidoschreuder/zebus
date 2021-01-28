@@ -8,8 +8,6 @@
 
 #define EBUS_SLAVE_ADDRESS(MASTER) (((MASTER) + 5) % 0xFF)
 
-#define EBUS_MAX_TRIES 2
-
 #define SYN 0xAA
 #define ESC 0xA9
 #define ACK 0x00
