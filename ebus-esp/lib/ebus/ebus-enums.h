@@ -16,13 +16,17 @@ enum TelegramType : int8_t {
   MasterMaster = 1,
   MasterSlave = 2,
 };
+
 enum TelegramState : int8_t {
   waitForSyn = 1,  // no SYN seen yet
-  waitForRequestData = 2,
-  waitForRequestAck = 3,
-  waitForResponseData = 4,
-  waitForResponseAck = 5,
-  waitForArbitration = 6,
+  waitForSend = 2,
+  waitForRequestData = 3,
+  waitForRequestAck = 4,
+  waitForResponseData = 5,
+  waitForResponseAck = 6,
+  waitForArbitration = 7,
+  waitForArbitration2nd = 8,
+  waitForCommandAck = 9,
   unknown = 0,
   endErrorUnexpectedSyn = -1,
   endErrorRequestNackReceived = -2,
@@ -31,16 +35,8 @@ enum TelegramState : int8_t {
   endErrorRequestNoAck = -4,
   endArbitration = -5,
   endCompleted = -16,
-  endAbort = -20,
-};
-
-enum SendCommandState : int8_t {
-  waitForSend = 1,
-  waitForSendArbitration1st = 6,
-  waitForSendArbitration2nd = 7,
-  waitForCommandAck = 8,
-  endSendCompleted = -16,
   endSendFailed = -17,
+  endAbort = -20,
 };
 
 }  // namespace Ebus

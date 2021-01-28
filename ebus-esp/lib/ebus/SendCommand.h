@@ -8,14 +8,14 @@
 namespace Ebus {
 
 class SendCommand : public TelegramBase {
-  SendCommandState state = SendCommandState::waitForSend;
+  TelegramState state = TelegramState::waitForSend;
   uint8_t numTries = 0;
 
   public:
   SendCommand();
   SendCommand(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data);
-  SendCommandState getState();
-  void setState(SendCommandState new_state);
+  TelegramState getState();
+  void setState(TelegramState new_state);
   bool canRetry(int8_t max_tries);
   uint8_t getCRC();
 };

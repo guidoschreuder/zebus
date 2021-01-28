@@ -3,11 +3,11 @@
 namespace Ebus {
 
 SendCommand::SendCommand() {
-  state = SendCommandState::endSendCompleted;
+  state = TelegramState::endCompleted;
 }
 
 SendCommand::SendCommand(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t NN, uint8_t *data) {
-  state = SendCommandState::waitForSend;
+  state = TelegramState::waitForSend;
   pushReqData(QQ);
   pushReqData(ZZ);
   pushReqData(PB);
@@ -19,10 +19,10 @@ SendCommand::SendCommand(uint8_t QQ, uint8_t ZZ, uint8_t PB, uint8_t SB, uint8_t
   pushReqData(requestRollingCRC);
 }
 
-SendCommandState SendCommand::getState() {
+TelegramState SendCommand::getState() {
   return state;
 }
-void SendCommand::setState(SendCommandState new_state) {
+void SendCommand::setState(TelegramState new_state) {
   state = new_state;
 }
 

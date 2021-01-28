@@ -144,42 +144,42 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
   }
 
   switch (activeCommand.getState()) {
-  case SendCommandState::waitForSend:
+  case TelegramState::waitForSend:
     if (cr == SYN && state == EbusState::normal) {
-      activeCommand.setState(SendCommandState::waitForSendArbitration1st);
+      activeCommand.setState(TelegramState::waitForArbitration);
       uartSendChar(activeCommand.getQQ());
     }
     break;
-  case SendCommandState::waitForSendArbitration1st:
+  case TelegramState::waitForArbitration:
     if (cr == activeCommand.getQQ()) {
       // we won arbitration
       uartSendRemainingRequestPart(activeCommand);
-      activeCommand.setState(activeCommand.isAckExpected() ? SendCommandState::waitForCommandAck : SendCommandState::endSendCompleted);
+      activeCommand.setState(activeCommand.isAckExpected() ? TelegramState::waitForCommandAck : TelegramState::endCompleted);
     } else if (Elf::getPriorityClass(cr) == Elf::getPriorityClass(activeCommand.getQQ())) {
       // eligible for round 2
-      activeCommand.setState(SendCommandState::waitForSendArbitration2nd);
+      activeCommand.setState(TelegramState::waitForArbitration2nd);
     } else {
       // lost arbitration, try again later if retries left
-      activeCommand.setState(activeCommand.canRetry(maxTries) ? SendCommandState::waitForSend : SendCommandState::endSendFailed);
+      activeCommand.setState(activeCommand.canRetry(maxTries) ? TelegramState::waitForSend : TelegramState::endSendFailed);
     }
     break;
-  case SendCommandState::waitForSendArbitration2nd:
+  case TelegramState::waitForArbitration2nd:
     if (cr == SYN) {
       uartSendChar(activeCommand.getQQ());
     } else if (cr == activeCommand.getQQ()) {
       // won round 2
       uartSendRemainingRequestPart(activeCommand);
-      activeCommand.setState(activeCommand.isAckExpected() ? SendCommandState::waitForCommandAck : SendCommandState::endSendCompleted);
+      activeCommand.setState(activeCommand.isAckExpected() ? TelegramState::waitForCommandAck : TelegramState::endCompleted);
     } else {
       // try again later if retries left
-      activeCommand.setState(activeCommand.canRetry(maxTries) ? SendCommandState::waitForSend : SendCommandState::endSendFailed);
+      activeCommand.setState(activeCommand.canRetry(maxTries) ? TelegramState::waitForSend : TelegramState::endSendFailed);
     }
     break;
-  case SendCommandState::waitForCommandAck:
+  case TelegramState::waitForCommandAck:
     if (cr == ACK) {
-      activeCommand.setState(SendCommandState::endSendCompleted);
+      activeCommand.setState(TelegramState::endCompleted);
     } else {
-      activeCommand.setState(activeCommand.canRetry(maxTries) ? SendCommandState::waitForSend : SendCommandState::endSendFailed);
+      activeCommand.setState(activeCommand.canRetry(maxTries) ? TelegramState::waitForSend : TelegramState::endSendFailed);
     }
     break;
   default:
