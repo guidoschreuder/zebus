@@ -1,6 +1,6 @@
 #pragma once
 
-#define UART_FOR_EBUS 1
+#define EBUS_UART_NUM 1
 #define EBUS_UART_RX_PIN 32
 #define EBUS_UART_TX_PIN 33
 

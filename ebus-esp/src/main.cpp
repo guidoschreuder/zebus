@@ -184,7 +184,7 @@ void app_main() {
   setupEbusUart();
   setupEbus();
   xTaskCreate(&logHistoricMessages, "log-history", 2048, NULL, 5, NULL);
-  xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
+  //xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
 }
 
 #else

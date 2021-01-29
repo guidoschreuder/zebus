@@ -5,7 +5,7 @@
 
 namespace Ebus {
 class Telegram : public TelegramBase {
-  uint8_t responseBuffer[RESPONSE_BUFFER_SIZE] = {0};
+  uint8_t responseBuffer[EBUS_RESPONSE_BUFFER_SIZE] = {0};
   uint8_t responseBufferPos = 0;
   uint8_t responseRollingCRC = 0;
 

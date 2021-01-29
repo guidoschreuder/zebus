@@ -4,21 +4,21 @@
 #include "ebus-defines.h"
 #include "ebus-enums.h"
 
-#define MAX_DATA_LENGTH 16
+#define EBUS_MAX_DATA_LENGTH 16
 
-#define OFFSET_QQ 0
-#define OFFSET_ZZ 1
-#define OFFSET_PB 2
-#define OFFSET_SB 3
-#define OFFSET_NN 4
-#define OFFSET_DATA 5
-#define REQUEST_BUFFER_SIZE (OFFSET_DATA + MAX_DATA_LENGTH + 1)
-#define RESPONSE_BUFFER_SIZE (MAX_DATA_LENGTH + 2)
-#define RESPONSE_OFFSET 1
+#define EBUS_OFFSET_QQ 0
+#define EBUS_OFFSET_ZZ 1
+#define EBUS_OFFSET_PB 2
+#define EBUS_OFFSET_SB 3
+#define EBUS_OFFSET_NN 4
+#define EBUS_OFFSET_DATA 5
+#define EBUS_REQUEST_BUFFER_SIZE (EBUS_OFFSET_DATA + EBUS_MAX_DATA_LENGTH + 1)
+#define EBUS_RESPONSE_BUFFER_SIZE (EBUS_MAX_DATA_LENGTH + 2)
+#define EBUS_RESPONSE_OFFSET 1
 
-#define _GETTER(BUFFER, POS)     \
+#define _EBUS_GETTER(BUFFER, POS)     \
   uint8_t get##POS() {           \
-    return BUFFER[OFFSET_##POS]; \
+    return BUFFER[EBUS_OFFSET_##POS]; \
   }
 
 namespace Ebus {
@@ -27,7 +27,7 @@ namespace Ebus {
 class TelegramBase {
   protected:
   TelegramState state;
-  uint8_t requestBuffer[REQUEST_BUFFER_SIZE] = {ESC, ESC};  // initialize QQ and ZZ with ESC char to distinguish from valid master 0
+  uint8_t requestBuffer[EBUS_REQUEST_BUFFER_SIZE] = {EBUS_ESC, EBUS_ESC};  // initialize QQ and ZZ with ESC char to distinguish from valid master 0
   uint8_t requestBufferPos = 0;
   uint8_t requestRollingCRC = 0;
   bool waitForEscaped = false;
@@ -36,11 +36,11 @@ class TelegramBase {
   public:
   TelegramBase();
 
-  _GETTER(requestBuffer, QQ);
-  _GETTER(requestBuffer, ZZ);
-  _GETTER(requestBuffer, PB);
-  _GETTER(requestBuffer, SB);
-  _GETTER(requestBuffer, NN);
+  _EBUS_GETTER(requestBuffer, QQ);
+  _EBUS_GETTER(requestBuffer, ZZ);
+  _EBUS_GETTER(requestBuffer, PB);
+  _EBUS_GETTER(requestBuffer, SB);
+  _EBUS_GETTER(requestBuffer, NN);
 
   TelegramState getState();
   void setState(TelegramState newState);

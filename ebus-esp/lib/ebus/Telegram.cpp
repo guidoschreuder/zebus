@@ -10,19 +10,19 @@ int16_t Telegram::getResponseByte(uint8_t pos) {
   if (pos > getResponseNN()) {
     return -1;
   }
-  return responseBuffer[RESPONSE_OFFSET + pos];
+  return responseBuffer[EBUS_RESPONSE_OFFSET + pos];
 }
 
 uint8_t Telegram::getResponseCRC() {
-  return responseBuffer[RESPONSE_OFFSET + getResponseNN()];
+  return responseBuffer[EBUS_RESPONSE_OFFSET + getResponseNN()];
 }
 
 void Telegram::pushRespData(uint8_t cr) {
-  pushBuffer(cr, responseBuffer, &responseBufferPos, &responseRollingCRC, RESPONSE_OFFSET + getResponseNN());
+  pushBuffer(cr, responseBuffer, &responseBufferPos, &responseRollingCRC, EBUS_RESPONSE_OFFSET + getResponseNN());
 }
 
 bool Telegram::isResponseComplete() {
-  return (getState() > TelegramState::waitForSyn || getState() == TelegramState::endCompleted) && (responseBufferPos > RESPONSE_OFFSET) && (responseBufferPos == (RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
+  return (getState() > TelegramState::waitForSyn || getState() == TelegramState::endCompleted) && (responseBufferPos > EBUS_RESPONSE_OFFSET) && (responseBufferPos == (EBUS_RESPONSE_OFFSET + getResponseNN() + 1)) && !waitForEscaped;
 }
 
 bool Telegram::isResponseValid() {
@@ -30,7 +30,7 @@ bool Telegram::isResponseValid() {
 }
 
 bool Telegram::isRequestComplete() {
-  return (state > TelegramState::waitForSyn || state == TelegramState::endCompleted) && (requestBufferPos > OFFSET_DATA) && (requestBufferPos == (OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
+  return (state > TelegramState::waitForSyn || state == TelegramState::endCompleted) && (requestBufferPos > EBUS_OFFSET_DATA) && (requestBufferPos == (EBUS_OFFSET_DATA + getNN() + 1)) && !waitForEscaped;
 }
 bool Telegram::isRequestValid() {
   return isRequestComplete() && getRequestCRC() == requestRollingCRC;
