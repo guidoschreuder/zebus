@@ -23,17 +23,17 @@ void Ebus::setDeueueCommandFunction(bool (*dequeue_command)(void *const command)
 void Ebus::uartSendChar(uint8_t cr) {
   char buffer[2];
   uint8_t len = 1;
-    if (cr == ESC) {
-      buffer[0] = ESC;
-      buffer[1] = 0x00;
-      len = 2;
-    } else if (cr == SYN) {
-      buffer[0] = ESC;
-      buffer[1] = 0x01;
-      len = 2;
-    } else {
-      buffer[0] = cr;
-    }
+  if (cr == ESC) {
+    buffer[0] = ESC;
+    buffer[1] = 0x00;
+    len = 2;
+  } else if (cr == SYN) {
+    buffer[0] = ESC;
+    buffer[1] = 0x01;
+    len = 2;
+  } else {
+    buffer[0] = cr;
+  }
   uartSend(buffer, len);
 }
 
@@ -44,7 +44,7 @@ void Ebus::uartSendRemainingRequestPart(SendCommand command) {
   uartSendChar(command.getNN());
   // NOTE: use <= in loop, so we also get CRC
   for (int i = 0; i < command.getNN(); i++) {
-    uartSendChar((uint8_t) command.getRequestByte(i));
+    uartSendChar((uint8_t)command.getRequestByte(i));
   }
   uartSendChar(command.getCRC());
 }
@@ -201,6 +201,18 @@ void IRAM_ATTR Ebus::processReceivedChar(int cr) {
     break;
   default:
     break;
+  }
+
+  // responses to our commands are stored in receivingTelegram
+  // when response is completed send ACK or NACK when we were the master
+  if (receivingTelegram.getState() == TelegramState::waitForResponseAck &&
+      receivingTelegram.getQQ() == masterAddress) {
+    if (receivingTelegram.isResponseValid()) {
+      uartSendChar(ACK);
+      uartSendChar(SYN);
+    } else {
+      uartSendChar(NACK);
+    }
   }
 
   if (receivingTelegram.getState() == TelegramState::waitForRequestAck &&
