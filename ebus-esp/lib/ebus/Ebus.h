@@ -3,13 +3,17 @@
 
 #include <stdint.h>
 
-#include "Telegram.h"
+#include <list>
+
+#include "EbusListener.h"
 #include "SendCommand.h"
+#include "Telegram.h"
 #include "ebus-enums.h"
 
 namespace Ebus {
 
 class Ebus {
+  private:
   uint8_t masterAddress;
   uint8_t maxTries;
   uint8_t maxLockCounter;
@@ -18,6 +22,7 @@ class Ebus {
   EbusState state = EbusState::arbitration;
   Telegram receivingTelegram;
   SendCommand activeCommand;
+  std::list<EbusListener *> listeners;
   void (*uartSend)(const char *, int16_t);
   void (*queueHistoric)(Telegram);
   bool (*dequeueCommand)(void *const command);
@@ -30,6 +35,8 @@ class Ebus {
   void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
   void setDeueueCommandFunction(bool (*dequeue_command)(void *const command));
   void processReceivedChar(int cr);
+  void addListener(EbusListener *listener);
+  void notifyAll(Telegram telegram);
   class Elf {
 public:
     static unsigned char crc8Calc(unsigned char data, unsigned char crc_init);
