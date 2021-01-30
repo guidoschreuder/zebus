@@ -202,18 +202,15 @@ void test_send_command() {
   telegramSendMockQueue.enqueue(&command);
   ebus.processReceivedChar(EBUS_SYN);
 
-  Ebus::Telegram* telegram;
-  while ((telegram = (Ebus::Telegram*)telegramHistoryMockQueue.dequeue()) != NULL) {
-    printf("QQ: %02x, state: %d\n", telegram->getQQ(), telegram->getState());
-  }
+  Ebus::Telegram* telegram = (Ebus::Telegram*)telegramHistoryMockQueue.dequeue();
 
-  TEST_ASSERT_EQUAL_HEX8(0x00, ebus.getReceivingTelegram().getQQ());
-  TEST_ASSERT_EQUAL_HEX8(0x07, ebus.getReceivingTelegram().getPB());
-  TEST_ASSERT_TRUE(ebus.getReceivingTelegram().isRequestValid());
+  TEST_ASSERT_EQUAL_HEX8(0x00, telegram->getQQ());
+  TEST_ASSERT_EQUAL_HEX8(0x07, telegram->getPB());
+  TEST_ASSERT_TRUE(telegram->isRequestValid());
 
   printf("response: ");
-  for (int i = 0; i < ebus.getReceivingTelegram().getResponseNN(); i++) {
-    printf("%02x ", ebus.getReceivingTelegram().getResponseByte(i));
+  for (int i = 0; i < telegram->getResponseNN(); i++) {
+    printf("%02x ", telegram->getResponseByte(i));
   }
   printf("\n");
 }
