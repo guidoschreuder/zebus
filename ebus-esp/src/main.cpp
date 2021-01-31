@@ -28,7 +28,13 @@ QueueHandle_t telegramCommandQueue;
 StaticQueue_t telegramCommandQueueBuffer;
 uint8_t telegramCommandQueueStorage[EBUS_TELEGRAM_SEND_QUEUE_SIZE * sizeof(Ebus::Telegram)];
 
-Ebus::Ebus ebus = Ebus::Ebus(EBUS_MASTER_ADDRESS, EBUS_MAX_TRIES, EBUS_MAX_LOCK_COUNTER);
+ebus_config_t ebus_config = ebus_config_t {
+  .master_address = EBUS_MASTER_ADDRESS,
+  .max_tries = EBUS_MAX_TRIES,
+  .max_lock_counter = EBUS_MAX_LOCK_COUNTER,
+};
+
+Ebus::Ebus ebus = Ebus::Ebus(ebus_config);
 
 static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
   uint16_t status = UART_EBUS.int_st.val;  // read UART interrupt Status

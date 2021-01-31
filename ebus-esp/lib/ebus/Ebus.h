@@ -10,6 +10,12 @@
 #include "Telegram.h"
 #include "ebus-enums.h"
 
+typedef struct {
+  uint8_t master_address;
+  uint8_t max_tries;
+  uint8_t max_lock_counter;
+} ebus_config_t;
+
 namespace Ebus {
 
 class Ebus {
@@ -30,7 +36,7 @@ class Ebus {
   void uartSendRemainingRequestPart(SendCommand command);
 
   public:
-  explicit Ebus(uint8_t master, uint8_t max_tries, uint8_t max_lock_counter);
+  explicit Ebus(ebus_config_t config);
   void setUartSendFunction(void (*uartSend)(const char *, int16_t size));
   void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
   void setDeueueCommandFunction(bool (*dequeue_command)(void *const command));

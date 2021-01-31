@@ -3,10 +3,10 @@
 
 namespace Ebus {
 
-Ebus::Ebus(uint8_t master, uint8_t max_tries, uint8_t max_lock_counter) {
-  masterAddress = master;
-  maxTries = max_tries;
-  maxLockCounter = max_lock_counter;
+Ebus::Ebus(ebus_config_t config) {
+  masterAddress = config.master_address;
+  maxTries = config.max_tries;
+  maxLockCounter = config.max_lock_counter;
 }
 
 void Ebus::setUartSendFunction(void (*uart_send)(const char *, int16_t)) {
