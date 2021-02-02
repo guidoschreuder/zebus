@@ -10,28 +10,30 @@ Create system to control the heater
 Conceived features:
 - room controller:
   - display to represent status
-  - sensor for actual temperature
-  - controls to set required temperature
-- communicate date and temperature to heater unit
-- control remotely using a telegram bot, that way we do not need to open any ports to the outside
-- display graphs of some relevant values like:
-  - temperature requested
-  - temperatures measured by heater, i.e.:
-    - requested room temp
-    - current room temp
-    - outgoing temp
-    - return temp
+    - requested room temperature
+    - room temparature
+    - heater flow temp and return temp
+    - outside temperature
+    - heater mode: heating/hot water
+    - flame on/off
     - pump on/off
+    - heater modulation
+  - sensor for actual room temperature
+  - controls to set required temperature
+- communicate date and outside temperature to heater unit
+- control remotely using a telegram bot, that way we do not need to open any ports to the outside
+- display graphs over time of relevant values
 
 ** Topology
 - room controller (ESP32 + display + temp-sensor)
-- communicates to "master" ESP32 on heater unit over ESP-NOW
+- outdoor unit, communicates temperature to "master" ESP32 on heater unit over ESP-NOW
 - master forwards to MQTT for monitoring/graphing
 
 
 ** Challenges
 - EBUS communication protocol
 - Valliant's EBUS commands are proprietary
+
 
 * tasks
 ** DONE create hardware interface for EBUS
@@ -75,8 +77,17 @@ item: https://www.aliexpress.com/item/4000830895622.html
 
 driver IC = ST7789VW
 
+Background info : https://www.instructables.com/Select-Color-Display-for-ESP32/
+
 Aduino examples here : https://simple-circuit.com/arduino-st7789-ips-tft-display-example/
 
 drivers:
  - https://github.com/adafruit/Adafruit-ST7735-Library
  - https://github.com/adafruit/Adafruit-GFX-Library
+
+* random assortment of links
+- http://www.pittnerovi.com/jiri/hobby/electronics/ebus/index.html
+- https://github.com/slavikb/BaiMon/blob/master/BaiMon.ino
+- https://www.14core.com/wiring-and-flashing-programming-esp-32-esp32s-with-usb-ttl-uart/
+- https://www.thingforward.io/techblog/2017-08-08-embedded-testing-with-platformio-part-2.html
+- set datetime: https://github.com/john30/ebusd/issues/286
