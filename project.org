@@ -11,7 +11,7 @@ Conceived features:
 - room controller:
   - display to represent status
     - requested room temperature
-    - room temparature
+    - room temperature
     - heater flow temp (ebusd message 'FlowTemp', also rounded in `status01`)
     - heater return temp (ebusd message 'ReturnTemp', also rounded in `status01`)
     - outside temperature
@@ -54,7 +54,8 @@ Good read and entry point is here: https://hackaday.io/project/174898-esp-now-we
 that was easy as pie :)
 ** DONE get ESP32 to listen in on EBUS messages and forward them ad-verbum to serial port for monitoring/debugging
     CLOSED: [2021-01-24 Sun 05:14]
-** TODO implement queues for actions "to be done" and "messages completed"
+** DONE implement queues for actions "to be done" and "messages completed"
+   CLOSED: [2021-08-30 Mon 00:29]
 status:
 
 implemented a pretty simple queue
@@ -72,16 +73,11 @@ actual implementation will use FreeRTOS queues provided by ESP-IDF/FreeRTOS
 ** DONE reply to "Identification (Service 07h 04h)"
     CLOSED: [2021-01-24 Sun 04:28]
 
-** TODO tackle the arbitration challenge
+** DONE tackle the arbitration challenge
+   CLOSED: [2021-08-30 Mon 00:29]
 ** DONE get ESP board to interface with 2.0" display
    CLOSED: [2021-08-29 Sun 19:06]
 
-* random assortment of links
-- http://www.pittnerovi.com/jiri/hobby/electronics/ebus/index.html
-- https://github.com/slavikb/BaiMon/blob/master/BaiMon.ino
-- https://www.14core.com/wiring-and-flashing-programming-esp-32-esp32s-with-usb-ttl-uart/
-- https://www.thingforward.io/techblog/2017-08-08-embedded-testing-with-platformio-part-2.html
-- set datetime: https://github.com/john30/ebusd/issues/286
 
 * documentation
 ** display
@@ -106,3 +102,11 @@ bought here: https://www.aliexpress.com/item/4000830895622.html
 | SCL    | SPI clock        | GPIO 18 |            |
 | VCC    |                  | +3.3    |            |
 | GND    |                  | GND     |            |
+
+
+* random assortment of links
+- http://www.pittnerovi.com/jiri/hobby/electronics/ebus/index.html
+- https://github.com/slavikb/BaiMon/blob/master/BaiMon.ino
+- https://www.14core.com/wiring-and-flashing-programming-esp-32-esp32s-with-usb-ttl-uart/
+- https://www.thingforward.io/techblog/2017-08-08-embedded-testing-with-platformio-part-2.html
+- set datetime: https://github.com/john30/ebusd/issues/286
