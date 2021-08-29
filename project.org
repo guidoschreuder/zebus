@@ -12,11 +12,12 @@ Conceived features:
   - display to represent status
     - requested room temperature
     - room temparature
-    - heater flow temp and return temp
+    - heater flow temp (ebusd message 'FlowTemp', also rounded in `status01`)
+    - heater return temp (ebusd message 'ReturnTemp', also rounded in `status01`)
     - outside temperature
     - heater mode: heating/hot water
-    - flame on/off
-    - pump on/off
+    - flame on/off (ebusd message 'Flame')
+    - pump on/off (ebusd message 'WP')
     - heater modulation
   - sensor for actual room temperature
   - controls to set required temperature
@@ -72,18 +73,8 @@ actual implementation will use FreeRTOS queues provided by ESP-IDF/FreeRTOS
     CLOSED: [2021-01-24 Sun 04:28]
 
 ** TODO tackle the arbitration challenge
-** TODO get ESP board to interface with 2.0" display
-item: https://www.aliexpress.com/item/4000830895622.html
-
-driver IC = ST7789VW
-
-Background info : https://www.instructables.com/Select-Color-Display-for-ESP32/
-
-Aduino examples here : https://simple-circuit.com/arduino-st7789-ips-tft-display-example/
-
-drivers:
- - https://github.com/adafruit/Adafruit-ST7735-Library
- - https://github.com/adafruit/Adafruit-GFX-Library
+** DONE get ESP board to interface with 2.0" display
+   CLOSED: [2021-08-29 Sun 19:06]
 
 * random assortment of links
 - http://www.pittnerovi.com/jiri/hobby/electronics/ebus/index.html
@@ -91,3 +82,27 @@ drivers:
 - https://www.14core.com/wiring-and-flashing-programming-esp-32-esp32s-with-usb-ttl-uart/
 - https://www.thingforward.io/techblog/2017-08-08-embedded-testing-with-platformio-part-2.html
 - set datetime: https://github.com/john30/ebusd/issues/286
+
+* documentation
+** display
+
+[[./docs/img/2-Inch-TFT-Color-Screen-LCD-Display-Module.png]]
+
+driver IC: ST7789VW
+
+size: 240x320 px
+
+library used: TFT\under{}eSPI
+
+bought here: https://www.aliexpress.com/item/4000830895622.html
+
+
+| pinout | meaning          | ESP32   | note       |
+|--------+------------------+---------+------------|
+| CS     | chip select      | GND     | active low |
+| DC     | SPI Data Command | GPIO 27 |            |
+| RST    | Reset            | GPIO 4  |            |
+| SDA    | SPI MOSI         | GPIO 23 |            |
+| SCL    | SPI clock        | GPIO 18 |            |
+| VCC    |                  | +3.3    |            |
+| GND    |                  | GND     |            |
