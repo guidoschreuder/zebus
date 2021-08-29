@@ -227,6 +227,7 @@ void Ebus::processReceivedChar(int cr) {
       if (receivingTelegram.getPB() == 0x07 &&
           receivingTelegram.getSB() == 0x04) {
         buf[len++] = EBUS_ACK;
+        // TODO: just send back "Guido" and dummy version on identification request
         uint8_t fixedResponse[] = {0xA, 0xDD, 0x47, 0x75, 0x69, 0x64, 0x6F, 0x01, 0x02, 0x03, 0x04, 0x31};
         for (int i = 0; i < sizeof(fixedResponse) / sizeof(uint8_t); i++) {
           buf[len++] = (uint8_t)fixedResponse[i];
