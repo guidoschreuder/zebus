@@ -19,14 +19,20 @@
 
 #include "Ebus.h"
 
+#include <TFT_eSPI.h>
+
 #define CHECK_INT_STATUS(ST, MASK) (((ST) & (MASK)) == (MASK))
 
+// EBus variables
 QueueHandle_t telegramHistoryQueue;
 StaticQueue_t telegramHistoryQueueBuffer;
 uint8_t telegramHistoryQueueStorage[EBUS_TELEGRAM_HISTORY_QUEUE_SIZE * sizeof(Ebus::Telegram)];
 QueueHandle_t telegramCommandQueue;
 StaticQueue_t telegramCommandQueueBuffer;
 uint8_t telegramCommandQueueStorage[EBUS_TELEGRAM_SEND_QUEUE_SIZE * sizeof(Ebus::Telegram)];
+
+// Display variables
+TFT_eSPI tft = TFT_eSPI(); // Invoke library
 
 ebus_config_t ebus_config = ebus_config_t {
   .master_address = EBUS_MASTER_ADDRESS,
@@ -79,6 +85,7 @@ void setupQueues() {
       &telegramCommandQueueBuffer);
 }
 
+
 void setupEbusUart() {
   uart_config_t uart_config = {
       .baud_rate = 2400,
@@ -87,7 +94,8 @@ void setupEbusUart() {
       .stop_bits = UART_STOP_BITS_1,
       .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
       .rx_flow_ctrl_thresh = 2,
-      .source_clk = UART_SCLK_APB,
+//     .source_clk = UART_SCLK_APB,
+      .use_ref_tick = true,
   };
   ESP_ERROR_CHECK(uart_param_config(UART_NUM_EBUS, &uart_config));
 
@@ -138,6 +146,21 @@ void setupEbus() {
   ebus.setDeueueCommandFunction(ebusDequeueCommand);
 }
 
+void setupDisplay() {
+  printf("Setup TFT\n");
+  tft.init();
+
+  tft.fillScreen(TFT_BLACK);
+
+  // Set "cursor" at top left corner of display (0,0) and select font 4
+  tft.setCursor(0, 0, 1);
+  // Set the font colour to be white with a black background
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+
+  // We can now plot text on screen using the "print" class
+  tft.println("Intialised default\n");
+}
+
 void logHistoricMessages(void *pvParameter) {
   Ebus::Telegram telegram;
   while (1) {
@@ -185,6 +208,8 @@ void app_main();
 
 void app_main() {
   printf("Setup\n");
+
+  setupDisplay();
 
   setupQueues();
   setupEbusUart();
