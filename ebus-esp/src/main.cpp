@@ -31,9 +31,6 @@ QueueHandle_t telegramCommandQueue;
 StaticQueue_t telegramCommandQueueBuffer;
 uint8_t telegramCommandQueueStorage[EBUS_TELEGRAM_SEND_QUEUE_SIZE * sizeof(Ebus::Telegram)];
 
-// Display variables
-TFT_eSPI tft = TFT_eSPI(); // Invoke library
-
 ebus_config_t ebus_config = ebus_config_t {
   .master_address = EBUS_MASTER_ADDRESS,
   .max_tries = EBUS_MAX_TRIES,
@@ -41,6 +38,42 @@ ebus_config_t ebus_config = ebus_config_t {
 };
 
 Ebus::Ebus ebus = Ebus::Ebus(ebus_config);
+
+// Display variables
+TFT_eSPI tft = TFT_eSPI(); // Invoke library
+
+
+void debugLogger(Ebus::Telegram telegram) {
+  printf(
+    "===========\nstate: %d\nQQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\nreq(size: %d, CRC: %02x): ",  //
+    telegram.getState(),
+    telegram.getQQ(),
+    telegram.getZZ(),
+    telegram.getPB(),
+    telegram.getSB(),
+    telegram.getNN(),
+    telegram.getResponseCRC());
+  for (int i = 0; i < telegram.getNN(); i++) {
+     printf(" %02X", telegram.getRequestByte(i));
+  }
+  printf("\n");
+  if (telegram.isResponseExpected()) {
+    printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
+     for (int i = 0; i < telegram.getResponseNN(); i++) {
+        printf(" %02X", telegram.getResponseByte(i));
+      }
+      printf("\n");
+    }
+}
+
+void  tftLogger(Ebus::Telegram telegram) {
+  if (telegram.isResponseExpected()) { //&& telegram.isResponseValid()) {
+    for (int i = 0; i < telegram.getResponseNN(); i++) {
+     tft.print((char)telegram.getResponseByte(i));
+    }
+    tft.println();
+  }
+}
 
 static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
   uint16_t status = UART_EBUS.int_st.val;  // read UART interrupt Status
@@ -149,43 +182,21 @@ void setupEbus() {
 void setupDisplay() {
   printf("Setup TFT\n");
   tft.init();
-
+  tft.setRotation(3);
   tft.fillScreen(TFT_BLACK);
 
-  // Set "cursor" at top left corner of display (0,0) and select font 4
+  // Set "cursor" at top left corner of display (0,0) and select font 1
   tft.setCursor(0, 0, 1);
-  // Set the font colour to be white with a black background
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-
-  // We can now plot text on screen using the "print" class
-  tft.println("Intialised default\n");
+  tft.println("Initialised default\n");
 }
 
-void logHistoricMessages(void *pvParameter) {
+void processHistoricMessages(void *pvParameter) {
   Ebus::Telegram telegram;
   while (1) {
     if (xQueueReceive(telegramHistoryQueue, &telegram, portMAX_DELAY)) {
-      printf(
-          "===========\nstate: %d\nQQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\nreq(size: %d, CRC: %02x): ",  //
-          telegram.getState(),
-          telegram.getQQ(),
-          telegram.getZZ(),
-          telegram.getPB(),
-          telegram.getSB(),
-          telegram.getNN(),
-          telegram.getResponseCRC());
-
-      for (int i = 0; i < telegram.getNN(); i++) {
-        printf(" %02X", telegram.getRequestByte(i));
-      }
-      printf("\n");
-      if (telegram.isResponseExpected()) {
-        printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
-        for (int i = 0; i < telegram.getResponseNN(); i++) {
-          printf(" %02X", telegram.getResponseByte(i));
-        }
-        printf("\n");
-      }
+      debugLogger(telegram);
+      tftLogger(telegram);
       taskYIELD();
     } else {
       vTaskDelay(pdMS_TO_TICKS(1000));
@@ -194,7 +205,7 @@ void logHistoricMessages(void *pvParameter) {
 }
 
 void periodic(void *pvParameter) {
-  Ebus::SendCommand command = Ebus::SendCommand(0x00, 0x05, 0x07, 0x04, 0, NULL);
+  Ebus::SendCommand command = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
   while (1) {
     xQueueSendToBack(telegramCommandQueue, &command, portMAX_DELAY);
     printf("queued command\n");
@@ -214,8 +225,8 @@ void app_main() {
   setupQueues();
   setupEbusUart();
   setupEbus();
-  xTaskCreate(&logHistoricMessages, "log-history", 2048, NULL, 5, NULL);
-  //xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
+  xTaskCreate(&processHistoricMessages, "process-history", 2048, NULL, 5, NULL);
+  xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
 }
 
 #else

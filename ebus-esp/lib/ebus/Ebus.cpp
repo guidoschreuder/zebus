@@ -249,16 +249,6 @@ Telegram Ebus::getReceivingTelegram() {
 }
 #endif
 
-void Ebus::addListener(EbusListener *listener) {
-  listeners.push_back(listener);
-};
-
-void Ebus::notifyAll(Telegram telegram) {
-  std::for_each(listeners.begin(), listeners.end(), [&](EbusListener *l) {
-    l->handle(telegram);
-  });
-};
-
 unsigned char Ebus::Elf::crc8Calc(unsigned char data, unsigned char crc_init) {
   unsigned char crc;
   unsigned char polynom;

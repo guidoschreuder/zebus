@@ -222,23 +222,6 @@ void test_send_command() {
   printf("\n");
 }
 
-class TestListener : public Ebus::EbusListener {
-  public:
-  bool handle(Ebus::Telegram telegram) {
-    printf("QQ => %02x\n", telegram.getQQ());
-    return true;
-  }
-};
-
-void test_listener() {
-  TestListener listener;
-
-  ebus.addListener(&listener);
-  Ebus::Telegram telegram;
-  ebus.notifyAll(telegram);
-
-}
-
 int main(int argc, char** argv) {
   UNITY_BEGIN();
 
@@ -258,7 +241,6 @@ int main(int argc, char** argv) {
   RUN_TEST(test_multiple);
   RUN_TEST(test_ebusDequeueSend);
   RUN_TEST(test_send_command);
-  RUN_TEST(test_listener);
   UNITY_END();
 }
 
