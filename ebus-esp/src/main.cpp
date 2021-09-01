@@ -2,6 +2,7 @@
 #ifndef UNIT_TEST
 
 #include "main.h"
+#include "ebus-display.h"
 
 #include <soc/uart_reg.h>
 #include <soc/uart_struct.h>
@@ -18,8 +19,6 @@
 #include "sdkconfig.h"
 
 #include "Ebus.h"
-
-#include <TFT_eSPI.h>
 
 #define CHECK_INT_STATUS(ST, MASK) (((ST) & (MASK)) == (MASK))
 
@@ -38,10 +37,6 @@ ebus_config_t ebus_config = ebus_config_t {
 };
 
 Ebus::Ebus ebus = Ebus::Ebus(ebus_config);
-
-// Display variables
-TFT_eSPI tft = TFT_eSPI(); // Invoke library
-
 
 void debugLogger(Ebus::Telegram telegram) {
   printf(
@@ -67,11 +62,11 @@ void debugLogger(Ebus::Telegram telegram) {
 }
 
 void  tftLogger(Ebus::Telegram telegram) {
-  if (telegram.isResponseExpected()) { //&& telegram.isResponseValid()) {
-    for (int i = 0; i < telegram.getResponseNN(); i++) {
+  if (telegram.getPB() == 0x07 && telegram.getSB() == 0x04 && telegram.isResponseExpected() && telegram.isResponseValid()) {
+    for (int i = 1; i < 6; i++) {
      tft.print((char)telegram.getResponseByte(i));
     }
-    tft.println();
+    tft.print(" ");
   }
 }
 
@@ -179,24 +174,12 @@ void setupEbus() {
   ebus.setDeueueCommandFunction(ebusDequeueCommand);
 }
 
-void setupDisplay() {
-  printf("Setup TFT\n");
-  tft.init();
-  tft.setRotation(3);
-  tft.fillScreen(TFT_BLACK);
-
-  // Set "cursor" at top left corner of display (0,0) and select font 1
-  tft.setCursor(0, 0, 1);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.println("Initialised default\n");
-}
-
 void processHistoricMessages(void *pvParameter) {
   Ebus::Telegram telegram;
   while (1) {
     if (xQueueReceive(telegramHistoryQueue, &telegram, portMAX_DELAY)) {
       debugLogger(telegram);
-      tftLogger(telegram);
+      //tftLogger(telegram);
       taskYIELD();
     } else {
       vTaskDelay(pdMS_TO_TICKS(1000));
@@ -205,10 +188,15 @@ void processHistoricMessages(void *pvParameter) {
 }
 
 void periodic(void *pvParameter) {
-  Ebus::SendCommand command = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
+  Ebus::SendCommand getIdCommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
+  Ebus::SendCommand getIdCommand2 = Ebus::SendCommand(EBUS_MASTER_ADDRESS, 0x08, 0x07, 0x04, 0, NULL);
+  //uint8_t getHwcData[] = {0x0D, 0x58, 0x00};
+  //Ebus::SendCommand getHwcDemandcommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, 0x08, 0xB5, 0x09, sizeof(getHwcData), getHwcData);
   while (1) {
-    xQueueSendToBack(telegramCommandQueue, &command, portMAX_DELAY);
-    printf("queued command\n");
+    xQueueSendToBack(telegramCommandQueue, &getIdCommand, portMAX_DELAY);
+    xQueueSendToBack(telegramCommandQueue, &getIdCommand2, portMAX_DELAY);
+    //xQueueSendToBack(telegramCommandQueue, &getHwcDemandcommand, portMAX_DELAY);
+    printf("queued commands\n");
     vTaskDelay(pdMS_TO_TICKS(10000));
   }
 }
@@ -227,6 +215,7 @@ void app_main() {
   setupEbus();
   xTaskCreate(&processHistoricMessages, "process-history", 2048, NULL, 5, NULL);
   xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
+  xTaskCreate(&updateDisplay, "update-display", 2048, NULL, 5, NULL);
 }
 
 #else
