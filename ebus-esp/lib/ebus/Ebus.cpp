@@ -196,7 +196,7 @@ void Ebus::processReceivedChar(int cr) {
     if (receivedByte == EBUS_ACK) {
       activeCommand.setState(TelegramState::endCompleted);
       lockCounter = maxLockCounter;
-    } else {
+    } else if (receivedByte == EBUS_SYN) { // timeout waiting for ACK signaled by AUTO-SYN
       activeCommand.setState(activeCommand.canRetry(maxTries) ? TelegramState::waitForSend : TelegramState::endSendFailed);
     }
     break;
