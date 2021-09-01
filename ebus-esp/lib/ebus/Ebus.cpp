@@ -113,7 +113,7 @@ void Ebus::processReceivedChar(int cr) {
     }
     break;
   case TelegramState::waitForRequestAck:
-    switch (cr) {
+    switch (receivedByte) {
     case EBUS_ACK:
       receivingTelegram.setState(receivingTelegram.isResponseExpected() ? TelegramState::waitForResponseData : TelegramState::endCompleted);
       break;
@@ -135,7 +135,7 @@ void Ebus::processReceivedChar(int cr) {
     }
     break;
   case TelegramState::waitForResponseAck:
-    switch (cr) {
+    switch (receivedByte) {
     case EBUS_ACK:
       receivingTelegram.setState(TelegramState::endCompleted);
       break;
@@ -152,13 +152,13 @@ void Ebus::processReceivedChar(int cr) {
 
   switch (activeCommand.getState()) {
   case TelegramState::waitForSend:
-    if (cr == EBUS_SYN && state == EbusState::normal && lockCounter == 0) {
+    if (receivedByte == EBUS_SYN && state == EbusState::normal && lockCounter == 0) {
       activeCommand.setState(TelegramState::waitForArbitration);
       uartSendChar(activeCommand.getQQ());
     }
     break;
   case TelegramState::waitForArbitration:
-    if (cr == activeCommand.getQQ()) {
+    if (receivedByte == activeCommand.getQQ()) {
       // we won arbitration
       uartSendRemainingRequestPart(activeCommand);
       if (activeCommand.isAckExpected()) {
@@ -167,7 +167,7 @@ void Ebus::processReceivedChar(int cr) {
         activeCommand.setState(TelegramState::endCompleted);
         lockCounter = maxLockCounter;
       }
-    } else if (Elf::getPriorityClass(cr) == Elf::getPriorityClass(activeCommand.getQQ())) {
+    } else if (Elf::getPriorityClass(receivedByte) == Elf::getPriorityClass(activeCommand.getQQ())) {
       // eligible for round 2
       activeCommand.setState(TelegramState::waitForArbitration2nd);
     } else {
@@ -176,9 +176,9 @@ void Ebus::processReceivedChar(int cr) {
     }
     break;
   case TelegramState::waitForArbitration2nd:
-    if (cr == EBUS_SYN) {
+    if (receivedByte == EBUS_SYN) {
       uartSendChar(activeCommand.getQQ());
-    } else if (cr == activeCommand.getQQ()) {
+    } else if (receivedByte == activeCommand.getQQ()) {
       // won round 2
       uartSendRemainingRequestPart(activeCommand);
       if (activeCommand.isAckExpected()) {
@@ -193,7 +193,7 @@ void Ebus::processReceivedChar(int cr) {
     }
     break;
   case TelegramState::waitForCommandAck:
-    if (cr == EBUS_ACK) {
+    if (receivedByte == EBUS_ACK) {
       activeCommand.setState(TelegramState::endCompleted);
       lockCounter = maxLockCounter;
     } else {
