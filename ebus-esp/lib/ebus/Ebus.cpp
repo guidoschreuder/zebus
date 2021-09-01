@@ -21,14 +21,14 @@ void Ebus::setDeueueCommandFunction(bool (*dequeue_command)(void *const command)
   dequeueCommand = dequeue_command;
 }
 
-void Ebus::uartSendChar(uint8_t cr) {
+void Ebus::uartSendChar(uint8_t cr, bool esc) {
   char buffer[2];
   uint8_t len = 1;
-  if (cr == EBUS_ESC) {
+  if (esc && cr == EBUS_ESC) {
     buffer[0] = EBUS_ESC;
     buffer[1] = 0x00;
     len = 2;
-  } else if (cr == EBUS_SYN) {
+  } else if (esc && cr == EBUS_SYN) {
     buffer[0] = EBUS_ESC;
     buffer[1] = 0x01;
     len = 2;
@@ -210,7 +210,7 @@ void Ebus::processReceivedChar(int cr) {
       receivingTelegram.getQQ() == masterAddress) {
     if (receivingTelegram.isResponseValid()) {
       uartSendChar(EBUS_ACK);
-      uartSendChar(EBUS_SYN);
+      uartSendChar(EBUS_SYN, false);
     } else {
       uartSendChar(EBUS_NACK);
     }

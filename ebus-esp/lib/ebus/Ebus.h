@@ -30,7 +30,7 @@ class Ebus {
   void (*uartSend)(const char *, int16_t);
   void (*queueHistoric)(Telegram);
   bool (*dequeueCommand)(void *const command);
-  void uartSendChar(uint8_t cr);
+  void uartSendChar(uint8_t cr, bool esc = true);
   void uartSendRemainingRequestPart(SendCommand command);
 
   public:
