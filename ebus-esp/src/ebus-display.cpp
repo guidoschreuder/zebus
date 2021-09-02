@@ -3,8 +3,11 @@
 
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
 TFT_eSprite spriteShower = TFT_eSprite(&tft);
+
 TFT_eSprite spriteHeater = TFT_eSprite(&tft);
 uint16_t heaterWaveOffset = 0;
+
+TFT_eSprite spriteFlame = TFT_eSprite(&tft);
 
 // TODO: remove the test variables
 uint8_t flow = 0;
@@ -85,13 +88,10 @@ void drawSpriteHeater(int32_t x, int32_t y, bool on) {
   const uint16_t WAVE_Y_OFFSET = 5;
   spriteHeater.fillRect(0, 0, 30, WAVE_Y_OFFSET + 1, EBUS_4BIT_BLACK);
   for (int i = 0; i < 4; i++) {
-    spriteHeater.drawRoundRect(8 * i, WAVE_Y_OFFSET, 5, 25, 1, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_BLACK);
-    if (!on) {
-      spriteHeater.drawRoundRect(8 * i, WAVE_Y_OFFSET, 5, 25, 1, EBUS_4BIT_WHITE);
-    }
+    spriteHeater.drawRoundRect(8 * i, WAVE_Y_OFFSET, 5, 25, 1, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_WHITE);
     if (i < 3) {
-      spriteHeater.drawFastHLine(8 * i + 5, WAVE_Y_OFFSET + 4, 2, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_WHITE);
-      spriteHeater.drawFastHLine(8 * i + 5, WAVE_Y_OFFSET + 20, 2, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_WHITE);
+      spriteHeater.drawFastHLine(8 * i + 5, WAVE_Y_OFFSET + 4, 3, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_WHITE);
+      spriteHeater.drawFastHLine(8 * i + 5, WAVE_Y_OFFSET + 20, 3, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_WHITE);
     }
   }
   if (on) {
@@ -106,11 +106,16 @@ void drawSpriteHeater(int32_t x, int32_t y, bool on) {
   spriteHeater.pushSprite(x, y);
 }
 
+void initSpriteFlame() {
+  spriteFlame.createSprite(TFT_HEIGHT, 30);
+  initFlame();
+}
 
 void initSprites() {
   init4BitPallet();
   initSpriteShower();
   initSpriteHeater();
+  initSpriteFlame();
 }
 
 void setupDisplay() {
@@ -120,9 +125,12 @@ void setupDisplay() {
   tft.fillScreen(TFT_BLACK);
 
   // Set "cursor" at top left corner of display (0,0) and select font 1
-  tft.setCursor(0, 0, 1);
+  tft.setCursor(0, 100, 1);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  //  tft.println("Initialised default\n");
+
+  for(char c = 0; c < 127; c++) {
+    tft.print(c);
+  }
 
   initSprites();
 }
@@ -134,10 +142,13 @@ void updateDisplay(void *pvParameter) {
       flow += 4;
     }
 
-    drawSpriteShower(100, 200, flow);
-    drawSpriteShower(200, 200, 0);
-    drawSpriteHeater(100, 100, true);
-    drawSpriteHeater(200, 100, false);
+    drawSpriteHeater(280, 10, true);
+    drawSpriteHeater(240, 10, false);
+    drawSpriteShower(280, 50, flow);
+    drawSpriteShower(240, 50, 0);
+
+    make_fire(&spriteFlame);
+    spriteFlame.pushSprite(0, 210);
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }

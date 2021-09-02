@@ -2,6 +2,7 @@
 #define _EBUS_DISPLAY
 
 #include <TFT_eSPI.h>
+#include "esb-flame.h"
 
 // Display variables
 extern TFT_eSPI tft;
