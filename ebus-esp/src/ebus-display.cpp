@@ -82,23 +82,20 @@ void initSpriteHeater() {
 }
 
 void drawSpriteHeater(int32_t x, int32_t y, bool on) {
-  const uint16_t WAVE_Y_OFFSET = 5;
+  const uint16_t WAVE_Y_OFFSET = 6;
   spriteHeater.fillRect(0, 0, 30, WAVE_Y_OFFSET + 1, EBUS_4BIT_BLACK);
   for (int i = 0; i < 4; i++) {
-    spriteHeater.drawRoundRect(8 * i, WAVE_Y_OFFSET, 5, 25, 1, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_BLACK);
-    if (!on) {
-      spriteHeater.drawRoundRect(8 * i, WAVE_Y_OFFSET, 5, 25, 1, EBUS_4BIT_WHITE);
-    }
+    spriteHeater.drawRoundRect(8 * i, WAVE_Y_OFFSET, 5, 24, 1, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_WHITE);
     if (i < 3) {
-      spriteHeater.drawFastHLine(8 * i + 5, WAVE_Y_OFFSET + 4, 2, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_WHITE);
+      spriteHeater.drawFastHLine(8 * i + 5, WAVE_Y_OFFSET + 5, 2, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_WHITE);
       spriteHeater.drawFastHLine(8 * i + 5, WAVE_Y_OFFSET + 20, 2, on ? EBUS_4BIT_ORANGE : EBUS_4BIT_WHITE);
     }
   }
   if (on) {
     uint8_t wave_y_prev = WAVE_Y_OFFSET - 3, wave_width = 29;
-    for (uint8_t wave_x = 0; wave_x < wave_width; wave_x++) {
-      uint8_t wave_y = WAVE_Y_OFFSET - 3 + sinf((wave_x + heaterWaveOffset)/ 2.0) * 2;
-      spriteHeater.drawLine(wave_x - 1, wave_y_prev, wave_x, wave_y, EBUS_4BIT_RED);
+    for (int8_t wave_x = -1; wave_x < wave_width; wave_x++) {
+      uint8_t wave_y = WAVE_Y_OFFSET - 4 + sinf((wave_x + heaterWaveOffset)/ 2.0) * 2;
+      spriteHeater.drawRect(wave_x - 1, wave_y_prev, 2, 2, EBUS_4BIT_RED);
       wave_y_prev = wave_y;
     }
     heaterWaveOffset++;
@@ -134,10 +131,10 @@ void updateDisplay(void *pvParameter) {
       flow += 4;
     }
 
-    drawSpriteShower(100, 200, flow);
-    drawSpriteShower(200, 200, 0);
-    drawSpriteHeater(100, 100, true);
-    drawSpriteHeater(200, 100, false);
+    drawSpriteHeater(280, 10, true);
+    drawSpriteHeater(240, 10, false);
+    drawSpriteShower(280, 50, flow);
+    drawSpriteShower(240, 50, 0);
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }
