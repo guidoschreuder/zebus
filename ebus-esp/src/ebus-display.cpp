@@ -128,9 +128,11 @@ void setupDisplay() {
 void updateDisplay(void *pvParameter) {
   while(1) {
 
-    tft.setCursor(0, 225, 1);
-    tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->self.device, system_info->self.sw_version, system_info->self.hw_version);
-    tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->heater.device, system_info->heater.sw_version, system_info->heater.hw_version);
+    tft.setCursor(0, 195, 1);
+    tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->self_id.device, system_info->self_id.sw_version, system_info->self_id.hw_version);
+    tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->heater_id.device, system_info->heater_id.sw_version, system_info->heater_id.hw_version);
+    tft.printf("Flame : %s\n", system_info->flame ? "ON " : "OFF");
+    tft.printf("Flow  : %d\n", system_info->flow);
 
     if (++flow_cntr % 4 == 0) {
       flow += 4;

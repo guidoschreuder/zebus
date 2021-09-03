@@ -9,8 +9,10 @@ struct identification_t {
 };
 
 struct info_t {
-  identification_t self;
-  identification_t heater;
+  identification_t self_id;
+  identification_t heater_id;
+  bool flame = false;
+  uint16_t flow;
 };
 
 extern struct info_t* system_info;
