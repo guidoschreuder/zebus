@@ -3,6 +3,7 @@
 
 #include "main.h"
 #include "ebus-display.h"
+#include "ebus-messages.h"
 
 #include <soc/uart_reg.h>
 #include <soc/uart_struct.h>
@@ -37,6 +38,8 @@ ebus_config_t ebus_config = ebus_config_t {
 };
 
 Ebus::Ebus ebus = Ebus::Ebus(ebus_config);
+
+struct info_t* system_info = new info_t();
 
 void debugLogger(Ebus::Telegram telegram) {
   printf(
@@ -178,6 +181,7 @@ void processHistoricMessages(void *pvParameter) {
   Ebus::Telegram telegram;
   while (1) {
     if (xQueueReceive(telegramHistoryQueue, &telegram, portMAX_DELAY)) {
+      handleMessage(telegram);
       debugLogger(telegram);
       //tftLogger(telegram);
       taskYIELD();
@@ -188,13 +192,16 @@ void processHistoricMessages(void *pvParameter) {
 }
 
 void periodic(void *pvParameter) {
-  Ebus::SendCommand getIdCommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
-  Ebus::SendCommand getIdCommand2 = Ebus::SendCommand(EBUS_MASTER_ADDRESS, 0x08, 0x07, 0x04, 0, NULL);
-  //uint8_t getHwcData[] = {0x0D, 0x58, 0x00};
-  //Ebus::SendCommand getHwcDemandcommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, 0x08, 0xB5, 0x09, sizeof(getHwcData), getHwcData);
+  Ebus::SendCommand getIdCommandSelf = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
+  Ebus::SendCommand getIdCommandHeater = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
+  //uint8_t getHwcWaterflowData[] = {0x0D, 0x55, 0x00};
+  //Ebus::SendCommand getHwcWaterflowCommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0xB5, 0x09, sizeof(getHwcWaterflowData), getHwcData);
+  //uint8_t getHwcDemandData[] = {0x0D, 0x58, 0x00};
+  //Ebus::SendCommand getHwcDemandcommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0xB5, 0x09, sizeof(getHwcDemandData), getHwcData);
   while (1) {
-    xQueueSendToBack(telegramCommandQueue, &getIdCommand, portMAX_DELAY);
-    xQueueSendToBack(telegramCommandQueue, &getIdCommand2, portMAX_DELAY);
+    xQueueSendToBack(telegramCommandQueue, &getIdCommandSelf, portMAX_DELAY);
+    xQueueSendToBack(telegramCommandQueue, &getIdCommandHeater, portMAX_DELAY);
+    //xQueueSendToBack(telegramCommandQueue, &getHwcWaterflowcommand, portMAX_DELAY);
     //xQueueSendToBack(telegramCommandQueue, &getHwcDemandcommand, portMAX_DELAY);
     printf("queued commands\n");
     vTaskDelay(pdMS_TO_TICKS(10000));

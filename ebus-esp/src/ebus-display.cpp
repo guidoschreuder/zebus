@@ -1,5 +1,6 @@
 
 #include "ebus-display.h"
+#include "ebus-messages.h"
 
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
 TFT_eSprite spriteShower = TFT_eSprite(&tft);
@@ -126,6 +127,10 @@ void setupDisplay() {
 
 void updateDisplay(void *pvParameter) {
   while(1) {
+
+    tft.setCursor(0, 225, 1);
+    tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->self.device, system_info->self.sw_version, system_info->self.hw_version);
+    tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->heater.device, system_info->heater.sw_version, system_info->heater.hw_version);
 
     if (++flow_cntr % 4 == 0) {
       flow += 4;
