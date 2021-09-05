@@ -33,7 +33,6 @@ void setupWiFiAndKeepAlive(void *pvParameter) {
   system_info->wifi.rssi = WIFI_NO_SIGNAL;
   system_info->wifi.config_ap.ap_name = apName;
   system_info->wifi.config_ap.ap_password = apPassword;
-  system_info->wifi.config_ap.active = true;
 
   wiFiManager.setConfigPortalBlocking(false);
   wiFiManager.setCaptivePortalEnable(false);
@@ -41,9 +40,9 @@ void setupWiFiAndKeepAlive(void *pvParameter) {
   wiFiManager.setSaveParamsCallback(saveParamsCallback);
   wiFiManager.setHostname("zebus.home.arpa");
 
-  if (wiFiManager.autoConnect(apName, apPassword)) {
+  system_info->wifi.config_ap.active = !wiFiManager.autoConnect(apName, apPassword);
+  if (system_info->wifi.config_ap.active) {
     printf("Connection established!\n");
-    system_info->wifi.config_ap.active = false;
   }
 
   while(1) {
