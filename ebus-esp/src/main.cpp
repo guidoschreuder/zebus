@@ -224,9 +224,9 @@ void app_main() {
   setupEbusUart();
   setupEbus();
 
-  xTaskCreate(&processHistoricMessages, "process-history", 2048, NULL, 5, NULL);
+  xTaskCreate(&processHistoricMessages, "processHistoricMessages", 2048, NULL, 5, NULL);
   xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
-  xTaskCreate(&updateDisplay, "update-display", 2048, NULL, 5, NULL);
+  xTaskCreate(&updateDisplay, "updateDisplay", 2048, NULL, 5, NULL);
   xTaskCreate(&setupWiFiAndKeepAlive, "setupWiFiAndKeepAlive", 4096, NULL, 3, NULL);
 }
 
