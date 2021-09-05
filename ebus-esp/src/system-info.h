@@ -2,6 +2,8 @@
 
 #include "ebus-messages.h"
 
+#define WIFI_NO_SIGNAL 0x80000000
+
 struct system_info_t {
   identification_t self_id;
   identification_t heater_id;
