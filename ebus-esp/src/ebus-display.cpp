@@ -126,15 +126,13 @@ void drawSpriteWifiStrength(int32_t x, int32_t y, int32_t rssi) {
   } else if (rssi >= -80) {
     lvl = 1;
   }
+  spriteWifiStrength.drawLine(0, 0, 8, 8, rssi == WIFI_NO_SIGNAL ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
+  spriteWifiStrength.drawLine(1, 0, 9, 8, rssi == WIFI_NO_SIGNAL ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
+  spriteWifiStrength.drawLine(8, 0, 0, 8, rssi == WIFI_NO_SIGNAL ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
+  spriteWifiStrength.drawLine(9, 0, 1, 8, rssi == WIFI_NO_SIGNAL ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
   for (uint8_t i = 0; i < 4; i++) {
     uint8_t h = 3 * (i + 1);
     spriteWifiStrength.fillRect(3 * i + 4, 16 - h, 2, h, lvl > i ? EBUS_4BIT_GREEN : EBUS_4BIT_DARKGREY);
-  }
-  if (rssi == WIFI_NO_SIGNAL) {
-    spriteWifiStrength.drawLine(0, 0, 8, 8, EBUS_4BIT_RED);
-    spriteWifiStrength.drawLine(1, 0, 9, 8, EBUS_4BIT_RED);
-    spriteWifiStrength.drawLine(8, 0, 0, 8, EBUS_4BIT_RED);
-    spriteWifiStrength.drawLine(9, 0, 1, 8, EBUS_4BIT_RED);
   }
   spriteWifiStrength.pushSprite(x, y);
 }
