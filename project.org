@@ -54,7 +54,6 @@ The advantage is that there is no wireless communication needed for basic thermo
 This does however require a more sophisticated power design as we need a LiPo battery (or similar) with circuitry and most likely use of ESP32 ULP to stay within the power budget.
 
 Wireless connectivity is still possible for things like getting NTP, outside temperature from a free API service and communicating as a telegram bot, but display and wireless need to repect the available energy budget.
-** TODO connect to WiFi
 ** TODO display eBUS connectivity
 ** TODO integrate room temperature sensor
 ** TODO send current room temperature to heater
@@ -112,6 +111,11 @@ suggested for this todo are some of the messages already known:
 
 As a reward these values can already be put on display, gaining some instant gratification and bragging rights.
 
+** DONE connect to WiFi
+   CLOSED: [2021-09-05 Sun 19:55]
+** DONE Setup and display time over NTP
+   CLOSED: [2021-09-05 Sun 22:01]
+
 
 * documentation
 ** code coverage
@@ -153,3 +157,4 @@ bought here: https://www.aliexpress.com/item/4000830895622.html
 - https://www.14core.com/wiring-and-flashing-programming-esp-32-esp32s-with-usb-ttl-uart/
 - https://www.thingforward.io/techblog/2017-08-08-embedded-testing-with-platformio-part-2.html
 - set datetime: https://github.com/john30/ebusd/issues/286
+- formatting time struct: https://www.ibm.com/docs/en/i/7.3?topic=functions-strftime-convert-datetime-string
