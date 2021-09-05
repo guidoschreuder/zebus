@@ -4,6 +4,7 @@
 #include "main.h"
 #include "ebus-display.h"
 #include "ebus-messages.h"
+#include "ebus-wifi.h"
 
 #include <soc/uart_reg.h>
 #include <soc/uart_struct.h>
@@ -219,13 +220,14 @@ void app_main() {
   printf("Setup\n");
 
   setupDisplay();
-
   setupQueues();
   setupEbusUart();
   setupEbus();
+
   xTaskCreate(&processHistoricMessages, "process-history", 2048, NULL, 5, NULL);
   xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
   xTaskCreate(&updateDisplay, "update-display", 2048, NULL, 5, NULL);
+  xTaskCreate(&setupWiFiAndKeepAlive, "setupWiFiAndKeepAlive", 4096, NULL, 3, NULL);
 }
 
 #else
