@@ -3,6 +3,7 @@
 
 #include "main.h"
 #include "ebus-display.h"
+#include "system-info.h"
 #include "ebus-messages.h"
 #include "ebus-wifi.h"
 
@@ -40,7 +41,7 @@ ebus_config_t ebus_config = ebus_config_t {
 
 Ebus::Ebus ebus = Ebus::Ebus(ebus_config);
 
-struct info_t* system_info = new info_t();
+struct system_info_t* system_info = new system_info_t();
 
 void debugLogger(Ebus::Telegram telegram) {
   printf(
