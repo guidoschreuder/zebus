@@ -1,3 +1,4 @@
+#include "system-info.h"
 #include "ebus-messages.h"
 #include "config.h"
 
@@ -14,7 +15,7 @@
 #define DEVICE_CONFIG_FLAME 0x0500
 #define DEVICE_CONFIG_HWC_WATERFLOW 0x5500
 
-extern struct info_t* system_info;
+extern struct system_info_t* system_info;
 
 struct message_handler {
     uint16_t command;
