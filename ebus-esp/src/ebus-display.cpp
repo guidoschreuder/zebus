@@ -2,6 +2,7 @@
 #include "ebus-messages.h"
 #include "ebus-display.h"
 #include "time.h"
+#include "config.h"
 
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
 TFT_eSprite spriteShower = TFT_eSprite(&tft);
@@ -9,6 +10,7 @@ TFT_eSprite spriteHeater = TFT_eSprite(&tft);
 uint16_t heaterWaveOffset = 0;
 
 TFT_eSprite spriteWifiStrength = TFT_eSprite(&tft);
+TFT_eSprite spriteEbusQueue = TFT_eSprite(&tft);
 
 // TODO: remove the test variables
 uint8_t flow = 0;
@@ -43,7 +45,8 @@ void init4BitPallet() {
 #define EBUS_4BIT_GREEN 10
 #define EBUS_4BIT_CYAN 11
 #define EBUS_4BIT_RED 12
-#define EBUS_4BIT_NAvY 13
+#define EBUS_4BIT_NAVY 13
+#define EBUS_4BIT_YELLOW 14
 #define EBUS_4BIT_WHITE 15
 
 void initSpriteShower() {
@@ -72,7 +75,7 @@ void drawSpriteShower(int32_t x, int32_t y, uint8_t flow) {
       if (rnd < 32) {
         c = EBUS_4BIT_DARKCYAN;
       } else if (rnd < 64) {
-        c = EBUS_4BIT_NAvY;
+        c = EBUS_4BIT_NAVY;
       }
       spriteShower.drawLine(w_x, w_y + 12, w_x, w_y + 14, c);
     }
@@ -138,11 +141,37 @@ void drawSpriteWifiStrength(int32_t x, int32_t y, int32_t rssi) {
   spriteWifiStrength.pushSprite(x, y);
 }
 
+void initSpriteEbusQueue() {
+  spriteEbusQueue.setColorDepth(4);
+  spriteEbusQueue.createSprite(20, 20);
+  spriteEbusQueue.createPalette(palette);
+  spriteEbusQueue.fillSprite(EBUS_4BIT_BLACK);
+}
+
+void drawSpriteEbusQueue(int32_t x, int32_t y, uint8_t queue_size) {
+  spriteEbusQueue.setTextColor(EBUS_4BIT_WHITE);
+  spriteEbusQueue.drawString("eBUS", 0, 13);
+  spriteEbusQueue.pushSprite(x, y);
+  uint8_t cutoff = queue_size *  20 / EBUS_TELEGRAM_SEND_QUEUE_SIZE;
+  for (uint8_t i = 0; i < cutoff; i++) {
+    uint32_t color = EBUS_4BIT_GREEN;
+    if (i >= 15) {
+      color = EBUS_4BIT_RED;
+    } else if (i >= 10) {
+      color = EBUS_4BIT_ORANGE;
+    } else if (i >= 5) {
+      color = EBUS_4BIT_YELLOW;
+    }
+    spriteEbusQueue.drawFastVLine(i, 0, 10, color);
+  }
+}
+
 void initSprites() {
   init4BitPallet();
   initSpriteShower();
   initSpriteHeater();
   initSpriteWifiStrength();
+  initSpriteEbusQueue();
 }
 
 void setupDisplay() {
@@ -194,6 +223,7 @@ void updateDisplay(void *pvParameter) {
 
     print_ip_addr();
     tft.println();
+    tft.printf("Command Queue size: %d\n", system_info->ebus.queue_size);
 
     tft.setCursor(0, 195, 1);
     tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
@@ -210,6 +240,7 @@ void updateDisplay(void *pvParameter) {
     drawSpriteShower(280, 50, flow);
     drawSpriteShower(240, 50, 0);
     drawSpriteWifiStrength(280, 90, system_info->wifi.rssi);
+    drawSpriteEbusQueue(240, 90, system_info->ebus.queue_size);
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }

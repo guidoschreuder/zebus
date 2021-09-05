@@ -8,6 +8,7 @@ struct system_info_t {
   struct ebus {
     identification_t self_id;
     identification_t heater_id;
+    uint8_t queue_size;
     bool flame = false;
     uint16_t flow;
   } ebus;

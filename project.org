@@ -54,7 +54,6 @@ The advantage is that there is no wireless communication needed for basic thermo
 This does however require a more sophisticated power design as we need a LiPo battery (or similar) with circuitry and most likely use of ESP32 ULP to stay within the power budget.
 
 Wireless connectivity is still possible for things like getting NTP, outside temperature from a free API service and communicating as a telegram bot, but display and wireless need to repect the available energy budget.
-** TODO display eBUS connectivity
 ** TODO integrate room temperature sensor
 ** TODO send current room temperature to heater
 ** TODO [#B] figure out what our power budget is
@@ -115,6 +114,8 @@ As a reward these values can already be put on display, gaining some instant gra
    CLOSED: [2021-09-05 Sun 19:55]
 ** DONE Setup and display time over NTP
    CLOSED: [2021-09-05 Sun 22:01]
+** DONE display eBUS connectivity
+   CLOSED: [2021-09-06 Mon 01:29]
 
 
 * documentation

@@ -193,6 +193,11 @@ void processHistoricMessages(void *pvParameter) {
   }
 }
 
+void enqueueCommand(const void * const itemToQueue) {
+    xQueueSendToBack(telegramCommandQueue, itemToQueue, portMAX_DELAY);
+    system_info->ebus.queue_size = uxQueueMessagesWaiting(telegramCommandQueue);
+}
+
 void periodic(void *pvParameter) {
   Ebus::SendCommand getIdCommandSelf = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
   Ebus::SendCommand getIdCommandHeater = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
@@ -203,11 +208,12 @@ void periodic(void *pvParameter) {
   uint8_t getFlameData[] = {0x0D, 0x05, 0x00};
   Ebus::SendCommand getFlameCommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0xB5, 0x09, sizeof(getFlameData), getFlameData);
   while (1) {
-    xQueueSendToBack(telegramCommandQueue, &getIdCommandSelf, portMAX_DELAY);
-    xQueueSendToBack(telegramCommandQueue, &getIdCommandHeater, portMAX_DELAY);
-    xQueueSendToBack(telegramCommandQueue, &getHwcWaterflowCommand, portMAX_DELAY);
-    //xQueueSendToBack(telegramCommandQueue, &getHwcDemandcommand, portMAX_DELAY);
-    xQueueSendToBack(telegramCommandQueue, &getFlameCommand, portMAX_DELAY);
+    enqueueCommand(&getIdCommandSelf);
+    enqueueCommand(&getIdCommandHeater);
+    enqueueCommand(&getHwcWaterflowCommand);
+    //enqueueCommand(&getHwcDemandcommand);
+    enqueueCommand(&getFlameCommand);
+
     printf("queued commands\n");
     vTaskDelay(pdMS_TO_TICKS(5000));
   }
