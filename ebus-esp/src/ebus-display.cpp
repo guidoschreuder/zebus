@@ -1,6 +1,7 @@
 #include "system-info.h"
 #include "ebus-messages.h"
 #include "ebus-display.h"
+#include "time.h"
 
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
 TFT_eSprite spriteShower = TFT_eSprite(&tft);
@@ -158,6 +159,15 @@ void setupDisplay() {
   initSprites();
 }
 
+size_t print_time(struct tm * timeinfo, const char * format) {
+    char buf[64];
+    size_t written = strftime(buf, sizeof(buf), format, timeinfo);
+    if (written == 0) {
+      return written;
+    }
+    return tft.printf(buf);
+}
+
 void updateDisplay(void *pvParameter) {
   while(1) {
 
@@ -168,6 +178,10 @@ void updateDisplay(void *pvParameter) {
     } else {
       tft.println("                                  ");
       tft.println("                                  ");
+    }
+    struct tm timeinfo;
+    if(getLocalTime(&timeinfo, 0)) {
+      print_time(&timeinfo, "%c");
     }
 
     tft.setCursor(0, 195, 1);

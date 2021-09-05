@@ -18,6 +18,16 @@ void saveParamsCallback() {
   system_info->wifi.config_ap.active = false;
 }
 
+void refreshNTP() {
+  long now = millis();
+  if (system_info->ntp.last_init == 0 ||
+      system_info->ntp.last_init + EBUS_NTP_REFRESH_INTERVAL_SEC * 1000 < now) {
+    printf("Refreshing NTP\n");
+    configTime(EBUS_NTP_GMT_OFFSET_SEC, EBUS_NTP_GMT_DST_OFFSET_SEC, EBUS_NTP_SERVER);
+    system_info->ntp.last_init = now;
+  }
+}
+
 void setupWiFiAndKeepAlive(void *pvParameter) {
 
   // CRITICAL: WiFi will fail to startup without this
@@ -55,6 +65,7 @@ void setupWiFiAndKeepAlive(void *pvParameter) {
 
     if (WiFi.status() == WL_CONNECTED) {
       system_info->wifi.rssi = WiFi.RSSI();
+      refreshNTP();
       vTaskDelay(pdMS_TO_TICKS(5000));
       continue;
     }

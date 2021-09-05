@@ -17,6 +17,9 @@ struct system_info_t {
     } config_ap;
     int32_t rssi;
   } wifi;
+  struct ntp {
+    long last_init;
+  } ntp;
 };
 
 extern struct system_info_t* system_info;
