@@ -1,6 +1,6 @@
-
-#include "ebus-display.h"
+#include "system-info.h"
 #include "ebus-messages.h"
+#include "ebus-display.h"
 
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
 TFT_eSprite spriteShower = TFT_eSprite(&tft);
@@ -117,16 +117,18 @@ void initSpriteWifiStrength() {
 
 void drawSpriteWifiStrength(int32_t x, int32_t y, int32_t rssi) {
   uint8_t lvl = 0;
-  if (rssi > -10) {
+  if (rssi >= -50) {
+    lvl = 4;
+  } else if (rssi >= -60) {
     lvl = 3;
-  } else if (rssi > -40) {
+  } else if (rssi >= -70) {
     lvl = 2;
-  } else if (rssi > -55) {
+  } else if (rssi >= -80) {
     lvl = 1;
   }
   for (uint8_t i = 0; i < 4; i++) {
     uint8_t h = 3 * (i + 1);
-    spriteWifiStrength.fillRect(3 * i, 20 - h, 2, h, lvl >= i ? EBUS_4BIT_GREEN : EBUS_4BIT_DARKGREY);
+    spriteWifiStrength.fillRect(3 * i, 20 - h, 2, h, lvl > i ? EBUS_4BIT_GREEN : EBUS_4BIT_DARKGREY);
   }
   spriteWifiStrength.pushSprite(x, y);
 }
@@ -155,6 +157,15 @@ void setupDisplay() {
 void updateDisplay(void *pvParameter) {
   while(1) {
 
+    tft.setCursor(0, 0, 1);
+    if (system_info->wifi.config_ap.active) {
+      tft.printf("AP Name    : %s\n", system_info->wifi.config_ap.ap_name);
+      tft.printf("AP Password: %s\n", system_info->wifi.config_ap.ap_password);
+    } else {
+      tft.println("                                  ");
+      tft.println("                                  ");
+    }
+
     tft.setCursor(0, 195, 1);
     tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->self_id.device, system_info->self_id.sw_version, system_info->self_id.hw_version);
     tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->heater_id.device, system_info->heater_id.sw_version, system_info->heater_id.hw_version);
@@ -169,7 +180,7 @@ void updateDisplay(void *pvParameter) {
     drawSpriteHeater(240, 10, false);
     drawSpriteShower(280, 50, flow);
     drawSpriteShower(240, 50, 0);
-    drawSpriteWifiStrength(280, 90, -20);
+    drawSpriteWifiStrength(280, 90, system_info->wifi.rssi);
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }
