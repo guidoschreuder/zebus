@@ -7,6 +7,8 @@ TFT_eSprite spriteShower = TFT_eSprite(&tft);
 TFT_eSprite spriteHeater = TFT_eSprite(&tft);
 uint16_t heaterWaveOffset = 0;
 
+TFT_eSprite spriteWifiStrength = TFT_eSprite(&tft);
+
 // TODO: remove the test variables
 uint8_t flow = 0;
 uint8_t flow_cntr = 0;
@@ -20,7 +22,7 @@ void init4BitPallet() {
   palette[2]  = TFT_DARKGREEN;
   palette[3]  = TFT_DARKCYAN;
   palette[4]  = TFT_MAROON;
-  palette[5]  = TFT_PURPLE;
+  palette[5]  = TFT_DARKGREY;
   palette[6]  = TFT_OLIVE;
   palette[7]  = TFT_DARKGREY;
   palette[8]  = TFT_ORANGE;
@@ -35,7 +37,9 @@ void init4BitPallet() {
 
 #define EBUS_4BIT_BLACK 0
 #define EBUS_4BIT_DARKCYAN 3
+#define EBUS_4BIT_DARKGREY 5
 #define EBUS_4BIT_ORANGE 8
+#define EBUS_4BIT_GREEN 10
 #define EBUS_4BIT_CYAN 11
 #define EBUS_4BIT_RED 12
 #define EBUS_4BIT_NAvY 13
@@ -104,11 +108,34 @@ void drawSpriteHeater(int32_t x, int32_t y, bool on) {
   spriteHeater.pushSprite(x, y);
 }
 
+void initSpriteWifiStrength() {
+    spriteWifiStrength.setColorDepth(4);
+    spriteWifiStrength.createSprite(20, 20);
+    spriteWifiStrength.createPalette(palette);
+    spriteWifiStrength.fillSprite(EBUS_4BIT_BLACK);
+}
+
+void drawSpriteWifiStrength(int32_t x, int32_t y, int32_t rssi) {
+  uint8_t lvl = 0;
+  if (rssi > -10) {
+    lvl = 3;
+  } else if (rssi > -40) {
+    lvl = 2;
+  } else if (rssi > -55) {
+    lvl = 1;
+  }
+  for (uint8_t i = 0; i < 4; i++) {
+    uint8_t h = 3 * (i + 1);
+    spriteWifiStrength.fillRect(3 * i, 20 - h, 2, h, lvl >= i ? EBUS_4BIT_GREEN : EBUS_4BIT_DARKGREY);
+  }
+  spriteWifiStrength.pushSprite(x, y);
+}
 
 void initSprites() {
   init4BitPallet();
   initSpriteShower();
   initSpriteHeater();
+  initSpriteWifiStrength();
 }
 
 void setupDisplay() {
@@ -142,6 +169,7 @@ void updateDisplay(void *pvParameter) {
     drawSpriteHeater(240, 10, false);
     drawSpriteShower(280, 50, flow);
     drawSpriteShower(240, 50, 0);
+    drawSpriteWifiStrength(280, 90, -20);
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }
