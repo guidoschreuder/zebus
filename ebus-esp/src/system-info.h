@@ -5,10 +5,12 @@
 #define WIFI_NO_SIGNAL 0x80000000
 
 struct system_info_t {
-  identification_t self_id;
-  identification_t heater_id;
-  bool flame = false;
-  uint16_t flow;
+  struct ebus {
+    identification_t self_id;
+    identification_t heater_id;
+    bool flame = false;
+    uint16_t flow;
+  } ebus;
   struct wifi {
     struct config_ap {
       const char* ap_name;

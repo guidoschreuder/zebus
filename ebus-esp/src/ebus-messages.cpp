@@ -36,23 +36,23 @@ void handle_identification(Ebus::Telegram telegram) {
 
   switch (telegram.getZZ()) {
   case EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS):
-    system_info->self_id = identity;
+    system_info->ebus.self_id = identity;
     break;
   case EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS):
-    system_info->heater_id = identity;
+    system_info->ebus.heater_id = identity;
     break;
   }
 }
 
 void handle_device_config_read_flame(Ebus::Telegram telegram) {
-  system_info->flame = telegram.getResponseByte(0) & 0x0F;
+  system_info->ebus.flame = telegram.getResponseByte(0) & 0x0F;
 }
 
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram telegram) {
   uint16_t flow = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0));
   // TODO: FIXME: range of 'flow' is still unclear, seems to go up to a little over 12.00
   // maybe it is actually liters/minute?
-  system_info->flow = flow; //map(flow, 0, 0xFFFF, 0, 0xFF);
+  system_info->ebus.flow = flow; //map(flow, 0, 0xFFFF, 0, 0xFF);
 }
 
 message_handler device_config_read_message_handlers[] =
@@ -95,9 +95,9 @@ void handleMessage(Ebus::Telegram telegram) {
       message_handlers[i].handler(telegram);
     }
   }
-  printf("Self  : %s, sw: %s, hw: %s\n", system_info->self_id.device, system_info->self_id.sw_version, system_info->self_id.hw_version);
-  printf("Heater: %s, sw: %s, hw: %s\n", system_info->heater_id.device, system_info->heater_id.sw_version, system_info->heater_id.hw_version);
-  printf("Flame : %s\n", system_info->flame ? "ON " : "OFF");
-  printf("Flow  : %f\n", system_info->flow / 100.0);
+  printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
+  printf("Heater: %s, sw: %s, hw: %s\n", system_info->ebus.heater_id.device, system_info->ebus.heater_id.sw_version, system_info->ebus.heater_id.hw_version);
+  printf("Flame : %s\n", system_info->ebus.flame ? "ON " : "OFF");
+  printf("Flow  : %f\n", system_info->ebus.flow / 100.0);
 
 }
