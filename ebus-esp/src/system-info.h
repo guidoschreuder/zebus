@@ -15,6 +15,7 @@ struct system_info_t {
       const char* ap_password;
       bool active;
     } config_ap;
+    uint32_t ip_addr;
     int32_t rssi;
   } wifi;
   struct ntp {

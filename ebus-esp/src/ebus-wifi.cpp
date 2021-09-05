@@ -53,7 +53,7 @@ void setupWiFiAndKeepAlive(void *pvParameter) {
 
   system_info->wifi.config_ap.active = !wiFiManager.autoConnect(apName, apPassword);
   if (system_info->wifi.config_ap.active) {
-    printf("Connection established!\n");
+    printf("WiFi connection established\n");
   }
 
   while(1) {
@@ -66,6 +66,7 @@ void setupWiFiAndKeepAlive(void *pvParameter) {
 
     if (WiFi.status() == WL_CONNECTED) {
       system_info->wifi.rssi = WiFi.RSSI();
+      system_info->wifi.ip_addr = WiFi.localIP();
       refreshNTP();
       vTaskDelay(pdMS_TO_TICKS(5000));
       continue;
@@ -73,7 +74,7 @@ void setupWiFiAndKeepAlive(void *pvParameter) {
     printf("WiFi connection was lost\n");
     system_info->wifi.rssi = WIFI_NO_SIGNAL;
     if (WiFi.reconnect()) {
-      printf("WiFi connection restored\n");
+      printf("WiFi reconnected\n");
     }
   }
 

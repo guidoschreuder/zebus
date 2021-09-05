@@ -168,6 +168,13 @@ size_t print_time(struct tm * timeinfo, const char * format) {
     return tft.printf(buf);
 }
 
+#define GET_BYTE(INT32, I) ((INT32 >> 8 * I) & 0XFF)
+
+void print_ip_addr() {
+  uint32_t ip = system_info->wifi.ip_addr;
+  tft.printf("%d.%d.%d.%d", GET_BYTE(ip, 0), GET_BYTE(ip, 1), GET_BYTE(ip, 2), GET_BYTE(ip, 3));
+}
+
 void updateDisplay(void *pvParameter) {
   while(1) {
 
@@ -181,8 +188,12 @@ void updateDisplay(void *pvParameter) {
     }
     struct tm timeinfo;
     if(getLocalTime(&timeinfo, 0)) {
-      print_time(&timeinfo, "%c");
+      print_time(&timeinfo, "%c\n");
+      tft.println();
     }
+
+    print_ip_addr();
+    tft.println();
 
     tft.setCursor(0, 195, 1);
     tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->self_id.device, system_info->self_id.sw_version, system_info->self_id.hw_version);
