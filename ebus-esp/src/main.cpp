@@ -33,6 +33,10 @@ QueueHandle_t telegramCommandQueue;
 StaticQueue_t telegramCommandQueueBuffer;
 uint8_t telegramCommandQueueStorage[EBUS_TELEGRAM_SEND_QUEUE_SIZE * sizeof(Ebus::Telegram)];
 
+QueueHandle_t receivedByteQueue;
+StaticQueue_t receivedByteQueueBuffer;
+uint8_t receivedByteQueueStorage[EBUS_TELEGRAM_RECEIVE_BYTE_QUEUE_SIZE];
+
 ebus_config_t ebus_config = ebus_config_t {
   .master_address = EBUS_MASTER_ADDRESS,
   .max_tries = EBUS_MAX_TRIES,
@@ -82,8 +86,12 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
   }
 
   uint16_t rx_fifo_len = UART_EBUS.status.rxfifo_cnt;  // read number of bytes in UART buffer
+  BaseType_t xHigherPriorityTaskWoken;
+  xHigherPriorityTaskWoken = pdFALSE;
   while (rx_fifo_len) {
-    ebus.processReceivedChar(UART_EBUS.fifo.rw_byte);
+    uint8_t cr = UART_EBUS.fifo.rw_byte;
+    xQueueSendToBackFromISR(receivedByteQueue, &cr, &xHigherPriorityTaskWoken);
+    //ebus.processReceivedChar(UART_EBUS.fifo.rw_byte);
     rx_fifo_len--;
   }
 
@@ -91,17 +99,21 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
     uart_clear_intr_status(UART_NUM_EBUS, UART_SW_XON_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_FRM_ERR_INT_ST)) {
     // process error (Triggered when the receiver detects a data frame error)
-    ebus.processReceivedChar(-1);
+    //ebus.processReceivedChar(-1);
     uart_clear_intr_status(UART_NUM_EBUS, UART_FRM_ERR_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_BRK_DET_INT_ST)) {
     // process error (Triggered when the receiver detects a 0 level after the STOP bit)
-    ebus.processReceivedChar(-1);
+    //ebus.processReceivedChar(-1);
     uart_clear_intr_status(UART_NUM_EBUS, UART_BRK_DET_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_TXFIFO_EMPTY_INT_ST)) {
     // all good (Triggered when the amount of data in the transmit-FIFO is less than what tx_mem_cnttxfifo_cnt specifies)
     uart_clear_intr_status(UART_NUM_EBUS, UART_TXFIFO_EMPTY_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_RXFIFO_FULL_INT_ST)) {
     uart_clear_intr_status(UART_NUM_EBUS, UART_RXFIFO_FULL_INT_CLR);
+  }
+
+  if (xHigherPriorityTaskWoken) {
+    portYIELD_FROM_ISR();
   }
 }
 
@@ -116,6 +128,11 @@ void setupQueues() {
       sizeof(Ebus::Telegram),
       &(telegramCommandQueueStorage[0]),
       &telegramCommandQueueBuffer);
+  receivedByteQueue = xQueueCreateStatic(
+      EBUS_TELEGRAM_RECEIVE_BYTE_QUEUE_SIZE,
+      sizeof(uint8_t),
+      &(receivedByteQueueStorage[0]),
+      &receivedByteQueueBuffer);
 }
 
 
@@ -149,11 +166,23 @@ void setupEbusUart() {
   ESP_ERROR_CHECK(uart_enable_rx_intr(UART_NUM_EBUS));
 }
 
+void processReceivedEbusBytes(void *pvParameter) {
+  while (1) {
+    uint8_t receivedByte;
+    if (xQueueReceive(receivedByteQueue, &receivedByte, portMAX_DELAY)) {
+      ebus.processReceivedChar(receivedByte);
+      taskYIELD();
+    } else {
+      vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+  }
+}
+
 void ebusUartSend(const char *src, int16_t size) {
   uart_write_bytes(UART_NUM_EBUS, src, size);
 }
 
-void IRAM_ATTR ebusQueue(Ebus::Telegram telegram) {
+void ebusQueue(Ebus::Telegram telegram) {
   BaseType_t xHigherPriorityTaskWoken;
   xHigherPriorityTaskWoken = pdFALSE;
   xQueueSendToBackFromISR(telegramHistoryQueue, &telegram, &xHigherPriorityTaskWoken);
@@ -162,7 +191,7 @@ void IRAM_ATTR ebusQueue(Ebus::Telegram telegram) {
   }
 }
 
-bool IRAM_ATTR ebusDequeueCommand(void *const command) {
+bool ebusDequeueCommand(void *const command) {
   BaseType_t xTaskWokenByReceive = pdFALSE;
   if (xQueueReceiveFromISR(telegramCommandQueue, command, &xTaskWokenByReceive)) {
     if (xTaskWokenByReceive) {
@@ -231,6 +260,7 @@ void app_main() {
   setupEbusUart();
   setupEbus();
 
+  xTaskCreate(&processReceivedEbusBytes, "processReceivedEbusBytes", 2048, NULL, 1, NULL);
   xTaskCreate(&processHistoricMessages, "processHistoricMessages", 2048, NULL, 5, NULL);
   xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
   xTaskCreate(&updateDisplay, "updateDisplay", 2048, NULL, 5, NULL);
