@@ -56,7 +56,6 @@ This does however require a more sophisticated power design as we need a LiPo ba
 Wireless connectivity is still possible for things like getting NTP, outside temperature from a free API service and communicating as a telegram bot, but display and wireless need to repect the available energy budget.
 ** TODO integrate room temperature sensor
 ** TODO send current room temperature to heater
-** TODO [#B] figure out what our power budget is
 ** TODO [#B] prototype power harvesting
 Starting point are project that use solar energy like here https://randomnerdtutorials.com/power-esp32-esp8266-solar-panels-battery-level-monitoring/
 
@@ -116,6 +115,18 @@ As a reward these values can already be put on display, gaining some instant gra
    CLOSED: [2021-09-05 Sun 22:01]
 ** DONE display eBUS connectivity
    CLOSED: [2021-09-06 Mon 01:29]
+** DONE figure out what our power budget is
+   CLOSED: [2021-09-06 Mon 17:58]
+   Shorting 390 Ohm across the eBUS still held an upper voltage of 20.2V and bus seemed to work fine.
+
+   This equals a current draw of ~52mA, or 1.06W, this is actually quite substantial, this was measured with a really tiny copper wire (telephone wire) connection to the heater, so losses will be less on thicker wiring.
+
+   Using 220 Ohm the bus still managed to do some communication but errors did occur, the maximum voltage dropped to 19.2V. This equals a current draw of ~87mA and a power of 1.68W! The resistor got really toasty and discoloured!
+
+   At 336 Ohm (60mA, 1.2W) bus still behaved perfectly.
+
+   In conclusion, round about 50mA or a little more seems to be a very safe limit with only a single device on the bus besides the heater.
+
 
 
 * documentation
