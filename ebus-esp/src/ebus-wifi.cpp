@@ -30,10 +30,6 @@ void refreshNTP() {
 
 void setupWiFiAndKeepAlive(void *pvParameter) {
 
-  // CRITICAL: WiFi will fail to startup without this
-  // see: https://github.com/espressif/arduino-esp32/issues/761
-  nvs_flash_init();
-
   WiFi.mode(WIFI_STA); // explicitly set mode, ESP32 defaults to STA+AP
 
   const char* apName = EBUS_WIFI_CONFIG_AP_NAME;

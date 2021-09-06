@@ -256,15 +256,24 @@ void app_main() {
   printf("Setup\n");
 
   setupDisplay();
+
+  // CRITICAL: WiFi will fail to startup without this
+  // see: https://github.com/espressif/arduino-esp32/issues/761
+  nvs_flash_init();
+  vTaskDelay(pdMS_TO_TICKS(500));
+
   setupQueues();
   setupEbusUart();
-  setupEbus();
 
-  xTaskCreate(&processReceivedEbusBytes, "processReceivedEbusBytes", 2048, NULL, 1, NULL);
   xTaskCreate(&processHistoricMessages, "processHistoricMessages", 2048, NULL, 5, NULL);
   xTaskCreate(&periodic, "periodic", 2048, NULL, 5, NULL);
   xTaskCreate(&updateDisplay, "updateDisplay", 2048, NULL, 5, NULL);
   xTaskCreate(&setupWiFiAndKeepAlive, "setupWiFiAndKeepAlive", 4096, NULL, 3, NULL);
+
+  vTaskDelay(pdMS_TO_TICKS(500));
+  setupEbus();
+  xTaskCreate(&processReceivedEbusBytes, "processReceivedEbusBytes", 2048, NULL, 1, NULL);
+
 }
 
 #else
