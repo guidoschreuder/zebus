@@ -114,7 +114,7 @@ void drawSpriteHeater(int32_t x, int32_t y, bool on) {
 
 void initSpriteWifiStrength() {
     spriteWifiStrength.setColorDepth(4);
-    spriteWifiStrength.createSprite(20, 20);
+    spriteWifiStrength.createSprite(16, 16);
     spriteWifiStrength.createPalette(palette);
     spriteWifiStrength.fillSprite(EBUS_4BIT_BLACK);
 }
@@ -130,10 +130,12 @@ void drawSpriteWifiStrength(int32_t x, int32_t y, int32_t rssi) {
   } else if (rssi >= -80) {
     lvl = 1;
   }
-  spriteWifiStrength.drawLine(0, 0, 8, 8, rssi == WIFI_NO_SIGNAL ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
-  spriteWifiStrength.drawLine(1, 0, 9, 8, rssi == WIFI_NO_SIGNAL ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
-  spriteWifiStrength.drawLine(8, 0, 0, 8, rssi == WIFI_NO_SIGNAL ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
-  spriteWifiStrength.drawLine(9, 0, 1, 8, rssi == WIFI_NO_SIGNAL ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
+  // draw red cross when no signal, overwrite in black otherwise
+  uint32_t c = rssi == WIFI_NO_SIGNAL ? EBUS_4BIT_RED : EBUS_4BIT_BLACK;
+  spriteWifiStrength.drawLine(0, 0, 8, 8, c);
+  spriteWifiStrength.drawLine(1, 0, 9, 8, c);
+  spriteWifiStrength.drawLine(8, 0, 0, 8, c);
+  spriteWifiStrength.drawLine(9, 0, 1, 8, c);
   for (uint8_t i = 0; i < 4; i++) {
     uint8_t h = 3 * (i + 1);
     spriteWifiStrength.fillRect(3 * i + 4, 16 - h, 2, h, lvl > i ? EBUS_4BIT_GREEN : EBUS_4BIT_DARKGREY);
@@ -143,27 +145,27 @@ void drawSpriteWifiStrength(int32_t x, int32_t y, int32_t rssi) {
 
 void initSpriteEbusQueue() {
   spriteEbusQueue.setColorDepth(4);
-  spriteEbusQueue.createSprite(20, 20);
+  spriteEbusQueue.createSprite(16, 16);
   spriteEbusQueue.createPalette(palette);
   spriteEbusQueue.fillSprite(EBUS_4BIT_BLACK);
 }
 
 void drawSpriteEbusQueue(int32_t x, int32_t y, uint8_t queue_size) {
-  spriteEbusQueue.setTextColor(EBUS_4BIT_WHITE);
-  spriteEbusQueue.drawString("eBUS", 0, 13);
-  spriteEbusQueue.pushSprite(x, y);
-  uint8_t cutoff = queue_size *  20 / EBUS_TELEGRAM_SEND_QUEUE_SIZE;
-  for (uint8_t i = 0; i < cutoff; i++) {
+  uint8_t cutoff = queue_size * 16 / EBUS_TELEGRAM_SEND_QUEUE_SIZE;
+  for (uint8_t i = 0; i < 16; i++) {
     uint32_t color = EBUS_4BIT_GREEN;
-    if (i >= 15) {
+    if (i > cutoff) {
+      color = EBUS_4BIT_BLACK;
+    } else if (i >= 12) {
       color = EBUS_4BIT_RED;
-    } else if (i >= 10) {
+    } else if (i >= 8) {
       color = EBUS_4BIT_ORANGE;
-    } else if (i >= 5) {
+    } else if (i >= 4) {
       color = EBUS_4BIT_YELLOW;
     }
-    spriteEbusQueue.drawFastVLine(i, 0, 10, color);
+    spriteEbusQueue.drawFastVLine(i, 7, 8, color);
   }
+  spriteEbusQueue.pushSprite(x, y);
 }
 
 void initSprites() {
@@ -223,7 +225,7 @@ void updateDisplay(void *pvParameter) {
 
     print_ip_addr();
     tft.println();
-    tft.printf("Command Queue size: %d\n", system_info->ebus.queue_size);
+    tft.printf("Command Queue size: %d             \n", system_info->ebus.queue_size);
 
     tft.setCursor(0, 195, 1);
     tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
