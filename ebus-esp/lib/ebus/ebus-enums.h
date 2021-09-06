@@ -32,8 +32,8 @@ enum TelegramState : int8_t {
   endErrorRequestNackReceived = -2,
   endErrorResponseNackReceived = -3,
   endErrorResponseNoAck = -4,
-  endErrorRequestNoAck = -4,
-  endArbitration = -5,
+  endErrorRequestNoAck = -5,
+  endArbitration = -6,
   endCompleted = -16,
   endSendFailed = -17,
 };
