@@ -50,8 +50,7 @@ void handle_device_config_read_flame(Ebus::Telegram telegram) {
 
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram telegram) {
   uint16_t flow = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0));
-  // TODO: FIXME: range of 'flow' is still unclear, seems to go up to a little over 12.00
-  // maybe it is actually liters/minute?
+  // TODO: FIXME: range of 'flow' is actually liters per minute!
   system_info->ebus.flow = flow; //map(flow, 0, 0xFFFF, 0, 0xFF);
 }
 
