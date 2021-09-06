@@ -36,7 +36,6 @@ enum TelegramState : int8_t {
   endArbitration = -5,
   endCompleted = -16,
   endSendFailed = -17,
-  endAbort = -20,
 };
 
 }  // namespace Ebus

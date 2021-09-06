@@ -50,10 +50,10 @@ void Ebus::uartSendRemainingRequestPart(SendCommand command) {
   uartSendChar(command.getCRC());
 }
 
-void Ebus::processReceivedChar(int cr) {
+void Ebus::processReceivedChar(unsigned char receivedByte) {
   // keep track of number of character between last 2 SYN chars
   // this is needed in case of arbitration
-  if (cr == EBUS_SYN) {
+  if (receivedByte == EBUS_SYN) {
     state = charCountSinceLastSyn == 1 ? EbusState::arbitration : EbusState::normal;
     charCountSinceLastSyn = 0;
 
@@ -78,13 +78,6 @@ void Ebus::processReceivedChar(int cr) {
       activeCommand = dequeued;
     }
   }
-
-  if (cr < 0) {
-    receivingTelegram.setState(TelegramState::endAbort);
-    return;
-  }
-
-  uint8_t receivedByte = (uint8_t)cr;
 
   switch (receivingTelegram.getState()) {
   case TelegramState::waitForSyn:

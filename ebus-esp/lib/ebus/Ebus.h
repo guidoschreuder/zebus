@@ -38,7 +38,7 @@ class Ebus {
   void setUartSendFunction(void (*uartSend)(const char *, int16_t size));
   void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
   void setDeueueCommandFunction(bool (*dequeue_command)(void *const command));
-  void processReceivedChar(int cr);
+  void processReceivedChar(unsigned char receivedByte);
 
   class Elf {
 public:

@@ -91,22 +91,16 @@ static void IRAM_ATTR ebus_uart_intr_handle(void *arg) {
   while (rx_fifo_len) {
     uint8_t cr = UART_EBUS.fifo.rw_byte;
     xQueueSendToBackFromISR(receivedByteQueue, &cr, &xHigherPriorityTaskWoken);
-    //ebus.processReceivedChar(UART_EBUS.fifo.rw_byte);
     rx_fifo_len--;
   }
 
   if (CHECK_INT_STATUS(status, UART_SW_XON_INT_ST)) {
     uart_clear_intr_status(UART_NUM_EBUS, UART_SW_XON_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_FRM_ERR_INT_ST)) {
-    // process error (Triggered when the receiver detects a data frame error)
-    //ebus.processReceivedChar(-1);
     uart_clear_intr_status(UART_NUM_EBUS, UART_FRM_ERR_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_BRK_DET_INT_ST)) {
-    // process error (Triggered when the receiver detects a 0 level after the STOP bit)
-    //ebus.processReceivedChar(-1);
     uart_clear_intr_status(UART_NUM_EBUS, UART_BRK_DET_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_TXFIFO_EMPTY_INT_ST)) {
-    // all good (Triggered when the amount of data in the transmit-FIFO is less than what tx_mem_cnttxfifo_cnt specifies)
     uart_clear_intr_status(UART_NUM_EBUS, UART_TXFIFO_EMPTY_INT_CLR);
   } else if (CHECK_INT_STATUS(status, UART_RXFIFO_FULL_INT_ST)) {
     uart_clear_intr_status(UART_NUM_EBUS, UART_RXFIFO_FULL_INT_CLR);
