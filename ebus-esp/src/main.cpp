@@ -200,6 +200,7 @@ void setupEbus() {
   ebus.setUartSendFunction(ebusUartSend);
   ebus.setQueueHistoricFunction(ebusQueue);
   ebus.setDeueueCommandFunction(ebusDequeueCommand);
+  ebus.addSendResponseHandler(sendIdentificationResponse);
 }
 
 void processHistoricMessages(void *pvParameter) {

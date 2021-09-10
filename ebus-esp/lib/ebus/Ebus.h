@@ -15,6 +15,8 @@ typedef struct {
   uint8_t max_lock_counter;
 } ebus_config_t;
 
+typedef uint8_t (*send_response_handler)(Ebus::Telegram, uint8_t *);
+
 namespace Ebus {
 
 class Ebus {
@@ -27,9 +29,12 @@ class Ebus {
   EbusState state = EbusState::arbitration;
   Telegram receivingTelegram;
   SendCommand activeCommand;
+  std::list<send_response_handler> sendResponseHandlers;
+
   void (*uartSend)(const char *, int16_t);
   void (*queueHistoric)(Telegram);
   bool (*dequeueCommand)(void *const command);
+  uint8_t uartSendChar(uint8_t cr, bool esc, bool runCrc, uint8_t crc_init);
   void uartSendChar(uint8_t cr, bool esc = true);
   void uartSendRemainingRequestPart(SendCommand command);
 
@@ -39,6 +44,8 @@ class Ebus {
   void setQueueHistoricFunction(void (*queue_historic)(Telegram telegram));
   void setDeueueCommandFunction(bool (*dequeue_command)(void *const command));
   void processReceivedChar(unsigned char receivedByte);
+  void addSendResponseHandler(send_response_handler);
+  void handleResponse(Telegram telegram);
 
   class Elf {
 public:

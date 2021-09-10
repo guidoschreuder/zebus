@@ -21,8 +21,9 @@ void Ebus::setDeueueCommandFunction(bool (*dequeue_command)(void *const command)
   dequeueCommand = dequeue_command;
 }
 
-void Ebus::uartSendChar(uint8_t cr, bool esc) {
+uint8_t Ebus::uartSendChar(uint8_t cr, bool esc, bool runCrc, uint8_t crc_init) {
   char buffer[2];
+  uint8_t crc = 0;
   uint8_t len = 1;
   if (esc && cr == EBUS_ESC) {
     buffer[0] = EBUS_ESC;
@@ -36,6 +37,18 @@ void Ebus::uartSendChar(uint8_t cr, bool esc) {
     buffer[0] = cr;
   }
   uartSend(buffer, len);
+  if (!runCrc) {
+    return 0;
+  }
+  crc = Elf::crc8Calc(buffer[0], crc_init);
+  if (len == 1) {
+    return crc;
+  }
+  return Elf::crc8Calc(buffer[1], crc);
+}
+
+void Ebus::uartSendChar(uint8_t cr, bool esc) {
+  uartSendChar(cr, esc, false, 0);
 }
 
 void Ebus::uartSendRemainingRequestPart(SendCommand command) {
@@ -209,31 +222,9 @@ void Ebus::processReceivedChar(unsigned char receivedByte) {
     }
   }
 
-  if (receivingTelegram.getState() == TelegramState::waitForRequestAck &&
-      receivingTelegram.getZZ() == EBUS_SLAVE_ADDRESS(masterAddress)) {
-    char buf[EBUS_RESPONSE_BUFFER_SIZE] = {0};
-    int len = 0;
-    // we are requested to respond
-    if (receivingTelegram.isRequestValid()) {
-      // TODO: below needs to be refactored to be more generic
-      // request to identification request
-      if (receivingTelegram.getPB() == 0x07 &&
-          receivingTelegram.getSB() == 0x04) {
-        buf[len++] = EBUS_ACK;
-        // TODO: just send back "Guido" and dummy version on identification request
-        uint8_t fixedResponse[] = {0xA, 0xDD, 0x47, 0x75, 0x69, 0x64, 0x6F, 0x01, 0x02, 0x03, 0x04, 0x31};
-        for (int i = 0; i < sizeof(fixedResponse) / sizeof(uint8_t); i++) {
-          buf[len++] = (uint8_t)fixedResponse[i];
-        }
-      }
-    } else {
-      buf[len++] = EBUS_NACK;
-    }
-    // only ACK known commands
-    if (len) {
-      uartSend(buf, len);
-    }
-  }
+  // Handle our responses
+  handleResponse(receivingTelegram);
+
 }
 
 #ifdef UNIT_TEST
@@ -241,6 +232,47 @@ Telegram Ebus::getReceivingTelegram() {
   return receivingTelegram;
 }
 #endif
+
+void Ebus::addSendResponseHandler(send_response_handler handler) {
+  sendResponseHandlers.push_back(handler);
+}
+
+void Ebus::handleResponse(Telegram telegram) {
+  if (telegram.getState() != TelegramState::waitForRequestAck ||
+      telegram.getZZ() != EBUS_SLAVE_ADDRESS(masterAddress)) {
+    return;
+  }
+  if (!telegram.isRequestValid()) {
+    uartSendChar(EBUS_NACK);
+    return;
+  }
+
+  // response buffer
+  uint8_t buf[EBUS_RESPONSE_BUFFER_SIZE] = {0};
+  int len = 0;
+
+  // find response
+  for (auto const& handler : sendResponseHandlers) {
+    len = handler(telegram, buf);
+    if (len != 0) {
+      break;
+    }
+  }
+
+  // we found no reponse to send
+  if (len == 0) {
+    uartSendChar(EBUS_NACK);
+    return;
+  }
+
+  uartSendChar(EBUS_ACK);
+  uint8_t crc = Elf::crc8Calc(len, 0);
+  uartSendChar(len);
+  for (int i = 0; i < len; i++) {
+    crc = uartSendChar(buf[i], true, true, crc);
+  }
+  uartSendChar(crc);
+}
 
 unsigned char Ebus::Elf::crc8Calc(unsigned char data, unsigned char crc_init) {
   unsigned char crc;

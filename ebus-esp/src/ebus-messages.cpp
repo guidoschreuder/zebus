@@ -17,6 +17,17 @@
 
 extern struct system_info_t* system_info;
 
+uint8_t fixedIdentificationResponse[] = {0xDD, 'G', 'u', 'i', 'd', 'o', 0x01, 0x02, 0x03, 0x04};
+
+// Send Response Handlers
+uint8_t sendIdentificationResponse(Ebus::Telegram telegram, uint8_t *buffer) {
+  if (BYTES_TO_WORD(telegram.getPB(), telegram.getSB()) == CMD_IDENTIFICATION) {
+    memcpy(buffer, fixedIdentificationResponse, sizeof(fixedIdentificationResponse));
+    return sizeof(fixedIdentificationResponse);
+  }
+  return 0;
+}
+
 struct message_handler {
     uint16_t command;
     void (*handler)(Ebus::Telegram telegram);
