@@ -37,6 +37,13 @@ ebus_config_t ebus_config = ebus_config_t {
   .max_lock_counter = 2,
 };
 
+uint8_t fixedResponse(Ebus::Telegram telegram, uint8_t *buffer) {
+  buffer[0] = 'f';
+  buffer[1] = 'i';
+  buffer[2] = 'x';
+  return 3;
+}
+
 Ebus::Ebus ebus = Ebus::Ebus(ebus_config);
 
 void test_crc() {
@@ -86,6 +93,7 @@ void setupEbus() {
   ebus.setQueueHistoricFunction(ebusQueue);
   ebus.setDeueueCommandFunction(ebusDequeueCommand);
   ebus.processReceivedChar(EBUS_SYN);
+  ebus.addSendResponseHandler(fixedResponse);
 }
 
 void test_getter() {
@@ -160,6 +168,9 @@ void test_telegram_identity_response() {
     telegram = telegramDequeued;
   }
 
+  TEST_ASSERT_EQUAL_UINT8(telegram->getResponseByte(0), 'f');
+  TEST_ASSERT_EQUAL_UINT8(telegram->getResponseByte(1), 'i');
+  TEST_ASSERT_EQUAL_UINT8(telegram->getResponseByte(2), 'x');
   TEST_ASSERT_TRUE(telegram->isRequestValid());
   TEST_ASSERT_TRUE(telegram->isResponseValid());
 }
