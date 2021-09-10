@@ -4,9 +4,10 @@
 const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
 
 const char* generate_ap_password() {
+  uint32_t seed = ESP.getEfuseMac() >> 32;
   static char pwd[EBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH + 1] = {0};
   for (uint8_t i = 0; i < EBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH; i++) {
-    pwd[i] = PWD_CHARS[random(sizeof(PWD_CHARS))];
+    pwd[i] = PWD_CHARS[rand_r(&seed) % sizeof(PWD_CHARS)];
   }
   return pwd;
 }
