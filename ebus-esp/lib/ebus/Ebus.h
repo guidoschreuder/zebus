@@ -37,6 +37,7 @@ class Ebus {
   uint8_t uartSendChar(uint8_t cr, bool esc, bool runCrc, uint8_t crc_init);
   void uartSendChar(uint8_t cr, bool esc = true);
   void uartSendRemainingRequestPart(SendCommand command);
+  void handleResponse(Telegram telegram);
 
   public:
   explicit Ebus(ebus_config_t config);
@@ -45,7 +46,6 @@ class Ebus {
   void setDeueueCommandFunction(bool (*dequeue_command)(void *const command));
   void processReceivedChar(unsigned char receivedByte);
   void addSendResponseHandler(send_response_handler);
-  void handleResponse(Telegram telegram);
 
   class Elf {
 public:
