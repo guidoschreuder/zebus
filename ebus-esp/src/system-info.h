@@ -14,8 +14,8 @@ struct system_info_t {
   } ebus;
   struct wifi {
     struct config_ap {
-      const char* ap_name;
-      const char* ap_password;
+      const char* ap_name = NULL;
+      const char* ap_password = NULL;
       bool active;
     } config_ap;
     uint32_t ip_addr;

@@ -32,14 +32,12 @@ void setupWiFiAndKeepAlive(void *pvParameter) {
 
   WiFi.mode(WIFI_STA); // explicitly set mode, ESP32 defaults to STA+AP
 
-  const char* apName = EBUS_WIFI_CONFIG_AP_NAME;
-  // TODO: use generate_ap_password();
-  // does not work for some reason, to be investigated
-  const char* apPassword = "hollebolle";
+  char apName[16] = {0};
+  sprintf(apName, "%s %x", EBUS_APPNAME, (uint32_t) ESP.getEfuseMac());
 
   system_info->wifi.rssi = WIFI_NO_SIGNAL;
-  system_info->wifi.config_ap.ap_name = apName;
-  system_info->wifi.config_ap.ap_password = apPassword;
+  system_info->wifi.config_ap.ap_name = strdup(apName);
+  system_info->wifi.config_ap.ap_password = generate_ap_password();
 
   wiFiManager.setConfigPortalBlocking(false);
   wiFiManager.setCaptivePortalEnable(false);
@@ -47,7 +45,9 @@ void setupWiFiAndKeepAlive(void *pvParameter) {
   wiFiManager.setSaveParamsCallback(saveParamsCallback);
   wiFiManager.setHostname("zebus.home.arpa");
 
-  system_info->wifi.config_ap.active = !wiFiManager.autoConnect(apName, apPassword);
+  system_info->wifi.config_ap.active =
+      !wiFiManager.autoConnect(system_info->wifi.config_ap.ap_name,
+                               system_info->wifi.config_ap.ap_password);
   if (system_info->wifi.config_ap.active) {
     printf("WiFi connection established\n");
   }
