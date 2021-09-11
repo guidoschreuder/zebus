@@ -4,6 +4,11 @@
 #include "ebus-defines.h"
 #include "ebus-enums.h"
 
+/* Specification says:
+   1. In master and slave telegram part, standardised commands must be limited to 10 used data bytes.
+   2. In master and slave telegram part, the sum of mfr.-specific telegram used data bytes must not exceed 14.
+   We use 16 to be on the safe side for now.
+*/
 #define EBUS_MAX_DATA_LENGTH 16
 
 #define EBUS_OFFSET_QQ 0
