@@ -56,7 +56,7 @@ void debugLogger(Ebus::Telegram telegram) {
     telegram.getPB(),
     telegram.getSB(),
     telegram.getNN(),
-    telegram.getResponseCRC());
+    telegram.getRequestCRC());
   for (int i = 0; i < telegram.getNN(); i++) {
      printf(" %02X", telegram.getRequestByte(i));
   }
