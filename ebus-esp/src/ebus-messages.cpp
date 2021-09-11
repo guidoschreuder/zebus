@@ -17,9 +17,9 @@
 
 extern struct system_info_t* system_info;
 
-uint8_t fixedIdentificationResponse[] = {0xDD, 'G', 'u', 'i', 'd', 'o', 0x01, 0x02, 0x03, 0x04};
-
-// Send Response Handlers
+// Send Response Handlers, these are replies we need to send in Master/Slave communication
+// Reply to identification request
+const uint8_t fixedIdentificationResponse[] = {0xDD, 'G', 'u', 'i', 'd', 'o', 0x01, 0x02, 0x03, 0x04};
 uint8_t sendIdentificationResponse(Ebus::Telegram telegram, uint8_t *buffer) {
   if (BYTES_TO_WORD(telegram.getPB(), telegram.getSB()) == CMD_IDENTIFICATION) {
     memcpy(buffer, fixedIdentificationResponse, sizeof(fixedIdentificationResponse));
