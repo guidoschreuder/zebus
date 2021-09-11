@@ -20,9 +20,10 @@ Conceived features:
     - flame on/off (ebusd message 'Flame')
     - pump on/off (ebusd message 'WP')
     - heater modulation
+    - power usage (?) to be tested (ebusd message 'PowerValue')
   - sensor for actual room temperature
   - controls to set required temperature
-- communicate date and outside temperature to heater unit
+- +communicate date and outside temperature to heater unit+ impossible and irrelevant, see [[* +Broadcast datetime+]]
 - control remotely using a telegram bot, that way we do not need to open any ports to the outside
 - (LOW PRIO, MAYBE LATER) display graphs over time of relevant values
 
@@ -38,7 +39,7 @@ Conceived features:
 - ESP32 ULP programming is in assembler
 
 * tasks
-Tasks should re-ordered so the first items should be the first things to pick up, items that are DONE need to move to the bottom
+Tasks should re-ordered so the first items should be the first things to pick up, items that are DONE need to move to [[* logs]]
 
 ** TODO determine preferred topology to use  (work in progress)
 +consider ESP-NOW so "sensor" modules can profit from reduced "ON" time.+
@@ -55,7 +56,6 @@ This does however require a more sophisticated power design as we need a LiPo ba
 
 Wireless connectivity is still possible for things like getting NTP, outside temperature from a free API service and communicating as a telegram bot, but display and wireless need to repect the available energy budget.
 ** TODO integrate room temperature sensor
-** TODO send current room temperature to heater
 ** TODO [#B] prototype power harvesting
 Starting point are project that use solar energy like here https://randomnerdtutorials.com/power-esp32-esp8266-solar-panels-battery-level-monitoring/
 
@@ -65,6 +65,8 @@ All basic functionality needs to be prototyped and tested before doing this.
 
 Consider using JLCPCB assembly, this way we can use SMD without the hassle of sourcing SMD components, let alone soldering them
 ** TODO [#C] create case for thermostat unit
+
+* logs
 ** DONE create hardware interface for EBUS
     CLOSED: [2021-01-17 Sun 01:48]
 ** DONE get hardware interface to work with Ebusd and experiment a bit
@@ -126,6 +128,16 @@ As a reward these values can already be put on display, gaining some instant gra
    At 336 Ohm (60mA, 1.2W) bus still behaved perfectly.
 
    In conclusion, round about 50mA or a little more seems to be a very safe limit with only a single device on the bus besides the heater.
+** +Broadcast datetime+
++Send broadcast of datetime and check ebusd messages 'DCFState', 'DCFTimeDate', 'DateTime'.+
+
+My line of thinking was completely wrong, i assumed the DCF77 device was "Yet Another Ebus device". It is not. It is a module connected to a separate port on the heater. The broadcasts (presumably) are by the heater when it has detected a DCF signal.
+
+Further more, i have not found any way to set the date/time on the heater through eBUS, and belive me, i've tried.
+
+In the end it is not really relevant anyway, the room controller takes on the full role of director anyway when controlling the heater over eBUS, so the date/time on the heater is then completely irrelevant.
+** +send current room temperature to heater+
+Irrelevant for the same reason outlined in [[* +Broadcast datetime+]], in eBUS mode the heater is just a rather dumb slave dancing to the tune of puppet master room controller
 
 
 
@@ -169,4 +181,4 @@ bought here: https://www.aliexpress.com/item/4000830895622.html
 - https://www.14core.com/wiring-and-flashing-programming-esp-32-esp32s-with-usb-ttl-uart/
 - https://www.thingforward.io/techblog/2017-08-08-embedded-testing-with-platformio-part-2.html
 - set datetime: https://github.com/john30/ebusd/issues/286
-- formatting time struct: https://www.ibm.com/docs/en/i/7.3?topic=functions-strftime-convert-datetime-string
+- formatting C time struct: https://www.ibm.com/docs/en/i/7.3?topic=functions-strftime-convert-datetime-string
