@@ -1,4 +1,4 @@
-#+TITLE:     eBUS
+#+TITLE:     Zebus
 #+AUTHOR:    Guido Schreuder
 #+EMAIL:     guido.schreuder@ruimtepuin.be
 
