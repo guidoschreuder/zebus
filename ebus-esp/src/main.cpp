@@ -63,11 +63,11 @@ void debugLogger(Ebus::Telegram telegram) {
   printf("\n");
   if (telegram.isResponseExpected()) {
     printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
-     for (int i = 0; i < telegram.getResponseNN(); i++) {
-        printf(" %02X", telegram.getResponseByte(i));
-      }
-      printf("\n");
+    for (int i = 0; i < telegram.getResponseNN(); i++) {
+      printf(" %02X", telegram.getResponseByte(i));
     }
+    printf("\n");
+  }
 }
 
 void  tftLogger(Ebus::Telegram telegram) {
