@@ -1,2 +1,4 @@
-;; ignore html generated from org-mode
 README.html
+sdkconfig.old
+platformio-device-monitor-*.log
+.#*
