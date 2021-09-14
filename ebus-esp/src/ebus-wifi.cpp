@@ -29,7 +29,7 @@ void refreshNTP() {
   }
 }
 
-void setupWiFiAndKeepAlive(void *pvParameter) {
+void wiFiLoop(void *pvParameter) {
 
   WiFi.mode(WIFI_STA); // explicitly set mode, ESP32 defaults to STA+AP
 

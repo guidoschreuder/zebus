@@ -11,4 +11,4 @@
 
 const char* generate_ap_password();
 
-void setupWiFiAndKeepAlive(void *pvParameter);
+void wiFiLoop(void *pvParameter);
