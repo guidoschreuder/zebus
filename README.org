@@ -176,8 +176,14 @@ As a reward these values can already be put on display, gaining some instant gra
 
 My line of thinking was completely wrong, i assumed the DCF77 device was "Yet Another eBUS device". It is not. It is a module connected to a separate port on the heater. The broadcasts (presumably) are by the heater when it has detected a DCF signal.
 
-Further more, i have not found any way to set the date/time on the heater through eBUS, and belive me, i've tried.
+Further more, i have not found any way to set the date/time on the heater through eBUS, and believe me, i've tried.
 
 In the end it is not really relevant anyway, the room controller takes on the full role of director anyway when controlling the heater over eBUS, so the date/time on the heater is then completely irrelevant.
 ** +send current room temperature to heater+
 Irrelevant for the same reason outlined in [[* +Broadcast datetime+]], in eBUS mode the heater is just a rather dumb slave dancing to the tune of puppet master room controller
+
+** DONE setup separerate ESP32 as temperature logger
+   CLOSED: [2021-09-14 Tue 08:00]
+read sensor and output value to serial port
+** DONE setup ESP-NOW and communicate temperature sensor readings to room controller
+   CLOSED: [2021-09-14 Tue 19:16]

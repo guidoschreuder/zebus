@@ -1,7 +1,13 @@
 #include "ebus-wifi.h"
+#include "espnow-config.h"
+
 #include "Arduino.h"
+#include "esp_log.h"
+#include "esp_now.h"
 
 const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
+
+bool espNowInit = false;
 
 const char* generate_ap_password() {
   uint32_t seed = ESP.getEfuseMac() >> 32;
@@ -29,9 +35,19 @@ void refreshNTP() {
   }
 }
 
+void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+  printf("Packet received from %02X:%02x:%02x:%02X:%02X:%02X\n", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  float temparature;
+  memcpy(&temparature, incomingData, sizeof(temparature));
+  printf("Temperature: %f\n", temparature);
+}
+
 void wiFiLoop(void *pvParameter) {
 
   WiFi.mode(WIFI_STA); // explicitly set mode, ESP32 defaults to STA+AP
+
+  // disable modem sleep so ESP-NOW packets can be received
+  esp_wifi_set_ps(WIFI_PS_NONE);
 
   char apName[16] = {0};
   sprintf(apName, "%s %x", EBUS_APPNAME, (uint32_t) ESP.getEfuseMac());
@@ -53,6 +69,9 @@ void wiFiLoop(void *pvParameter) {
     printf("WiFi connection established\n");
   }
 
+  printf("Channel: %d, MAC: %s\n", WiFi.channel(), WiFi.macAddress().c_str());
+  printf("ESPNOW Channel: %d\n", ESPNOW_CHANNEL);
+
   while(1) {
     if (system_info->wifi.config_ap.active) {
       wiFiManager.process();
@@ -60,6 +79,12 @@ void wiFiLoop(void *pvParameter) {
       continue;
     }
     //wiFiManager.stopConfigPortal();
+
+    if (!espNowInit) {
+      ESP_ERROR_CHECK(esp_now_init());
+      esp_now_register_recv_cb(OnEspNowDataRecv);
+      espNowInit = true;
+    }
 
     if (WiFi.status() == WL_CONNECTED) {
       system_info->wifi.rssi = WiFi.RSSI();
