@@ -23,17 +23,15 @@ RTC_DATA_ATTR master_beacon beacon;
 RTC_DATA_ATTR uint8_t master_mac_addr[6] = {0};
 
 void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
-  printf("Packet received from %02X:%02x:%02x:%02X:%02X:%02X\n", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-
   memcpy(&beacon, incomingData, sizeof(beacon));
-  printf("Master lives at channel: %d\n", beacon.channel);
-
   memcpy(&master_mac_addr, mac_addr, sizeof(master_mac_addr));
   master_beacon_received = true;
 }
 
 void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  printf("Last Packet Send Status: %s\n", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  if (status == ESP_NOW_SEND_SUCCESS) {
+    printf("Last packet failed to deliver\n");
+  }
 }
 
 void sendData(outside_temp_message data) {
@@ -57,14 +55,7 @@ void sendData(outside_temp_message data) {
   ESP_ERROR_CHECK(esp_wifi_set_channel(beacon.channel, WIFI_SECOND_CHAN_NONE));
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
 
-  esp_err_t result = esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data));
-
-  if (result == ESP_OK) {
-    printf("The message was sent successfully.\n");
-  } else {
-    printf("There was an error sending the message.\n");
-  }
-
+  ESP_ERROR_CHECK(esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data)));
 }
 
 void setup() {
