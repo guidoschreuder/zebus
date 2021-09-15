@@ -7,8 +7,8 @@
 #endif
 
 #include <Ebus.h>
-#include <main.h>
 #include <unity.h>
+#include <zebus-config.h>
 
 #include <cstdio>  //debug
 #include <cstring>
