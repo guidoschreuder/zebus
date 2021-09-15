@@ -105,6 +105,7 @@ void sendEspNowBeacon() {
 void wiFiLoop(void *pvParameter) {
 
   WiFi.mode(WIFI_STA); // explicitly set mode, ESP32 defaults to STA+AP
+  WiFi.setAutoReconnect(false);
 
   // disable modem sleep so ESP-NOW packets can be received
   esp_wifi_set_ps(WIFI_PS_NONE);
