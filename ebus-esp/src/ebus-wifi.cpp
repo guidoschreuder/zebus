@@ -10,6 +10,9 @@ const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz12
 
 bool espNowInit = false;
 
+#define BEACON_INTERVAL_MS 5000
+uint32_t lastBeacon = 0;
+
 const char* generate_ap_password() {
   uint32_t seed = ESP.getEfuseMac() >> 32;
   static char pwd[EBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH + 1] = {0};
@@ -44,7 +47,7 @@ void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int
 }
 
 void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  printf("Last Packet Send Status: %s\n", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+//  printf("Last Packet Send Status: %s\n", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 void setupEspNow() {
@@ -66,18 +69,37 @@ void setupEspNow() {
 }
 
 void sendEspNowBeacon() {
+  if (lastBeacon + BEACON_INTERVAL_MS > millis()) {
+    return;
+  }
+
+  esp_wifi_set_storage(WIFI_STORAGE_RAM);
+
   setupEspNow();
+
+  wifi_country_t country;
+  ESP_ERROR_CHECK(esp_wifi_get_country(&country));
 
   master_beacon beacon;
   beacon.channel = WiFi.channel();
 
-  esp_err_t result = esp_now_send(espnow_broadcast_address, (uint8_t *)&beacon, sizeof(beacon));
+  WiFi.disconnect();
 
-  if (result == ESP_OK) {
-    printf("Beacon was sent successfully.\n");
-  } else {
-    printf("There was an error sending the beacon.\n");
+  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
+  for (uint8_t channel = country.schan; channel < country.schan + country.nchan; channel++) {
+    ESP_ERROR_CHECK(esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE));
+
+    esp_err_t result = esp_now_send(espnow_broadcast_address, (uint8_t *)&beacon, sizeof(beacon));
+    if (result != ESP_OK) {
+      printf("There was an error sending the beacon on channel %d.\n", channel);
+    }
   }
+  ESP_ERROR_CHECK(esp_wifi_set_channel(beacon.channel, WIFI_SECOND_CHAN_NONE));
+  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
+
+  lastBeacon = millis();
+
+  ESP_ERROR_CHECK(esp_wifi_connect());
 }
 
 void wiFiLoop(void *pvParameter) {
@@ -116,19 +138,28 @@ void wiFiLoop(void *pvParameter) {
       continue;
     }
     //wiFiManager.stopConfigPortal();
-    sendEspNowBeacon();
 
+    printf("WiFi status: %d\n", WiFi.status());
     if (WiFi.status() == WL_CONNECTED) {
       system_info->wifi.rssi = WiFi.RSSI();
       system_info->wifi.ip_addr = WiFi.localIP();
       refreshNTP();
-      vTaskDelay(pdMS_TO_TICKS(5000));
+      sendEspNowBeacon();
+
+      vTaskDelay(pdMS_TO_TICKS(BEACON_INTERVAL_MS));
       continue;
     }
     printf("WiFi connection was lost\n");
     system_info->wifi.rssi = WIFI_NO_SIGNAL;
-    if (WiFi.reconnect()) {
-      printf("WiFi reconnected\n");
+
+    ESP_ERROR_CHECK(esp_wifi_connect());
+    for (int i = 0; i < 20 && (WiFi.status() != WL_CONNECTED); i++) {
+      vTaskDelay(100);
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+      printf("WiFi reconnection SUCCESS\n");
+    } else {
+      printf("WiFi reconnection FAILED\n");
     }
   }
 

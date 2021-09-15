@@ -42,6 +42,7 @@ void sendData(outside_temp_message data) {
     return;
   }
   if (!esp_now_is_peer_exist(master_mac_addr)) {
+
     // NOTE: needs to be declared `static` otherwise the follow error occurs:
     //   E (3263) ESPNOW: Peer interface is invalid
     //   ESP_ERROR_CHECK failed: esp_err_t 0x3066 (ESP_ERR_ESPNOW_ARG) at 0x40088970
@@ -51,6 +52,11 @@ void sendData(outside_temp_message data) {
     peerInfo.encrypt = false;
     ESP_ERROR_CHECK(esp_now_add_peer(&peerInfo));
   }
+
+  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
+  ESP_ERROR_CHECK(esp_wifi_set_channel(beacon.channel, WIFI_SECOND_CHAN_NONE));
+  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
+
   esp_err_t result = esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data));
 
   if (result == ESP_OK) {
@@ -64,11 +70,6 @@ void sendData(outside_temp_message data) {
 void setup() {
 
   WiFi.mode(WIFI_STA);
-
-  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
-  // TODO: channel still needs to be hardcoded and can change when AP decides on different channel for master
-  ESP_ERROR_CHECK(esp_wifi_set_channel(13, WIFI_SECOND_CHAN_NONE));
-  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
 
   ESP_ERROR_CHECK(esp_now_init());
   ESP_ERROR_CHECK(esp_now_register_send_cb(OnEspNowDataSent));
