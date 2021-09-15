@@ -38,7 +38,7 @@ void processHistoricMessages(void *pvParameter);
 void processReceivedEbusBytes(void *pvParameter);
 static void ebus_uart_intr_handle(void *arg);
 
-// public methods
+// public functions
 void setupEbus() {
   setupQueues();
   setupEbusUart();
