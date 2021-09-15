@@ -1,4 +1,5 @@
 #include "ebus-wifi.h"
+#include "espnow-types.h"
 #include "espnow-config.h"
 
 #include "Arduino.h"
@@ -37,9 +38,46 @@ void refreshNTP() {
 
 void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   printf("Packet received from %02X:%02x:%02x:%02X:%02X:%02X\n", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-  float temparature;
-  memcpy(&temparature, incomingData, sizeof(temparature));
-  printf("Temperature: %f\n", temparature);
+  outside_temp_message data;
+  memcpy(&data, incomingData, sizeof(data));
+  printf("Temperature: %f\n", data.temperatureC);
+}
+
+void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  printf("Last Packet Send Status: %s\n", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+void setupEspNow() {
+  if (!espNowInit) {
+    ESP_ERROR_CHECK(esp_now_init());
+
+    ESP_ERROR_CHECK(esp_now_register_send_cb(OnEspNowDataSent));
+    ESP_ERROR_CHECK(esp_now_register_recv_cb(OnEspNowDataRecv));
+
+    static esp_now_peer_info_t peerInfo;
+    memcpy(peerInfo.peer_addr, espnow_broadcast_address, sizeof(espnow_broadcast_address));
+    peerInfo.channel = 0;
+    peerInfo.encrypt = false;
+
+    ESP_ERROR_CHECK(esp_now_add_peer(&peerInfo));
+
+    espNowInit = true;
+  }
+}
+
+void sendEspNowBeacon() {
+  setupEspNow();
+
+  master_beacon beacon;
+  beacon.channel = WiFi.channel();
+
+  esp_err_t result = esp_now_send(espnow_broadcast_address, (uint8_t *)&beacon, sizeof(beacon));
+
+  if (result == ESP_OK) {
+    printf("Beacon was sent successfully.\n");
+  } else {
+    printf("There was an error sending the beacon.\n");
+  }
 }
 
 void wiFiLoop(void *pvParameter) {
@@ -70,7 +108,6 @@ void wiFiLoop(void *pvParameter) {
   }
 
   printf("Channel: %d, MAC: %s\n", WiFi.channel(), WiFi.macAddress().c_str());
-  printf("ESPNOW Channel: %d\n", ESPNOW_CHANNEL);
 
   while(1) {
     if (system_info->wifi.config_ap.active) {
@@ -79,12 +116,7 @@ void wiFiLoop(void *pvParameter) {
       continue;
     }
     //wiFiManager.stopConfigPortal();
-
-    if (!espNowInit) {
-      ESP_ERROR_CHECK(esp_now_init());
-      esp_now_register_recv_cb(OnEspNowDataRecv);
-      espNowInit = true;
-    }
+    sendEspNowBeacon();
 
     if (WiFi.status() == WL_CONNECTED) {
       system_info->wifi.rssi = WiFi.RSSI();

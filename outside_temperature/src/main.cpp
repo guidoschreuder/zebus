@@ -6,6 +6,7 @@
 #include "WiFi.h"
 #include "esp_wifi.h"
 #include "esp_log.h"
+#include "espnow-types.h"
 #include "espnow-config.h"
 #include "esp_now.h"
 
@@ -17,32 +18,61 @@
 OneWire oneWire(ONE_WIRE_PIN);
 DallasTemperature sensors(&oneWire);
 
-// MAC: AC:67:B2:36:AA:DC
-uint8_t broadcastAddress[] = {0xAC, 0x67, 0xB2, 0x36, 0xAA, 0xDC};
+bool master_beacon_received = false;
+master_beacon beacon;
+uint8_t master_mac_addr[6] = {0};
 
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+  printf("Packet received from %02X:%02x:%02x:%02X:%02X:%02X\n", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+
+  memcpy(&beacon, incomingData, sizeof(beacon));
+  printf("Master lives at channel: %d\n", beacon.channel);
+
+  memcpy(&master_mac_addr, mac_addr, sizeof(master_mac_addr));
+  master_beacon_received = true;
+}
+
+void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   printf("Last Packet Send Status: %s\n", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+void sendData(outside_temp_message data) {
+  if (!master_beacon_received) {
+    printf("no beacon detected yet\n");
+    return;
+  }
+  if (!esp_now_is_peer_exist(master_mac_addr)) {
+    // NOTE: needs to be declared `static` otherwise the follow error occurs:
+    //   E (3263) ESPNOW: Peer interface is invalid
+    //   ESP_ERROR_CHECK failed: esp_err_t 0x3066 (ESP_ERR_ESPNOW_ARG) at 0x40088970
+    static esp_now_peer_info_t peerInfo;
+    memcpy(peerInfo.peer_addr, master_mac_addr, sizeof(peerInfo.peer_addr));
+    peerInfo.channel = 0;
+    peerInfo.encrypt = false;
+    ESP_ERROR_CHECK(esp_now_add_peer(&peerInfo));
+  }
+  esp_err_t result = esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data));
+
+  if (result == ESP_OK) {
+    printf("The message was sent successfully.\n");
+  } else {
+    printf("There was an error sending the message.\n");
+  }
+
 }
 
 void setup() {
 
-  delay(100);
-
   WiFi.mode(WIFI_STA);
 
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
-  ESP_ERROR_CHECK(esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE));
+  // TODO: channel still needs to be hardcoded and can change when AP decides on different channel for master
+  ESP_ERROR_CHECK(esp_wifi_set_channel(13, WIFI_SECOND_CHAN_NONE));
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
 
   ESP_ERROR_CHECK(esp_now_init());
-  ESP_ERROR_CHECK(esp_now_register_send_cb(OnDataSent));
-
-  esp_now_peer_info_t peerInfo;
-  memcpy(peerInfo.peer_addr, broadcastAddress, sizeof(broadcastAddress));
-  peerInfo.channel = 0;
-  peerInfo.encrypt = false;
-
-  ESP_ERROR_CHECK(esp_now_add_peer(&peerInfo));
+  ESP_ERROR_CHECK(esp_now_register_send_cb(OnEspNowDataSent));
+  ESP_ERROR_CHECK(esp_now_register_recv_cb(OnEspNowDataRecv));
 
   sensors.begin();
 }
@@ -50,17 +80,15 @@ void setup() {
 void loop() {
 
   sensors.requestTemperatures();
-  float temperatureC = sensors.getTempCByIndex(0);
 
-  printf("Temperature: %f\n", temperatureC);
+  outside_temp_message data;
+  data.temperatureC = sensors.getTempCByIndex(0);
 
-  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &temperatureC, sizeof(temperatureC));
-
-  if (result == ESP_OK) {
-    printf("The message was sent successfully.\n");
-  } else {
-    printf("There was an error sending the message.\n");
+  printf("Temperature: %f\n", data.temperatureC);
+  while(!master_beacon_received) {
+    vTaskDelay(10);
   }
+  sendData(data);
 
   esp_sleep_enable_timer_wakeup(uS_TO_S(TIME_TO_SLEEP_SECONDS)); // ESP32 wakes after timer expires
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);

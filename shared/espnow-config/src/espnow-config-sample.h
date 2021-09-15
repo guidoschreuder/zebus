@@ -1,2 +1,1 @@
-
-#define ESPNOW_CHANNEL 9
+#pragma once
