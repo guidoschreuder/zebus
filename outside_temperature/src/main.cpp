@@ -1,14 +1,13 @@
-#include "Arduino.h"
-
-#include <OneWire.h>
 #include <DallasTemperature.h>
+#include <OneWire.h>
 
+#include "Arduino.h"
 #include "WiFi.h"
-#include "esp_wifi.h"
 #include "esp_log.h"
-#include "espnow-types.h"
-#include "espnow-config.h"
 #include "esp_now.h"
+#include "esp_wifi.h"
+#include "espnow-config.h"
+#include "espnow-types.h"
 
 #define ONE_WIRE_PIN 4
 #define TIME_TO_SLEEP_SECONDS 10
