@@ -18,9 +18,9 @@
 OneWire oneWire(ONE_WIRE_PIN);
 DallasTemperature sensors(&oneWire);
 
-bool master_beacon_received = false;
-master_beacon beacon;
-uint8_t master_mac_addr[6] = {0};
+RTC_DATA_ATTR bool master_beacon_received = false;
+RTC_DATA_ATTR master_beacon beacon;
+RTC_DATA_ATTR uint8_t master_mac_addr[6] = {0};
 
 void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   printf("Packet received from %02X:%02x:%02x:%02X:%02X:%02X\n", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
