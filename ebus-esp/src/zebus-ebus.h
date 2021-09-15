@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _ZEBUS_EBUS
+#define _ZEBUS_EBUS
 
 // helper macros
 #define CONCAT(a, b)    XCAT(a, b)
@@ -9,3 +10,5 @@
 
 void setupEbus();
 void enqueueEbusCommand(const void * const itemToQueue);
+
+#endif

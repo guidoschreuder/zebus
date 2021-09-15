@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _ZEBUS_CONFIG
+#define _ZEBUS_CONFIG
 
 #define EBUS_APPNAME "Zebus"
 #define EBUS_UART_NUM 1
@@ -20,3 +21,5 @@
 #define EBUS_NTP_GMT_OFFSET_SEC 3600
 #define EBUS_NTP_GMT_DST_OFFSET_SEC 3600
 #define EBUS_NTP_REFRESH_INTERVAL_SEC (5 * 60)
+
+#endif

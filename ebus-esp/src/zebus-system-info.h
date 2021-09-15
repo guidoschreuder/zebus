@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _ZEBUS_SYSTEM_INFO
+#define _ZEBUS_SYSTEM_INFO
 
 #include "zebus-messages.h"
 
@@ -27,3 +28,5 @@ struct system_info_t {
 };
 
 extern struct system_info_t* system_info;
+
+#endif

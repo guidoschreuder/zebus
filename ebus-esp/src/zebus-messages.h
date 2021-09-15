@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _ZEBUS_MESSAGES
+#define _ZEBUS_MESSAGES
 
 #include "Ebus.h"
 
@@ -11,3 +12,5 @@ struct identification_t {
 void handleMessage(Ebus::Telegram telegram);
 
 uint8_t sendIdentificationResponse(Ebus::Telegram telegram, uint8_t *buffer);
+
+#endif

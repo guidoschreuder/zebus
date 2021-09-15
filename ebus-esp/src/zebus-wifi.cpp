@@ -6,7 +6,6 @@
 #include "esp_now.h"
 #include "espnow-config.h"
 #include "espnow-types.h"
-#include "nvs_flash.h"
 #include "zebus-config.h"
 #include "zebus-system-info.h"
 

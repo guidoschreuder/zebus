@@ -1,5 +1,5 @@
-#ifndef _EBUS_DISPLAY
-#define _EBUS_DISPLAY
+#ifndef _ZEBUS_DISPLAY
+#define _ZEBUS_DISPLAY
 
 #include <TFT_eSPI.h>
 
