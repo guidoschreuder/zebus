@@ -28,8 +28,8 @@ void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int
 }
 
 void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  if (status == ESP_NOW_SEND_SUCCESS) {
-    printf("Last packet failed to deliver\n");
+  if (status != ESP_NOW_SEND_SUCCESS) {
+    printf("Packet failed to deliver\n");
   }
 }
 
