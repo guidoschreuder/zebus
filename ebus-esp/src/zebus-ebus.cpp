@@ -1,11 +1,11 @@
-#include "Ebus.h"
 #include "zebus-ebus.h"
-#include "ebus-messages.h"
-#include "system-info.h"
-#include "config.h"
 
+#include "Ebus.h"
 #include "driver/uart.h"
 #include "freertos/queue.h"
+#include "zebus-config.h"
+#include "zebus-messages.h"
+#include "zebus-system-info.h"
 
 #define CHECK_INT_STATUS(ST, MASK) (((ST) & (MASK)) == (MASK))
 

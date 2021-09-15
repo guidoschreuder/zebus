@@ -1,8 +1,9 @@
-#include "system-info.h"
-#include "ebus-messages.h"
-#include "ebus-display.h"
+#include "zebus-display.h"
+
 #include "time.h"
-#include "config.h"
+#include "zebus-config.h"
+#include "zebus-messages.h"
+#include "zebus-system-info.h"
 
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
 TFT_eSprite spriteShower = TFT_eSprite(&tft);

@@ -1,11 +1,12 @@
-#include "system-info.h"
-#include "ebus-messages.h"
-#include "config.h"
+#include "zebus-messages.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#define BYTES_TO_WORD(HIGH_BYTE, LOW_BYTE) ((((uint16_t) HIGH_BYTE) << 8) | LOW_BYTE)
+#include "zebus-config.h"
+#include "zebus-system-info.h"
+
+#define BYTES_TO_WORD(HIGH_BYTE, LOW_BYTE) ((((uint16_t)HIGH_BYTE) << 8) | LOW_BYTE)
 
 #define CMD_IDENTIFICATION 0x0704
 #define CMD_DEVICE_CONFIG 0xB509

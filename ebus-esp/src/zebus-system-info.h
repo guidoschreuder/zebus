@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ebus-messages.h"
+#include "zebus-messages.h"
 
 #define WIFI_NO_SIGNAL 0x80000000
 
