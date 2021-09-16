@@ -31,8 +31,8 @@ void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 // public functions
 const char* generate_ap_password() {
   uint32_t seed = ESP.getEfuseMac() >> 32;
-  static char pwd[EBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH + 1] = {0};
-  for (uint8_t i = 0; i < EBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH; i++) {
+  static char pwd[ZEBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH + 1] = {0};
+  for (uint8_t i = 0; i < ZEBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH; i++) {
     pwd[i] = PWD_CHARS[rand_r(&seed) % sizeof(PWD_CHARS)];
   }
   return pwd;
@@ -87,7 +87,7 @@ void setupWiFi() {
 
 void startConfigPortal() {
   char apName[16] = {0};
-  sprintf(apName, "%s %x", EBUS_APPNAME, (uint32_t) ESP.getEfuseMac());
+  sprintf(apName, "%s %x", ZEBUS_APPNAME, (uint32_t) ESP.getEfuseMac());
 
   system_info->wifi.rssi = WIFI_NO_SIGNAL;
   system_info->wifi.config_ap.ap_name = strdup(apName);
@@ -116,9 +116,9 @@ void saveConfigPortalParamsCallback() {
 void refreshNTP() {
   long now = millis();
   if (system_info->ntp.last_init == 0 ||
-      system_info->ntp.last_init + EBUS_NTP_REFRESH_INTERVAL_SEC * 1000 < now) {
+      system_info->ntp.last_init + ZEBUS_NTP_REFRESH_INTERVAL_SEC * 1000 < now) {
     ESP_LOGD(ZEBUS_LOG_TAG, "Refreshing NTP");
-    configTime(EBUS_NTP_GMT_OFFSET_SEC, EBUS_NTP_GMT_DST_OFFSET_SEC, EBUS_NTP_SERVER);
+    configTime(ZEBUS_NTP_GMT_OFFSET_SEC, ZEBUS_NTP_GMT_DST_OFFSET_SEC, ZEBUS_NTP_SERVER);
     system_info->ntp.last_init = now;
   }
 }

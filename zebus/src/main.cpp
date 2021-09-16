@@ -65,7 +65,7 @@ void app_main();
 }
 
 void app_main() {
-  ESP_LOGI(ZEBUS_LOG_TAG, "Setup %s", EBUS_APPNAME);
+  ESP_LOGI(ZEBUS_LOG_TAG, "Setup %s", ZEBUS_APPNAME);
 
   setupDisplay();
 
