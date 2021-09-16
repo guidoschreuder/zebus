@@ -146,7 +146,7 @@ void sendEspNowBeacon() {
   for (uint8_t channel = country.schan; channel < country.schan + country.nchan; channel++) {
     esp_err_t res;
     while ((res = esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE)) != ESP_OK) {
-      printf("Failed to set WiFi channel for sending beacon: \n", esp_err_to_name(res));
+      printf("Failed to set WiFi channel for sending beacon: %s\n", esp_err_to_name(res));
       esp_wifi_disconnect();
     }
 
