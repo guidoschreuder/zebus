@@ -1,8 +1,9 @@
 #include "zebus-ebus.h"
 
+#include <driver/uart.h>
+#include <freertos/queue.h>
+
 #include "Ebus.h"
-#include "driver/uart.h"
-#include "freertos/queue.h"
 #include "zebus-config.h"
 #include "zebus-messages.h"
 #include "zebus-system-info.h"
