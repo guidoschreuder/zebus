@@ -11,6 +11,7 @@
 
 #define ONE_WIRE_PIN 4
 #define TIME_TO_SLEEP_SECONDS 10
+#define MAX_SEND_ATTEMPT 3
 
 #define uS_TO_S(seconds) (seconds * 1000000)
 
@@ -21,6 +22,10 @@ RTC_DATA_ATTR bool master_beacon_received = false;
 RTC_DATA_ATTR master_beacon beacon;
 RTC_DATA_ATTR uint8_t master_mac_addr[6] = {0};
 
+uint8_t sendAttempt = 0;
+bool sendGotResult = false;
+bool sendSuccess = false;
+
 void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&beacon, incomingData, sizeof(beacon));
   memcpy(&master_mac_addr, mac_addr, sizeof(master_mac_addr));
@@ -28,16 +33,15 @@ void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int
 }
 
 void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  if (status != ESP_NOW_SEND_SUCCESS) {
-    printf("Packet failed to deliver\n");
+  sendGotResult = true;
+  sendSuccess = (status == ESP_NOW_SEND_SUCCESS);
+
+  if (!sendSuccess) {
+    printf("Packet failed to deliver at attempt %d of %d\n", sendAttempt, MAX_SEND_ATTEMPT);
   }
 }
 
-void sendData(outside_temp_message data) {
-  if (!master_beacon_received) {
-    printf("no beacon detected yet\n");
-    return;
-  }
+esp_err_t doSendData(outside_temp_message data) {
   if (!esp_now_is_peer_exist(master_mac_addr)) {
 
     // NOTE: needs to be declared `static` otherwise the follow error occurs:
@@ -54,7 +58,32 @@ void sendData(outside_temp_message data) {
   ESP_ERROR_CHECK(esp_wifi_set_channel(beacon.channel, WIFI_SECOND_CHAN_NONE));
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
 
-  ESP_ERROR_CHECK(esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data)));
+  return esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data));
+}
+
+void sendData(outside_temp_message data) {
+  while(!master_beacon_received) {
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+  do {
+    sendAttempt++;
+    sendGotResult = false;
+
+    if (sendAttempt > 1) {
+      vTaskDelay(pdMS_TO_TICKS(200));
+    }
+    esp_err_t result = doSendData(data);
+    if (result != ESP_OK) {
+      printf("Failed to send packet with reason '%s' at attempt %d of %d\n", esp_err_to_name(result), sendAttempt, MAX_SEND_ATTEMPT);
+    } else {
+      while(!sendGotResult) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+      }
+    }
+  } while(!sendSuccess && sendAttempt < MAX_SEND_ATTEMPT);
+
+  printf("Send result %s after %d attempt(s)\n", sendSuccess ? "OK" : "FAIL", sendAttempt);
+
 }
 
 void setup() {
@@ -76,9 +105,7 @@ void loop() {
   data.temperatureC = sensors.getTempCByIndex(0);
 
   printf("Temperature: %f\n", data.temperatureC);
-  while(!master_beacon_received) {
-    vTaskDelay(10);
-  }
+
   sendData(data);
 
   esp_sleep_enable_timer_wakeup(uS_TO_S(TIME_TO_SLEEP_SECONDS)); // ESP32 wakes after timer expires
