@@ -130,6 +130,8 @@ void sendEspNowBeacon() {
 
   esp_wifi_set_storage(WIFI_STORAGE_RAM);
 
+  printf("Sending ESP-NOW beacon\n");
+
   setupEspNow();
 
   wifi_country_t country;
@@ -138,11 +140,15 @@ void sendEspNowBeacon() {
   master_beacon beacon;
   beacon.channel = WiFi.channel();
 
-  WiFi.disconnect();
+  esp_wifi_disconnect();
 
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
   for (uint8_t channel = country.schan; channel < country.schan + country.nchan; channel++) {
-    ESP_ERROR_CHECK(esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE));
+    esp_err_t res;
+    while ((res = esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE)) != ESP_OK) {
+      printf("Failed to set WiFi channel for sending beacon: \n", esp_err_to_name(res));
+      esp_wifi_disconnect();
+    }
 
     esp_err_t result = esp_now_send(espnow_broadcast_address, (uint8_t *)&beacon, sizeof(beacon));
     if (result != ESP_OK) {
