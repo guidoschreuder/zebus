@@ -1,7 +1,10 @@
 
 #ifndef UNIT_TEST
 
-#include "nvs_flash.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <nvs_flash.h>
+
 #include "sdkconfig.h"
 #include "zebus-config.h"
 #include "zebus-display.h"
@@ -32,15 +35,6 @@ void debugLogger(Ebus::Telegram telegram) {
       printf(" %02X", telegram.getResponseByte(i));
     }
     printf("\n");
-  }
-}
-
-void  tftLogger(Ebus::Telegram telegram) {
-  if (telegram.getPB() == 0x07 && telegram.getSB() == 0x04 && telegram.isResponseExpected() && telegram.isResponseValid()) {
-    for (int i = 1; i < 6; i++) {
-     tft.print((char)telegram.getResponseByte(i));
-    }
-    tft.print(" ");
   }
 }
 

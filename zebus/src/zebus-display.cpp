@@ -1,6 +1,8 @@
 #include "zebus-display.h"
 
-#include "time.h"
+#include <TFT_eSPI.h>
+#include <time.h>
+
 #include "zebus-config.h"
 #include "zebus-messages.h"
 #include "zebus-system-info.h"
