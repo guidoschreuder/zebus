@@ -1,12 +1,13 @@
 
 #ifndef UNIT_TEST
 
+#include "main.h"
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <nvs_flash.h>
 
 #include "sdkconfig.h"
-#include "zebus-config.h"
 #include "zebus-display.h"
 #include "zebus-ebus.h"
 #include "zebus-messages.h"
@@ -54,7 +55,7 @@ void periodic(void *pvParameter) {
     //enqueueEbusCommand(&getHwcDemandcommand);
     enqueueEbusCommand(&getFlameCommand);
 
-    printf("queued commands\n");
+    ESP_LOGD(ZEBUS_LOG_TAG, "queued commands");
     vTaskDelay(pdMS_TO_TICKS(5000));
   }
 }
@@ -64,7 +65,7 @@ void app_main();
 }
 
 void app_main() {
-  printf("Setup\n");
+  ESP_LOGI(ZEBUS_LOG_TAG, "Setup %s", EBUS_APPNAME);
 
   setupDisplay();
 

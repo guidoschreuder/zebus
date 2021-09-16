@@ -91,8 +91,7 @@ message_handler message_handlers[] =
 };
 
 void handle_error(Ebus::Telegram telegram) {
-  printf("ERROR IN TELEGRAM: %d\n", telegram.getState());
-
+  ESP_LOGW(ZEBUS_LOG_TAG, "ERROR IN TELEGRAM: %d", telegram.getState());
 }
 
 void handleMessage(Ebus::Telegram telegram) {
@@ -106,9 +105,9 @@ void handleMessage(Ebus::Telegram telegram) {
       message_handlers[i].handler(telegram);
     }
   }
-  printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
-  printf("Heater: %s, sw: %s, hw: %s\n", system_info->ebus.heater_id.device, system_info->ebus.heater_id.sw_version, system_info->ebus.heater_id.hw_version);
-  printf("Flame : %s\n", system_info->ebus.flame ? "ON " : "OFF");
-  printf("Flow  : %f\n", system_info->ebus.flow / 100.0);
+  ESP_LOGD(ZEBUS_LOG_TAG, "Self  : %s, sw: %s, hw: %s", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
+  ESP_LOGD(ZEBUS_LOG_TAG, "Heater: %s, sw: %s, hw: %s", system_info->ebus.heater_id.device, system_info->ebus.heater_id.sw_version, system_info->ebus.heater_id.hw_version);
+  ESP_LOGD(ZEBUS_LOG_TAG, "Flame : %s", system_info->ebus.flame ? "ON " : "OFF");
+  ESP_LOGD(ZEBUS_LOG_TAG, "Flow  : %f", system_info->ebus.flow / 100.0);
 
 }

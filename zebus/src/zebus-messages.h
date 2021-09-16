@@ -2,6 +2,7 @@
 #define _ZEBUS_MESSAGES
 
 #include "Ebus.h"
+#include "zebus-log.h"
 
 struct identification_t {
    char device[6];

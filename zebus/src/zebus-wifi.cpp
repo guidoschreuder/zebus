@@ -51,7 +51,7 @@ void wiFiLoop(void *pvParameter) {
     }
     //wiFiManager.stopConfigPortal();
 
-    printf("WiFi status: %d\n", WiFi.status());
+    ESP_LOGD(ZEBUS_LOG_TAG, "WiFi status: %d", WiFi.status());
     if (WiFi.status() == WL_CONNECTED) {
       system_info->wifi.rssi = WiFi.RSSI();
       system_info->wifi.ip_addr = WiFi.localIP();
@@ -61,7 +61,7 @@ void wiFiLoop(void *pvParameter) {
       vTaskDelay(pdMS_TO_TICKS(BEACON_INTERVAL_MS));
       continue;
     }
-    printf("WiFi connection was lost\n");
+    ESP_LOGW(ZEBUS_LOG_TAG, "WiFi connection was lost");
     system_info->wifi.rssi = WIFI_NO_SIGNAL;
 
     ESP_ERROR_CHECK(esp_wifi_connect());
@@ -69,9 +69,9 @@ void wiFiLoop(void *pvParameter) {
       vTaskDelay(100);
     }
     if (WiFi.status() == WL_CONNECTED) {
-      printf("WiFi reconnection SUCCESS\n");
+      ESP_LOGI(ZEBUS_LOG_TAG, "WiFi reconnection SUCCESS");
     } else {
-      printf("WiFi reconnection FAILED\n");
+      ESP_LOGW(ZEBUS_LOG_TAG, "WiFi reconnection FAILED");
     }
   }
 }
@@ -104,12 +104,12 @@ void startConfigPortal() {
                                system_info->wifi.config_ap.ap_password);
 
   if (system_info->wifi.config_ap.active) {
-    printf("WiFi Configuration Portal is activated\n");
+    ESP_LOGI(ZEBUS_LOG_TAG, "WiFi Configuration Portal is activated");
   }
 }
 
 void saveConfigPortalParamsCallback() {
-  printf("WiFiManager saveParamsCallback called\n");
+  ESP_LOGI(ZEBUS_LOG_TAG, "WiFiManager saveParamsCallback called");
   system_info->wifi.config_ap.active = false;
 }
 
@@ -117,7 +117,7 @@ void refreshNTP() {
   long now = millis();
   if (system_info->ntp.last_init == 0 ||
       system_info->ntp.last_init + EBUS_NTP_REFRESH_INTERVAL_SEC * 1000 < now) {
-    printf("Refreshing NTP\n");
+    ESP_LOGD(ZEBUS_LOG_TAG, "Refreshing NTP");
     configTime(EBUS_NTP_GMT_OFFSET_SEC, EBUS_NTP_GMT_DST_OFFSET_SEC, EBUS_NTP_SERVER);
     system_info->ntp.last_init = now;
   }
@@ -130,7 +130,7 @@ void sendEspNowBeacon() {
 
   esp_wifi_set_storage(WIFI_STORAGE_RAM);
 
-  printf("Sending ESP-NOW beacon\n");
+  ESP_LOGD(ZEBUS_LOG_TAG, "Sending ESP-NOW beacon");
 
   setupEspNow();
 
@@ -146,13 +146,13 @@ void sendEspNowBeacon() {
   for (uint8_t channel = country.schan; channel < country.schan + country.nchan; channel++) {
     esp_err_t res;
     while ((res = esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE)) != ESP_OK) {
-      printf("Failed to set WiFi channel for sending beacon: %s\n", esp_err_to_name(res));
+      ESP_LOGE(ZEBUS_LOG_TAG, "Failed to set WiFi channel for sending beacon: %s", esp_err_to_name(res));
       esp_wifi_disconnect();
     }
 
     esp_err_t result = esp_now_send(espnow_broadcast_address, (uint8_t *)&beacon, sizeof(beacon));
     if (result != ESP_OK) {
-      printf("There was an error sending the beacon on channel %d.\n", channel);
+      ESP_LOGE(ZEBUS_LOG_TAG, "There was an error sending the beacon on channel %d.\n", channel);
     }
   }
   ESP_ERROR_CHECK(esp_wifi_set_channel(beacon.channel, WIFI_SECOND_CHAN_NONE));
@@ -182,12 +182,12 @@ void setupEspNow() {
 }
 
 void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
-  printf("Packet received from %02X:%02x:%02x:%02X:%02X:%02X\n", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  ESP_LOGD(ZEBUS_LOG_TAG, "Packet received from %02X:%02x:%02x:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   outside_temp_message data;
   memcpy(&data, incomingData, sizeof(data));
-  printf("Temperature: %f\n", data.temperatureC);
+  ESP_LOGD(ZEBUS_LOG_TAG, "Temperature: %f", data.temperatureC);
 }
 
 void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-//  printf("Last Packet Send Status: %s\n", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  ESP_LOGV(ZEBUS_LOG_TAG, "Last Packet Send Status: %s", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }

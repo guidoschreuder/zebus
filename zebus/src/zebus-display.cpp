@@ -180,7 +180,7 @@ void initSprites() {
 }
 
 void setupDisplay() {
-  printf("Setup TFT\n");
+  ESP_LOGI(ZEBUS_LOG_TAG, "Setup TFT");
   tft.init();
   tft.setRotation(3);
   tft.fillScreen(TFT_BLACK);
