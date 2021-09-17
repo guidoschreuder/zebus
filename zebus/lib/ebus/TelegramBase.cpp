@@ -11,6 +11,16 @@ TelegramState TelegramBase::getState() {
   return state;
 }
 
+#define X(name, int) case int: return ""#name"";
+const char * TelegramBase::getStateString() {
+  switch((int8_t) state) {
+    TELEGRAM_STATE_TABLE
+    default:
+      return "[INVALID STATE]";
+  }
+}
+#undef X
+
 void TelegramBase::setState(TelegramState newState) {
   state = newState;
 }

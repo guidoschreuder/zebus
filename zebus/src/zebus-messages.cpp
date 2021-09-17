@@ -91,7 +91,7 @@ message_handler message_handlers[] =
 };
 
 void handle_error(Ebus::Telegram telegram) {
-  ESP_LOGW(ZEBUS_LOG_TAG, "ERROR IN TELEGRAM: %d", telegram.getState());
+  ESP_LOGW(ZEBUS_LOG_TAG, "ERROR IN TELEGRAM: %s", telegram.getStateString());
 }
 
 void handleMessage(Ebus::Telegram telegram) {

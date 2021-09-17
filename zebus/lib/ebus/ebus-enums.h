@@ -17,26 +17,31 @@ enum TelegramType : int8_t {
   MasterSlave = 2,
 };
 
+#define TELEGRAM_STATE_TABLE \
+X(waitForSyn, 1)                    \
+X(waitForSend, 2)                   \
+X(waitForRequestData, 3)            \
+X(waitForRequestAck, 4)             \
+X(waitForResponseData, 5)           \
+X(waitForResponseAck, 6)            \
+X(waitForArbitration, 7)            \
+X(waitForArbitration2nd, 8)         \
+X(waitForCommandAck, 9)             \
+X(unknown, 0)                       \
+X(endErrorUnexpectedSyn, -1)        \
+X(endErrorRequestNackReceived, -2)  \
+X(endErrorResponseNackReceived, -3) \
+X(endErrorResponseNoAck, -4)        \
+X(endErrorRequestNoAck, -5)         \
+X(endArbitration, -6)               \
+X(endCompleted, -16)                \
+X(endSendFailed, -17)
+
+#define X(name, int) name = int,
 enum TelegramState : int8_t {
-  waitForSyn = 1,  // no SYN seen yet
-  waitForSend = 2,
-  waitForRequestData = 3,
-  waitForRequestAck = 4,
-  waitForResponseData = 5,
-  waitForResponseAck = 6,
-  waitForArbitration = 7,
-  waitForArbitration2nd = 8,
-  waitForCommandAck = 9,
-  unknown = 0,
-  endErrorUnexpectedSyn = -1,
-  endErrorRequestNackReceived = -2,
-  endErrorResponseNackReceived = -3,
-  endErrorResponseNoAck = -4,
-  endErrorRequestNoAck = -5,
-  endArbitration = -6,
-  endCompleted = -16,
-  endSendFailed = -17,
+  TELEGRAM_STATE_TABLE
 };
+#undef X
 
 }  // namespace Ebus
 

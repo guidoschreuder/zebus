@@ -48,6 +48,8 @@ class TelegramBase {
   _EBUS_GETTER(requestBuffer, NN);
 
   TelegramState getState();
+  const char * getStateString();
+
   void setState(TelegramState newState);
   TelegramType getType();
   int16_t getRequestByte(uint8_t pos);
