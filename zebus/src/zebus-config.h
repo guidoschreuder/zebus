@@ -27,4 +27,12 @@
 
 #define EBUS_HEATER_MASTER_ADDRESS 0x03
 
+// TFT configuration
+#define TFT_SCLK 18
+#define TFT_MOSI 23
+#define TFT_DC 27
+#define TFT_RST 4
+#define TFT_RGB_ORDER 0
+
+
 #endif
