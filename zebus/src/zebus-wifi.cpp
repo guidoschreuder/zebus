@@ -97,7 +97,7 @@ void startConfigPortal() {
   wiFiManager.setCaptivePortalEnable(false);
   wiFiManager.setShowInfoUpdate(false);
   wiFiManager.setSaveParamsCallback(saveConfigPortalParamsCallback);
-  wiFiManager.setHostname("zebus.home.arpa");
+  wiFiManager.setHostname(ZEBUS_WIFI_HOSTNAME);
 
   system_info->wifi.config_ap.active =
       !wiFiManager.autoConnect(system_info->wifi.config_ap.ap_name,

@@ -9,6 +9,7 @@ typedef struct master_beacon {
 
 typedef struct outside_temp_message {
   float temperatureC;
+  uint16_t voltage;
 } outside_temp_message;
 
 #endif

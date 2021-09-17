@@ -8,10 +8,13 @@
 #include "esp_wifi.h"
 #include "espnow-config.h"
 #include "espnow-types.h"
+#include <driver/adc.h>
 
 #define ONE_WIRE_PIN 4
 #define TIME_TO_SLEEP_SECONDS 10
 #define MAX_SEND_ATTEMPT 3
+
+#define ADC_SAMPLES 8
 
 #define uS_TO_S(seconds) (seconds * 1000000)
 
@@ -103,8 +106,16 @@ void loop() {
 
   outside_temp_message data;
   data.temperatureC = sensors.getTempCByIndex(0);
-
   printf("Temperature: %f\n", data.temperatureC);
+
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_11db);
+
+  int val = 0;
+  for (int i = 0; i < ADC_SAMPLES; i++) {
+    val += adc1_get_raw(ADC1_CHANNEL_4);
+  }
+  printf("ADC: %f\n", (val * 3.8 / 3700) / ADC_SAMPLES);
 
   sendData(data);
 
