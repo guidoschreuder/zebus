@@ -18,6 +18,9 @@
 
 extern struct system_info_t* system_info;
 
+// prototypes
+void debugLogger(Ebus::Telegram telegram);
+
 // Send Response Handlers, these are replies we need to send in Master/Slave communication
 // Reply to identification request
 const uint8_t fixedIdentificationResponse[] = {0xDD, 'G', 'u', 'i', 'd', 'o', 0x01, 0x02, 0x03, 0x04};
@@ -92,6 +95,7 @@ message_handler message_handlers[] =
 
 void handle_error(Ebus::Telegram telegram) {
   ESP_LOGW(ZEBUS_LOG_TAG, "ERROR IN TELEGRAM: %s", telegram.getStateString());
+  debugLogger(telegram);
 }
 
 void handleMessage(Ebus::Telegram telegram) {
@@ -110,4 +114,27 @@ void handleMessage(Ebus::Telegram telegram) {
   ESP_LOGD(ZEBUS_LOG_TAG, "Flame : %s", system_info->ebus.flame ? "ON " : "OFF");
   ESP_LOGD(ZEBUS_LOG_TAG, "Flow  : %f", system_info->ebus.flow / 100.0);
 
+}
+
+void debugLogger(Ebus::Telegram telegram) {
+  printf(
+    "===========\nstate: %d\nQQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\nreq(size: %d, CRC: %02x): ",  //
+    telegram.getState(),
+    telegram.getQQ(),
+    telegram.getZZ(),
+    telegram.getPB(),
+    telegram.getSB(),
+    telegram.getNN(),
+    telegram.getRequestCRC());
+  for (int i = 0; i < telegram.getNN(); i++) {
+     printf(" %02X", telegram.getRequestByte(i));
+  }
+  printf("\n");
+  if (telegram.isResponseExpected()) {
+    printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
+    for (int i = 0; i < telegram.getResponseNN(); i++) {
+      printf(" %02X", telegram.getResponseByte(i));
+    }
+    printf("\n");
+  }
 }

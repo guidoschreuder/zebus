@@ -16,29 +16,6 @@
 
 struct system_info_t* system_info = new system_info_t();
 
-void debugLogger(Ebus::Telegram telegram) {
-  printf(
-    "===========\nstate: %d\nQQ: %02X\tZZ: %02X\tPB: %02X\tSB: %02X\nreq(size: %d, CRC: %02x): ",  //
-    telegram.getState(),
-    telegram.getQQ(),
-    telegram.getZZ(),
-    telegram.getPB(),
-    telegram.getSB(),
-    telegram.getNN(),
-    telegram.getRequestCRC());
-  for (int i = 0; i < telegram.getNN(); i++) {
-     printf(" %02X", telegram.getRequestByte(i));
-  }
-  printf("\n");
-  if (telegram.isResponseExpected()) {
-    printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
-    for (int i = 0; i < telegram.getResponseNN(); i++) {
-      printf(" %02X", telegram.getResponseByte(i));
-    }
-    printf("\n");
-  }
-}
-
 void periodic(void *pvParameter) {
   Ebus::SendCommand getIdCommandSelf = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
   Ebus::SendCommand getIdCommandHeater = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
