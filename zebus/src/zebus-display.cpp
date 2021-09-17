@@ -21,7 +21,7 @@ uint8_t flow_cntr = 0;
 // 4-bit Palette colour table
 uint16_t palette[16];
 
-void init4BitPallet() {
+void init4BitPalette() {
   palette[0]  = TFT_BLACK;
   palette[1]  = TFT_ORANGE;
   palette[2]  = TFT_DARKGREEN;
@@ -171,7 +171,7 @@ void drawSpriteEbusQueue(int32_t x, int32_t y, uint8_t queue_size) {
 }
 
 void initSprites() {
-  init4BitPallet();
+  init4BitPalette();
   initSpriteShower();
   initSpriteHeater();
   initSpriteWifiStrength();
