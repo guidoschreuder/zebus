@@ -1,5 +1,6 @@
 #include "zebus-display.h"
 
+#include <TFT_eSPI.h>
 #include <time.h>
 
 #include "zebus-config.h"
