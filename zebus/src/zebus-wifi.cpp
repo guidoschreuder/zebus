@@ -8,6 +8,7 @@
 #include "espnow-types.h"
 #include "zebus-config.h"
 #include "zebus-system-info.h"
+#include "zebus-telegram-bot.h"
 
 const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
 
@@ -56,6 +57,7 @@ void wiFiLoop(void *pvParameter) {
       system_info->wifi.rssi = WiFi.RSSI();
       system_info->wifi.ip_addr = WiFi.localIP();
       refreshNTP();
+      handleTelegramMessages();
       sendEspNowBeacon();
 
       vTaskDelay(pdMS_TO_TICKS(BEACON_INTERVAL_MS));

@@ -52,7 +52,7 @@ void app_main() {
   vTaskDelay(pdMS_TO_TICKS(500));
 
   xTaskCreate(&updateDisplay, "updateDisplay", 2048, NULL, 5, NULL);
-  xTaskCreate(&wiFiLoop, "setupWiFiAndKeepAlive", 4096, NULL, 3, NULL);
+  xTaskCreate(&wiFiLoop, "setupWiFiAndKeepAlive", 8192, NULL, 3, NULL);
 
   vTaskDelay(pdMS_TO_TICKS(500));
   setupEbus();
