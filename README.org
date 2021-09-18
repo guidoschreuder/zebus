@@ -95,7 +95,7 @@ bought here: https://www.aliexpress.com/item/4000830895622.html
 |--------+------------------+---------+------------|
 | CS     | chip select      | GND     | active low |
 | DC     | SPI Data Command | GPIO 27 |            |
-| RST    | Reset            | GPIO 4  |            |
+| RST    | Reset            | GPIO 5  |            |
 | SDA    | SPI MOSI         | GPIO 23 |            |
 | SCL    | SPI clock        | GPIO 18 |            |
 | VCC    |                  | +3.3    |            |
