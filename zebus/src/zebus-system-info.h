@@ -2,6 +2,7 @@
 #define _ZEBUS_SYSTEM_INFO
 
 #include "zebus-messages.h"
+#include "espnow-types.h"
 
 #define WIFI_NO_SIGNAL 0x80000000
 
@@ -25,6 +26,7 @@ struct system_info_t {
   struct ntp {
     long last_init;
   } ntp;
+  outdoor_sensor_message outdoor;
 };
 
 extern struct system_info_t* system_info;

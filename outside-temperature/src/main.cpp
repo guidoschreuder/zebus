@@ -14,7 +14,9 @@
 #define TIME_TO_SLEEP_SECONDS 10
 #define MAX_SEND_ATTEMPT 3
 
-#define ADC_SAMPLES 8
+#define ADC_SAMPLES 16
+#define ADC_REF_VOLTAGE 3.281
+#define ADC_REF_SAMPLE 3701
 
 #define uS_TO_S(seconds) (seconds * 1000000)
 
@@ -22,7 +24,7 @@ OneWire oneWire(ONE_WIRE_PIN);
 DallasTemperature sensors(&oneWire);
 
 RTC_DATA_ATTR bool master_beacon_received = false;
-RTC_DATA_ATTR master_beacon beacon;
+RTC_DATA_ATTR master_beacon_message beacon;
 RTC_DATA_ATTR uint8_t master_mac_addr[6] = {0};
 
 uint8_t sendAttempt = 0;
@@ -44,7 +46,7 @@ void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   }
 }
 
-esp_err_t doSendData(outside_temp_message data) {
+esp_err_t doSendData(outdoor_sensor_message data) {
   if (!esp_now_is_peer_exist(master_mac_addr)) {
 
     // NOTE: needs to be declared `static` otherwise the follow error occurs:
@@ -64,7 +66,7 @@ esp_err_t doSendData(outside_temp_message data) {
   return esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data));
 }
 
-void sendData(outside_temp_message data) {
+void sendData(outdoor_sensor_message data) {
   while(!master_beacon_received) {
     vTaskDelay(pdMS_TO_TICKS(10));
   }
@@ -86,40 +88,47 @@ void sendData(outside_temp_message data) {
   } while(!sendSuccess && sendAttempt < MAX_SEND_ATTEMPT);
 
   printf("Send result %s after %d attempt(s)\n", sendSuccess ? "OK" : "FAIL", sendAttempt);
-
 }
 
 void setup() {
-
   WiFi.mode(WIFI_STA);
 
   ESP_ERROR_CHECK(esp_now_init());
   ESP_ERROR_CHECK(esp_now_register_send_cb(OnEspNowDataSent));
   ESP_ERROR_CHECK(esp_now_register_recv_cb(OnEspNowDataRecv));
 
+  // setup tenperature sensor
   sensors.begin();
-}
 
-void loop() {
-
-  sensors.requestTemperatures();
-
-  outside_temp_message data;
-  data.temperatureC = sensors.getTempCByIndex(0);
-  printf("Temperature: %f\n", data.temperatureC);
-
+  // setup ADC
   adc1_config_width(ADC_WIDTH_BIT_12);
   adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_11db);
+}
 
+float getOutsideTemp() {
+  sensors.requestTemperatures();
+  float temp = sensors.getTempCByIndex(0);
+  printf("Temperature: %f\n", temp);
+  return temp;
+}
+
+float getSupplyVoltage() {
   int val = 0;
   for (int i = 0; i < ADC_SAMPLES; i++) {
     val += adc1_get_raw(ADC1_CHANNEL_4);
   }
-  printf("ADC: %f\n", (val * 3.8 / 3700) / ADC_SAMPLES);
+  float result = (val * ADC_REF_VOLTAGE) / (ADC_REF_SAMPLE * ADC_SAMPLES);
+  printf("Voltage: sample: %d => %f\n", val / ADC_SAMPLES, result);
+  return result;
+}
 
+void loop() {
+  outdoor_sensor_message data;
+  data.temperatureC = getOutsideTemp();
+  data.supplyVoltage = getSupplyVoltage();
   sendData(data);
 
-  esp_sleep_enable_timer_wakeup(uS_TO_S(TIME_TO_SLEEP_SECONDS)); // ESP32 wakes after timer expires
+  esp_sleep_enable_timer_wakeup(uS_TO_S(TIME_TO_SLEEP_SECONDS));
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
 
   printf("Uptime: %ld\n", millis());

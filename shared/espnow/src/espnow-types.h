@@ -3,13 +3,13 @@
 
 const uint8_t espnow_broadcast_address[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-typedef struct master_beacon {
+typedef struct master_beacon_message {
   uint8_t channel;
-} master_beacon;
+} master_beacon_message;
 
-typedef struct outside_temp_message {
+typedef struct outdoor_sensor_message {
   float temperatureC;
-  uint16_t voltage;
-} outside_temp_message;
+  float supplyVoltage;
+} outdoor_sensor_message;
 
 #endif

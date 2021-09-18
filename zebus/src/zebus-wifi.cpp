@@ -137,7 +137,7 @@ void sendEspNowBeacon() {
   wifi_country_t country;
   ESP_ERROR_CHECK(esp_wifi_get_country(&country));
 
-  master_beacon beacon;
+  master_beacon_message beacon;
   beacon.channel = WiFi.channel();
 
   esp_wifi_disconnect();
@@ -183,9 +183,9 @@ void setupEspNow() {
 
 void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   ESP_LOGD(ZEBUS_LOG_TAG, "Packet received from %02X:%02x:%02x:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-  outside_temp_message data;
-  memcpy(&data, incomingData, sizeof(data));
-  ESP_LOGD(ZEBUS_LOG_TAG, "Temperature: %f", data.temperatureC);
+  memcpy(&system_info->outdoor, incomingData, sizeof(system_info->outdoor));
+  ESP_LOGD(ZEBUS_LOG_TAG, "Outdoor Temperature: %f", system_info->outdoor.temperatureC);
+  ESP_LOGD(ZEBUS_LOG_TAG, "Outdoor Voltage: %f", system_info->outdoor.supplyVoltage);
 }
 
 void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
