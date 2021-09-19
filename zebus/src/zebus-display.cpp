@@ -28,7 +28,7 @@ void init4BitPalette() {
   palette[2]  = TFT_DARKGREEN;
   palette[3]  = TFT_DARKCYAN;
   palette[4]  = TFT_MAROON;
-  palette[5]  = TFT_DARKGREY;
+  palette[5]  = TFT_PURPLE;
   palette[6]  = TFT_OLIVE;
   palette[7]  = TFT_DARKGREY;
   palette[8]  = TFT_ORANGE;
@@ -43,7 +43,7 @@ void init4BitPalette() {
 
 #define EBUS_4BIT_BLACK 0
 #define EBUS_4BIT_DARKCYAN 3
-#define EBUS_4BIT_DARKGREY 5
+#define EBUS_4BIT_DARKGREY 7
 #define EBUS_4BIT_ORANGE 8
 #define EBUS_4BIT_GREEN 10
 #define EBUS_4BIT_CYAN 11
