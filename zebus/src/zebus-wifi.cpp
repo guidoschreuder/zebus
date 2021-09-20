@@ -14,6 +14,7 @@ const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz12
 
 WiFiManager wiFiManager;
 
+// TODO: this name does not cover its meaning anymore
 #define BEACON_INTERVAL_MS 5000
 
 // prototype
