@@ -1,5 +1,5 @@
-#ifndef _ESPNOW_TYPE
-#define _ESPNOW_TYPE
+#ifndef _ESPNOW_TYPES_H
+#define _ESPNOW_TYPES_H
 
 const uint8_t espnow_broadcast_address[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 

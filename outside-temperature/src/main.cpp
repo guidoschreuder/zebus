@@ -8,6 +8,7 @@
 #include "esp_now.h"
 #include "esp_wifi.h"
 #include "espnow-config.h"
+#include "espnow-hmac.h"
 #include "espnow-types.h"
 
 #define ONE_WIRE_PIN 4
@@ -93,7 +94,17 @@ void initEspNow() {
 void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   if (incomingData[0] == espnow_ping_reply) {
     espnow_msg_ping_reply ping_reply;
+    if (len != sizeof(ping_reply)) {
+      printf("Invalid packet length, expected %d, got %d\n", sizeof(ping_reply), len);
+      return;
+    }
+
     memcpy(&ping_reply, incomingData, sizeof(ping_reply));
+    if (!verifyHmac((espnow_msg_base *) &ping_reply, sizeof(ping_reply))) {
+      printf("Invalid HMAC\n");
+      return;
+    }
+
     master_channel = ping_reply.channel;
     memcpy(&master_mac_addr, mac_addr, sizeof(master_mac_addr));
     master_found = true;
@@ -118,12 +129,13 @@ bool findMaster() {
   wifi_country_t country;
   ESP_ERROR_CHECK(esp_wifi_get_country(&country));
 
+  espnow_msg_ping ping;
+  ping.base.type = espnow_ping;
+  fillHmac((espnow_msg_base *) &ping, sizeof(ping));
+
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
   for (uint8_t channel = country.schan; channel < country.schan + country.nchan  && !master_found; channel++) {
     ESP_ERROR_CHECK(esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE));
-
-    espnow_msg_ping ping;
-    ping.base.type = espnow_ping;
 
     esp_err_t result = esp_now_send(espnow_broadcast_address, (uint8_t *)&ping, sizeof(ping));
     if (result != ESP_OK) {
@@ -156,6 +168,8 @@ esp_err_t doSendData(espnow_msg_outdoor_sensor data) {
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
   ESP_ERROR_CHECK(esp_wifi_set_channel(master_channel, WIFI_SECOND_CHAN_NONE));
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
+
+  fillHmac((espnow_msg_base *) &data, sizeof(data));
 
   return esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data));
 }

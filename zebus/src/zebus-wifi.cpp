@@ -5,6 +5,7 @@
 #include <esp_now.h>
 
 #include "espnow-config.h"
+#include "espnow-hmac.h"
 #include "espnow-types.h"
 #include "zebus-config.h"
 #include "zebus-system-info.h"
@@ -130,7 +131,18 @@ void setupEspNow() {
   ESP_ERROR_CHECK(esp_now_register_recv_cb(onEspNowDataRecv));
 }
 
-void handlePing(const uint8_t * mac_addr) {
+void handlePing(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+  espnow_msg_ping ping;
+  if (len != sizeof(ping)) {
+    ESP_LOGE(ZEBUS_LOG_TAG, "Invalid packet length, expected %d, got %d", sizeof(ping), len);
+    return;
+  }
+  memcpy(&ping, incomingData, sizeof(ping));
+  if (!verifyHmac((espnow_msg_base *) &ping, sizeof(ping))) {
+    ESP_LOGE(ZEBUS_LOG_TAG, "Invalid HMAC");
+    return;
+  }
+
   if (!esp_now_is_peer_exist(mac_addr)) {
     static esp_now_peer_info_t peerInfo;
     memcpy(peerInfo.peer_addr, mac_addr, sizeof(peerInfo.peer_addr));
@@ -140,11 +152,13 @@ void handlePing(const uint8_t * mac_addr) {
     ESP_ERROR_CHECK(esp_now_add_peer(&peerInfo));
   }
 
-  espnow_msg_ping_reply reply;
-  reply.channel = WiFi.channel();
-  reply.base.type = espnow_ping_reply;
+  espnow_msg_ping_reply ping_reply;
+  ping_reply.channel = WiFi.channel();
+  ping_reply.base.type = espnow_ping_reply;
 
-  esp_err_t result = esp_now_send(mac_addr, (uint8_t *)&reply, sizeof(reply));
+  fillHmac((espnow_msg_base *) &ping_reply, sizeof(ping_reply));
+
+  esp_err_t result = esp_now_send(mac_addr, (uint8_t *)&ping_reply, sizeof(ping_reply));
   if (result != ESP_OK) {
     ESP_LOGE(ZEBUS_LOG_TAG, "There was an error sending ESPNOW ping reply");
   }
@@ -152,7 +166,15 @@ void handlePing(const uint8_t * mac_addr) {
 
 void handleOutdoorSensor(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   espnow_msg_outdoor_sensor message;
+  if (len != sizeof(message)) {
+    ESP_LOGE(ZEBUS_LOG_TAG, "Invalid packet length, expected %d, got %d", sizeof(message), len);
+    return;
+  }
   memcpy(&message, incomingData, sizeof(message));
+  if (!verifyHmac((espnow_msg_base *) &message, sizeof(message))) {
+    ESP_LOGE(ZEBUS_LOG_TAG, "Invalid HMAC");
+    return;
+  }
   system_info->outdoor.temperatureC = message.temperatureC;
   system_info->outdoor.supplyVoltage = message.supplyVoltage;
   ESP_LOGD(ZEBUS_LOG_TAG, "Outdoor Temperature: %f", system_info->outdoor.temperatureC);
@@ -163,7 +185,7 @@ void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int
   ESP_LOGV(ZEBUS_LOG_TAG, "Packet received from %02X:%02x:%02x:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   switch (incomingData[0]) {
   case espnow_ping:
-    handlePing(mac_addr);
+    handlePing(mac_addr, incomingData, len);
     break;
   case espnow_outdoor_sensor_data:
     handleOutdoorSensor(mac_addr, incomingData, len);
