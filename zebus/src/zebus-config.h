@@ -28,4 +28,7 @@
 
 #define EBUS_HEATER_MASTER_ADDRESS 0x03
 
+// Telegram configuration
+#define ZEBUS_TELEGRAM_MTBS_MS 500
+
 #endif
