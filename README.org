@@ -56,6 +56,13 @@ The advantage is that there is no wireless communication needed for basic thermo
 This does however require a more sophisticated power design as we need a LiPo battery (or similar) with circuitry and most likely use of ESP32 ULP to stay within the power budget.
 
 Wireless connectivity is still possible for things like getting NTP, outside temperature from a free API service and communicating as a telegram bot, but display and wireless need to repect the available energy budget.
+** TODO switch ESP-NOW polling from master to slave
+It makes little sense for the master to loose WiFi connection to send beacons because of channel switching. Instead the slave(s) should do this as they have no active WiFi connection to begin with.
+** TODO prototype switching display on and off with mosfet
+When operating in power-harvest mode we do not want the display on when maintenance chores are done.
+
+The display does not have a pin to regulate the backlight, so it needs to be switched off completely when in sleep mode.
+** TODO integrate a rotary encoder and buttons (capacitive?) for controlling the controller
 ** TODO integrate room temperature sensor
 ** TODO [#B] prototype power harvesting
 Starting point are project that use solar energy like here https://randomnerdtutorials.com/power-esp32-esp8266-solar-panels-battery-level-monitoring/
