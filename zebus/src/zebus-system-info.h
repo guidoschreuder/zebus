@@ -26,7 +26,10 @@ struct system_info_t {
   struct ntp {
     long last_init;
   } ntp;
-  outdoor_sensor_message outdoor;
+  struct outdoor {
+    float temperatureC;
+    float supplyVoltage;
+  } outdoor;
 };
 
 extern struct system_info_t* system_info;

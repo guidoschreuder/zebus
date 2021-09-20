@@ -56,8 +56,6 @@ The advantage is that there is no wireless communication needed for basic thermo
 This does however require a more sophisticated power design as we need a LiPo battery (or similar) with circuitry and most likely use of ESP32 ULP to stay within the power budget.
 
 Wireless connectivity is still possible for things like getting NTP, outside temperature from a free API service and communicating as a telegram bot, but display and wireless need to repect the available energy budget.
-** TODO switch ESP-NOW polling from master to slave
-It makes little sense for the master to loose WiFi connection to send beacons because of channel switching. Instead the slave(s) should do this as they have no active WiFi connection to begin with.
 ** TODO prototype switching display on and off with mosfet
 When operating in power-harvest mode we do not want the display on when maintenance chores are done.
 
@@ -194,3 +192,6 @@ Irrelevant for the same reason outlined in [[* +Broadcast datetime+]], in eBUS m
 read sensor and output value to serial port
 ** DONE setup ESP-NOW and communicate temperature sensor readings to room controller
    CLOSED: [2021-09-14 Tue 19:16]
+** DONE switch ESP-NOW polling from master to slave
+   CLOSED: [2021-09-20 Mon 03:08]
+It makes little sense for the master to loose WiFi connection to send beacons because of channel switching. Instead the slave(s) should do this as they have no active WiFi connection to begin with.

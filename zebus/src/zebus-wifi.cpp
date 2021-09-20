@@ -14,10 +14,7 @@ const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz12
 
 WiFiManager wiFiManager;
 
-bool espNowInit = false;
-
 #define BEACON_INTERVAL_MS 5000
-uint32_t lastBeacon = 0;
 
 // prototype
 void setupWiFi();
@@ -26,8 +23,8 @@ void saveConfigPortalParamsCallback();
 void refreshNTP();
 void sendEspNowBeacon();
 void setupEspNow();
-void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len);
-void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len);
+void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 
 // public functions
 const char* generate_ap_password() {
@@ -42,6 +39,7 @@ const char* generate_ap_password() {
 void wiFiLoop(void *pvParameter) {
 
   setupWiFi();
+  setupEspNow();
   startConfigPortal();
 
   while(1) {
@@ -56,9 +54,9 @@ void wiFiLoop(void *pvParameter) {
     if (WiFi.status() == WL_CONNECTED) {
       system_info->wifi.rssi = WiFi.RSSI();
       system_info->wifi.ip_addr = WiFi.localIP();
+
       refreshNTP();
       handleTelegramMessages();
-      sendEspNowBeacon();
 
       vTaskDelay(pdMS_TO_TICKS(BEACON_INTERVAL_MS));
       continue;
@@ -125,71 +123,55 @@ void refreshNTP() {
   }
 }
 
-void sendEspNowBeacon() {
-  if (lastBeacon + BEACON_INTERVAL_MS > millis()) {
-    return;
-  }
-
-  esp_wifi_set_storage(WIFI_STORAGE_RAM);
-
-  ESP_LOGD(ZEBUS_LOG_TAG, "Sending ESP-NOW beacon");
-
-  setupEspNow();
-
-  wifi_country_t country;
-  ESP_ERROR_CHECK(esp_wifi_get_country(&country));
-
-  master_beacon_message beacon;
-  beacon.channel = WiFi.channel();
-
-  esp_wifi_disconnect();
-
-  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
-  for (uint8_t channel = country.schan; channel < country.schan + country.nchan; channel++) {
-    esp_err_t res;
-    while ((res = esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE)) != ESP_OK) {
-      ESP_LOGE(ZEBUS_LOG_TAG, "Failed to set WiFi channel for sending beacon: %s", esp_err_to_name(res));
-      esp_wifi_disconnect();
-    }
-
-    esp_err_t result = esp_now_send(espnow_broadcast_address, (uint8_t *)&beacon, sizeof(beacon));
-    if (result != ESP_OK) {
-      ESP_LOGE(ZEBUS_LOG_TAG, "There was an error sending the beacon on channel %d.\n", channel);
-    }
-  }
-  ESP_ERROR_CHECK(esp_wifi_set_channel(beacon.channel, WIFI_SECOND_CHAN_NONE));
-  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
-
-  lastBeacon = millis();
-
-  ESP_ERROR_CHECK(esp_wifi_connect());
+void setupEspNow() {
+  ESP_ERROR_CHECK(esp_now_init());
+  ESP_ERROR_CHECK(esp_now_register_send_cb(onEspNowDataSent));
+  ESP_ERROR_CHECK(esp_now_register_recv_cb(onEspNowDataRecv));
 }
 
-void setupEspNow() {
-  if (!espNowInit) {
-    ESP_ERROR_CHECK(esp_now_init());
-
-    ESP_ERROR_CHECK(esp_now_register_send_cb(OnEspNowDataSent));
-    ESP_ERROR_CHECK(esp_now_register_recv_cb(OnEspNowDataRecv));
-
+void handlePing(const uint8_t * mac_addr) {
+  if (!esp_now_is_peer_exist(mac_addr)) {
     static esp_now_peer_info_t peerInfo;
-    memcpy(peerInfo.peer_addr, espnow_broadcast_address, sizeof(espnow_broadcast_address));
+    memcpy(peerInfo.peer_addr, mac_addr, sizeof(peerInfo.peer_addr));
     peerInfo.channel = 0;
     peerInfo.encrypt = false;
 
     ESP_ERROR_CHECK(esp_now_add_peer(&peerInfo));
+  }
 
-    espNowInit = true;
+  espnow_msg_ping_reply reply;
+  reply.channel = WiFi.channel();
+  reply.base.type = espnow_ping_reply;
+
+  esp_err_t result = esp_now_send(mac_addr, (uint8_t *)&reply, sizeof(reply));
+  if (result != ESP_OK) {
+    ESP_LOGE(ZEBUS_LOG_TAG, "There was an error sending ESPNOW ping reply");
   }
 }
 
-void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
-  ESP_LOGD(ZEBUS_LOG_TAG, "Packet received from %02X:%02x:%02x:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-  memcpy(&system_info->outdoor, incomingData, sizeof(system_info->outdoor));
+void handleOutdoorSensor(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+  espnow_msg_outdoor_sensor message;
+  memcpy(&message, incomingData, sizeof(message));
+  system_info->outdoor.temperatureC = message.temperatureC;
+  system_info->outdoor.supplyVoltage = message.supplyVoltage;
   ESP_LOGD(ZEBUS_LOG_TAG, "Outdoor Temperature: %f", system_info->outdoor.temperatureC);
   ESP_LOGD(ZEBUS_LOG_TAG, "Outdoor Voltage: %f", system_info->outdoor.supplyVoltage);
 }
 
-void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+  ESP_LOGV(ZEBUS_LOG_TAG, "Packet received from %02X:%02x:%02x:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  switch (incomingData[0]) {
+  case espnow_ping:
+    handlePing(mac_addr);
+    break;
+  case espnow_outdoor_sensor_data:
+    handleOutdoorSensor(mac_addr, incomingData, len);
+    break;
+  default:
+    ESP_LOGW(ZEBUS_LOG_TAG, "Got invalid message type: %d", incomingData[0]);
+  }
+}
+
+void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   ESP_LOGV(ZEBUS_LOG_TAG, "Last Packet Send Status: %s", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }

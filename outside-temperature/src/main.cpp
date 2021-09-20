@@ -1,5 +1,6 @@
 #include <DallasTemperature.h>
 #include <OneWire.h>
+#include <driver/adc.h>
 
 #include "Arduino.h"
 #include "WiFi.h"
@@ -8,7 +9,6 @@
 #include "esp_wifi.h"
 #include "espnow-config.h"
 #include "espnow-types.h"
-#include <driver/adc.h>
 
 #define ONE_WIRE_PIN 4
 #define TIME_TO_SLEEP_SECONDS 10
@@ -23,21 +23,85 @@
 OneWire oneWire(ONE_WIRE_PIN);
 DallasTemperature sensors(&oneWire);
 
-RTC_DATA_ATTR bool master_beacon_received = false;
-RTC_DATA_ATTR master_beacon_message beacon;
+#define INVALID_CHANNEL -1
+RTC_DATA_ATTR bool master_found = false;
+RTC_DATA_ATTR int8_t master_channel = INVALID_CHANNEL;
 RTC_DATA_ATTR uint8_t master_mac_addr[6] = {0};
 
 uint8_t sendAttempt = 0;
 bool sendGotResult = false;
 bool sendSuccess = false;
 
-void OnEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
-  memcpy(&beacon, incomingData, sizeof(beacon));
-  memcpy(&master_mac_addr, mac_addr, sizeof(master_mac_addr));
-  master_beacon_received = true;
+// declarations
+void initEspNow();
+void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len);
+void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+bool findMaster();
+esp_err_t doSendData(espnow_msg_outdoor_sensor data);
+void sendData(espnow_msg_outdoor_sensor data);
+float getOutsideTemp();
+float getSupplyVoltage();
+
+// implementations, public
+void setup() {
+  WiFi.mode(WIFI_STA);
+
+  // setup ESP-NOW
+  initEspNow();
+
+  // setup tenperature sensor
+  sensors.begin();
+
+  // setup ADC
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_11db);
 }
 
-void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+void loop() {
+  if (findMaster()) {
+    espnow_msg_outdoor_sensor data;
+    data.base.type = espnow_outdoor_sensor_data;
+    data.temperatureC = getOutsideTemp();
+    data.supplyVoltage = getSupplyVoltage();
+    sendData(data);
+  } else {
+    printf("Master not found\n");
+  }
+
+  esp_sleep_enable_timer_wakeup(uS_TO_S(TIME_TO_SLEEP_SECONDS));
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
+
+  printf("Uptime: %ld\n", millis());
+  printf("Enter deep sleep\n");
+  esp_deep_sleep_start();
+}
+
+// implementations, local
+void initEspNow() {
+  ESP_ERROR_CHECK(esp_now_init());
+  ESP_ERROR_CHECK(esp_now_register_send_cb(onEspNowDataSent));
+  ESP_ERROR_CHECK(esp_now_register_recv_cb(onEspNowDataRecv));
+
+  static esp_now_peer_info_t peerInfo;
+  memcpy(peerInfo.peer_addr, espnow_broadcast_address, sizeof(espnow_broadcast_address));
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+
+  ESP_ERROR_CHECK(esp_now_add_peer(&peerInfo));
+}
+
+void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+  if (incomingData[0] == espnow_ping_reply) {
+    espnow_msg_ping_reply ping_reply;
+    memcpy(&ping_reply, incomingData, sizeof(ping_reply));
+    master_channel = ping_reply.channel;
+    memcpy(&master_mac_addr, mac_addr, sizeof(master_mac_addr));
+    master_found = true;
+    printf("Master found at channel: %d\n", master_channel);
+ }
+}
+
+void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   sendGotResult = true;
   sendSuccess = (status == ESP_NOW_SEND_SUCCESS);
 
@@ -46,7 +110,37 @@ void OnEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   }
 }
 
-esp_err_t doSendData(outdoor_sensor_message data) {
+bool findMaster() {
+  if (master_found) {
+    return true;
+  }
+
+  wifi_country_t country;
+  ESP_ERROR_CHECK(esp_wifi_get_country(&country));
+
+  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
+  for (uint8_t channel = country.schan; channel < country.schan + country.nchan  && !master_found; channel++) {
+    ESP_ERROR_CHECK(esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE));
+
+    espnow_msg_ping ping;
+    ping.base.type = espnow_ping;
+
+    esp_err_t result = esp_now_send(espnow_broadcast_address, (uint8_t *)&ping, sizeof(ping));
+    if (result != ESP_OK) {
+      printf("There was an error sending ping on channel %d\n", channel);
+      continue;
+    }
+    // wait for response
+    for (int i = 0; !master_found && i < 10; i++) {
+      vTaskDelay(pdMS_TO_TICKS(20));
+    }
+  }
+  ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
+
+  return master_found;
+}
+
+esp_err_t doSendData(espnow_msg_outdoor_sensor data) {
   if (!esp_now_is_peer_exist(master_mac_addr)) {
 
     // NOTE: needs to be declared `static` otherwise the follow error occurs:
@@ -60,16 +154,13 @@ esp_err_t doSendData(outdoor_sensor_message data) {
   }
 
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
-  ESP_ERROR_CHECK(esp_wifi_set_channel(beacon.channel, WIFI_SECOND_CHAN_NONE));
+  ESP_ERROR_CHECK(esp_wifi_set_channel(master_channel, WIFI_SECOND_CHAN_NONE));
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(false));
 
   return esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data));
 }
 
-void sendData(outdoor_sensor_message data) {
-  while(!master_beacon_received) {
-    vTaskDelay(pdMS_TO_TICKS(10));
-  }
+void sendData(espnow_msg_outdoor_sensor data) {
   do {
     sendAttempt++;
     sendGotResult = false;
@@ -90,21 +181,6 @@ void sendData(outdoor_sensor_message data) {
   printf("Send result %s after %d attempt(s)\n", sendSuccess ? "OK" : "FAIL", sendAttempt);
 }
 
-void setup() {
-  WiFi.mode(WIFI_STA);
-
-  ESP_ERROR_CHECK(esp_now_init());
-  ESP_ERROR_CHECK(esp_now_register_send_cb(OnEspNowDataSent));
-  ESP_ERROR_CHECK(esp_now_register_recv_cb(OnEspNowDataRecv));
-
-  // setup tenperature sensor
-  sensors.begin();
-
-  // setup ADC
-  adc1_config_width(ADC_WIDTH_BIT_12);
-  adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_11db);
-}
-
 float getOutsideTemp() {
   sensors.requestTemperatures();
   float temp = sensors.getTempCByIndex(0);
@@ -120,18 +196,4 @@ float getSupplyVoltage() {
   float result = (val * ADC_REF_VOLTAGE) / (ADC_REF_SAMPLE * ADC_SAMPLES);
   printf("Voltage: sample: %d => %f\n", val / ADC_SAMPLES, result);
   return result;
-}
-
-void loop() {
-  outdoor_sensor_message data;
-  data.temperatureC = getOutsideTemp();
-  data.supplyVoltage = getSupplyVoltage();
-  sendData(data);
-
-  esp_sleep_enable_timer_wakeup(uS_TO_S(TIME_TO_SLEEP_SECONDS));
-  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
-
-  printf("Uptime: %ld\n", millis());
-
-  esp_deep_sleep_start();
 }
