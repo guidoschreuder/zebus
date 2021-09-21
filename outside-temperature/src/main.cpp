@@ -94,14 +94,7 @@ void initEspNow() {
 void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   if (incomingData[0] == espnow_ping_reply) {
     espnow_msg_ping_reply ping_reply;
-    if (len != sizeof(ping_reply)) {
-      printf("Invalid packet length, expected %d, got %d\n", sizeof(ping_reply), len);
-      return;
-    }
-
-    memcpy(&ping_reply, incomingData, sizeof(ping_reply));
-    if (!verifyHmac((espnow_msg_base *) &ping_reply, sizeof(ping_reply))) {
-      printf("Invalid HMAC\n");
+    if (!validate_and_copy(&ping_reply, sizeof(ping_reply), incomingData, len)) {
       return;
     }
 

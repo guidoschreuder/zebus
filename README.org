@@ -195,3 +195,6 @@ read sensor and output value to serial port
 ** DONE switch ESP-NOW polling from master to slave
    CLOSED: [2021-09-20 Mon 03:08]
 It makes little sense for the master to loose WiFi connection to send beacons because of channel switching. Instead the slave(s) should do this as they have no active WiFi connection to begin with.
+** DONE implement HMAC on ESP-NOW messages
+   CLOSED: [2021-09-22 Wed 00:22]
+Data sent over ESP-NOW is not sensitive so encryption is not very relevant. However, we do not want rogue data being operated on by the controller.

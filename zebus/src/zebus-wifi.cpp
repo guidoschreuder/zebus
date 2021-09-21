@@ -131,18 +131,11 @@ void setupEspNow() {
   ESP_ERROR_CHECK(esp_now_register_recv_cb(onEspNowDataRecv));
 }
 
-void handlePing(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+void handlePing(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   espnow_msg_ping ping;
-  if (len != sizeof(ping)) {
-    ESP_LOGE(ZEBUS_LOG_TAG, "Invalid packet length, expected %d, got %d", sizeof(ping), len);
+  if (!validate_and_copy(&ping, sizeof(ping), incomingData, len)) {
     return;
   }
-  memcpy(&ping, incomingData, sizeof(ping));
-  if (!verifyHmac((espnow_msg_base *) &ping, sizeof(ping))) {
-    ESP_LOGE(ZEBUS_LOG_TAG, "Invalid HMAC");
-    return;
-  }
-
   if (!esp_now_is_peer_exist(mac_addr)) {
     static esp_now_peer_info_t peerInfo;
     memcpy(peerInfo.peer_addr, mac_addr, sizeof(peerInfo.peer_addr));
@@ -166,13 +159,7 @@ void handlePing(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
 
 void handleOutdoorSensor(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   espnow_msg_outdoor_sensor message;
-  if (len != sizeof(message)) {
-    ESP_LOGE(ZEBUS_LOG_TAG, "Invalid packet length, expected %d, got %d", sizeof(message), len);
-    return;
-  }
-  memcpy(&message, incomingData, sizeof(message));
-  if (!verifyHmac((espnow_msg_base *) &message, sizeof(message))) {
-    ESP_LOGE(ZEBUS_LOG_TAG, "Invalid HMAC");
+  if (!validate_and_copy(&message, sizeof(message), incomingData, len)) {
     return;
   }
   system_info->outdoor.temperatureC = message.temperatureC;
