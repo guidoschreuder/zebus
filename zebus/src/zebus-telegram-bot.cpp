@@ -32,10 +32,17 @@ void handleNewMessages(int numNewMessages) {
     }
     if (telegramBot.messages[i].text == "/status") {
       String reply;
-      reply = "Outside Temperature: ";
+      reply = "Heater: ";
+      reply += system_info->ebus.heater_id.device;
+      reply += " (SW: ";
+      reply += system_info->ebus.heater_id.sw_version;
+      reply += ", HW: ";
+      reply += system_info->ebus.heater_id.hw_version;
+      reply += ")\nOutdoor Sensor Temperature: ";
       reply += system_info->outdoor.temperatureC;
+      reply += "\nOutdoor Sensor Voltage: ";
+      reply += system_info->outdoor.supplyVoltage;
       telegramBot.sendMessage(telegramBot.messages[i].chat_id, reply);
-
     }
   }
 }
