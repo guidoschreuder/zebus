@@ -23,8 +23,16 @@ void debugLogger(Ebus::Telegram telegram);
 
 // Send Response Handlers, these are replies we need to send in Master/Slave communication
 // Reply to identification request
-const uint8_t fixedIdentificationResponse[] = {0xDD, 'G', 'u', 'i', 'd', 'o', 0x01, 0x02, 0x03, 0x04};
 uint8_t sendIdentificationResponse(Ebus::Telegram telegram, uint8_t *buffer) {
+  uint8_t fixedIdentificationResponse[10] = {0x00};
+  fixedIdentificationResponse[0] = EBUS_DEVICE_VENDOR_ID;
+  for (uint8_t i = 0; i < 5; i++) {
+    fixedIdentificationResponse[i + 1] = strlen(EBUS_DEVICE_NAME) > i ? EBUS_DEVICE_NAME[i] : '-';
+  }
+  fixedIdentificationResponse[6] = (EBUS_DEVICE_SW_VERSION >> 8) & 0XFF;
+  fixedIdentificationResponse[7] = EBUS_DEVICE_SW_VERSION & 0XFF;
+  fixedIdentificationResponse[8] = (EBUS_DEVICE_HW_VERSION >> 8) & 0XFF;
+  fixedIdentificationResponse[9] = EBUS_DEVICE_HW_VERSION & 0XFF;
   if (BYTES_TO_WORD(telegram.getPB(), telegram.getSB()) == CMD_IDENTIFICATION) {
     memcpy(buffer, fixedIdentificationResponse, sizeof(fixedIdentificationResponse));
     return sizeof(fixedIdentificationResponse);
