@@ -11,6 +11,8 @@
 #include "espnow-hmac.h"
 #include "espnow-types.h"
 
+#define TAG "Ignored"
+
 #define ONE_WIRE_PIN 4
 #define TIME_TO_SLEEP_SECONDS 10
 #define MAX_SEND_ATTEMPT 3
@@ -66,14 +68,14 @@ void loop() {
     data.supplyVoltage = getSupplyVoltage();
     sendData(data);
   } else {
-    printf("Master not found\n");
+    ESP_LOGW(TAG, "Master not found");
   }
 
   esp_sleep_enable_timer_wakeup(uS_TO_S(TIME_TO_SLEEP_SECONDS));
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
 
-  printf("Uptime: %ld\n", millis());
-  printf("Enter deep sleep\n");
+  ESP_LOGD(TAG, "Uptime: %ld", millis());
+  ESP_LOGD(TAG, "Enter deep sleep");
   esp_deep_sleep_start();
 }
 
@@ -101,7 +103,7 @@ void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int
     master_channel = ping_reply.channel;
     memcpy(&master_mac_addr, mac_addr, sizeof(master_mac_addr));
     master_found = true;
-    printf("Master found at channel: %d\n", master_channel);
+    ESP_LOGI(TAG, "Master found at channel: %d", master_channel);
  }
 }
 
@@ -110,7 +112,7 @@ void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   sendSuccess = (status == ESP_NOW_SEND_SUCCESS);
 
   if (!sendSuccess) {
-    printf("Packet failed to deliver at attempt %d of %d\n", sendAttempt, MAX_SEND_ATTEMPT);
+    ESP_LOGW(TAG, "Packet failed to deliver at attempt %d of %d", sendAttempt, MAX_SEND_ATTEMPT);
   }
 }
 
@@ -132,7 +134,7 @@ bool findMaster() {
 
     esp_err_t result = esp_now_send(espnow_broadcast_address, (uint8_t *)&ping, sizeof(ping));
     if (result != ESP_OK) {
-      printf("There was an error sending ping on channel %d\n", channel);
+      ESP_LOGE(TAG, "There was an error sending ping on channel %d", channel);
       continue;
     }
     // wait for response
@@ -177,7 +179,7 @@ void sendData(espnow_msg_outdoor_sensor data) {
     }
     esp_err_t result = doSendData(data);
     if (result != ESP_OK) {
-      printf("Failed to send packet with reason '%s' at attempt %d of %d\n", esp_err_to_name(result), sendAttempt, MAX_SEND_ATTEMPT);
+      ESP_LOGE(TAG, "Failed to send packet with reason '%s' at attempt %d of %d", esp_err_to_name(result), sendAttempt, MAX_SEND_ATTEMPT);
     } else {
       while(!sendGotResult) {
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -185,13 +187,13 @@ void sendData(espnow_msg_outdoor_sensor data) {
     }
   } while(!sendSuccess && sendAttempt < MAX_SEND_ATTEMPT);
 
-  printf("Send result %s after %d attempt(s)\n", sendSuccess ? "OK" : "FAIL", sendAttempt);
+  ESP_LOGD(TAG, "Send result %s after %d attempt(s)", sendSuccess ? "OK" : "FAIL", sendAttempt);
 }
 
 float getOutsideTemp() {
   sensors.requestTemperatures();
   float temp = sensors.getTempCByIndex(0);
-  printf("Temperature: %f\n", temp);
+  ESP_LOGD(TAG, "Temperature: %f", temp);
   return temp;
 }
 
@@ -201,6 +203,6 @@ float getSupplyVoltage() {
     val += adc1_get_raw(ADC1_CHANNEL_4);
   }
   float result = (val * ADC_REF_VOLTAGE) / (ADC_REF_SAMPLE * ADC_SAMPLES);
-  printf("Voltage: sample: %d => %f\n", val / ADC_SAMPLES, result);
+  ESP_LOGD(TAG, "Voltage: sample: %d => %f", val / ADC_SAMPLES, result);
   return result;
 }
