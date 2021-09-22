@@ -3,8 +3,9 @@
 
 #include <mbedtls/md.h>
 #include <string.h>
-// TODO: the "printf" commands totally do not work across ESPIDF and ARDUINO, but code is functional
 #include <stdio.h>
+
+static char lastError[48] = {0};
 
 void calcHmac(espnow_msg_base *base, size_t len, unsigned char* hmac) {
   mbedtls_md_context_t ctx;
@@ -35,13 +36,17 @@ bool verifyHmac(espnow_msg_base *base, size_t len) {
 
 bool validate_and_copy(void *target, int targetLen, const uint8_t *data, int dataLen) {
   if (dataLen != targetLen) {
-    printf("ERROR: Invalid packet length, expected %d, got %d\n", targetLen, dataLen);
+    sprintf(lastError, "Invalid packet length, expected %d, got %d", targetLen, dataLen);
     return false;
   }
   memcpy(target, data, dataLen);
   if (!verifyHmac((espnow_msg_base *) target, targetLen)) {
-    printf("ERROR: Invalid HMAC\n");
+    sprintf(lastError, "Invalid HMAC");
     return false;
   }
   return true;
+}
+
+char* getLastHmacError() {
+  return lastError;
 }

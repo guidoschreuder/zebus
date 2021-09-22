@@ -97,6 +97,7 @@ void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int
   if (incomingData[0] == espnow_ping_reply) {
     espnow_msg_ping_reply ping_reply;
     if (!validate_and_copy(&ping_reply, sizeof(ping_reply), incomingData, len)) {
+      ESP_LOGE(TAG, "%s", getLastHmacError());
       return;
     }
 

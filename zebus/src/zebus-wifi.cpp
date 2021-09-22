@@ -134,6 +134,7 @@ void setupEspNow() {
 void handlePing(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   espnow_msg_ping ping;
   if (!validate_and_copy(&ping, sizeof(ping), incomingData, len)) {
+    ESP_LOGE(ZEBUS_LOG_TAG, "%s", getLastHmacError());
     return;
   }
   if (!esp_now_is_peer_exist(mac_addr)) {
@@ -160,6 +161,7 @@ void handlePing(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 void handleOutdoorSensor(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   espnow_msg_outdoor_sensor message;
   if (!validate_and_copy(&message, sizeof(message), incomingData, len)) {
+    ESP_LOGE(ZEBUS_LOG_TAG, "%s", getLastHmacError());
     return;
   }
   system_info->outdoor.temperatureC = message.temperatureC;
