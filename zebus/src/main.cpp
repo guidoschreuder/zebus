@@ -44,7 +44,7 @@ void app_main() {
   ESP_LOGI(ZEBUS_LOG_TAG, "Setup %s", ZEBUS_APPNAME);
 
   xTaskCreate(&displayTask, "displayTask", 2048, NULL, 5, NULL);
-  xTaskCreate(&wiFiLoop, "setupWiFiAndKeepAlive", 8192, NULL, 3, NULL);
+  xTaskCreate(&wiFiTask, "wiFiTask", 8192, NULL, 3, NULL);
 
   vTaskDelay(pdMS_TO_TICKS(500));
   setupEbus();

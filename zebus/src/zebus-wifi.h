@@ -9,6 +9,6 @@
 
 const char* generate_ap_password();
 
-void wiFiLoop(void *pvParameter);
+void wiFiTask(void *pvParameter);
 
 #endif

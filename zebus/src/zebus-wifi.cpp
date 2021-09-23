@@ -39,7 +39,7 @@ const char* generate_ap_password() {
   return pwd;
 }
 
-void wiFiLoop(void *pvParameter) {
+void wiFiTask(void *pvParameter) {
 
   setupWiFi();
   setupEspNow();
