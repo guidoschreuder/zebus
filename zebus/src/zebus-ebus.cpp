@@ -10,6 +10,8 @@
 
 #define CHECK_INT_STATUS(ST, MASK) (((ST) & (MASK)) == (MASK))
 
+bool ebusInit = false;
+
 // queues
 QueueHandle_t telegramHistoryQueue;
 StaticQueue_t telegramHistoryQueueBuffer;
@@ -30,6 +32,9 @@ ebus_config_t ebus_config = ebus_config_t {
 Ebus::Ebus ebus = Ebus::Ebus(ebus_config);
 
 // prototypes
+void initEbus();
+void enqueueEbusCommand(const void * const itemToQueue);
+void ebusPoll();
 void setupQueues();
 void setupEbusUart();
 void ebusUartSend(const char *src, int16_t size);
@@ -40,7 +45,19 @@ void processReceivedEbusBytes(void *pvParameter);
 static void ebus_uart_intr_handle(void *arg);
 
 // public functions
-void setupEbus() {
+void ebusTask(void *pvParameter) {
+  while(1) {
+    initEbus();
+    ebusPoll();
+    vTaskDelay(pdMS_TO_TICKS(5000));
+  }
+}
+
+// implementations
+void initEbus() {
+  if (ebusInit) {
+    return;
+  }
   setupQueues();
   setupEbusUart();
 
@@ -51,6 +68,29 @@ void setupEbus() {
 
   xTaskCreate(&processHistoricMessages, "processHistoricMessages", 2048, NULL, 5, NULL);
   xTaskCreate(&processReceivedEbusBytes, "processReceivedEbusBytes", 2048, NULL, 1, NULL);
+
+  ebusInit = true;
+}
+
+// TODO: this is all very much test code for now
+void ebusPoll() {
+  Ebus::SendCommand getIdCommandSelf = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
+  enqueueEbusCommand(&getIdCommandSelf);
+
+  Ebus::SendCommand getIdCommandHeater = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
+  enqueueEbusCommand(&getIdCommandHeater);
+
+  uint8_t getHwcWaterflowData[] = {0x0D, 0x55, 0x00};
+  Ebus::SendCommand getHwcWaterflowCommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0xB5, 0x09, sizeof(getHwcWaterflowData), getHwcWaterflowData);
+  enqueueEbusCommand(&getHwcWaterflowCommand);
+
+  //uint8_t getHwcDemandData[] = {0x0D, 0x58, 0x00};
+  //Ebus::SendCommand getHwcDemandcommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0xB5, 0x09, sizeof(getHwcDemandData), getHwcData);
+  //enqueueEbusCommand(&getHwcDemandcommand);
+
+  uint8_t getFlameData[] = {0x0D, 0x05, 0x00};
+  Ebus::SendCommand getFlameCommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0xB5, 0x09, sizeof(getFlameData), getFlameData);
+  enqueueEbusCommand(&getFlameCommand);
 }
 
 void enqueueEbusCommand(const void * const itemToQueue) {
@@ -58,7 +98,6 @@ void enqueueEbusCommand(const void * const itemToQueue) {
     system_info->ebus.queue_size = uxQueueMessagesWaiting(telegramCommandQueue);
 }
 
-// implementations
 void setupQueues() {
   telegramHistoryQueue = xQueueCreateStatic(
       EBUS_TELEGRAM_HISTORY_QUEUE_SIZE,

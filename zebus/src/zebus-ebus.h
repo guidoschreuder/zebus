@@ -8,7 +8,6 @@
 #define UART_NUM_EBUS   CONCAT(UART_NUM_, EBUS_UART_NUM)
 #define UART_EBUS       CONCAT(UART, EBUS_UART_NUM)
 
-void setupEbus();
-void enqueueEbusCommand(const void * const itemToQueue);
+void ebusTask(void *pvParameter);
 
 #endif
