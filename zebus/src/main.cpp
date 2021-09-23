@@ -1,6 +1,3 @@
-
-#ifndef UNIT_TEST
-
 #include "main.h"
 
 #include <freertos/FreeRTOS.h>
@@ -24,12 +21,4 @@ void app_main() {
   xTaskCreate(&displayTask, "displayTask", 2048, NULL, 5, NULL);
   xTaskCreate(&wiFiTask, "wiFiTask", 8192, NULL, 3, NULL);
   xTaskCreate(&ebusTask, "ebusTask", 2048, NULL, 5, NULL);
-
 }
-
-#else
-// keep `pio run` happy
-int main() {
-  return 0;
-}
-#endif
