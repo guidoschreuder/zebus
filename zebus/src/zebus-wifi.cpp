@@ -148,6 +148,7 @@ void handlePing(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 
   espnow_msg_ping_reply ping_reply;
   ping_reply.channel = WiFi.channel();
+  ping_reply.expected_interval_millis = ZEBUS_SENSOR_INTERVAL_MS;
   ping_reply.base.type = espnow_ping_reply;
 
   fillHmac((espnow_msg_base *) &ping_reply, sizeof(ping_reply));

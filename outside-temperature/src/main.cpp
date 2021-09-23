@@ -14,14 +14,14 @@
 #define TAG "Ignored"
 
 #define ONE_WIRE_PIN 4
-#define TIME_TO_SLEEP_SECONDS 10
+#define SCAN_MASTER_INTERVAL_MILLIS 1000
 #define MAX_SEND_ATTEMPT 3
 
 #define ADC_SAMPLES 16
 #define ADC_REF_VOLTAGE 3.281
 #define ADC_REF_SAMPLE 3701
 
-#define uS_TO_S(seconds) (seconds * 1000000)
+#define mS_TO_uS(millis) (millis * 1000)
 
 OneWire oneWire(ONE_WIRE_PIN);
 DallasTemperature sensors(&oneWire);
@@ -30,6 +30,7 @@ DallasTemperature sensors(&oneWire);
 RTC_DATA_ATTR bool master_found = false;
 RTC_DATA_ATTR int8_t master_channel = INVALID_CHANNEL;
 RTC_DATA_ATTR uint8_t master_mac_addr[6] = {0};
+RTC_DATA_ATTR uint64_t interval_millis = SCAN_MASTER_INTERVAL_MILLIS;
 
 uint8_t sendAttempt = 0;
 bool sendGotResult = false;
@@ -75,11 +76,11 @@ void loop() {
     ESP_LOGW(TAG, "Master not found");
   }
 
-  esp_sleep_enable_timer_wakeup(uS_TO_S(TIME_TO_SLEEP_SECONDS));
-  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
-
   ESP_LOGD(TAG, "Uptime: %ld", millis());
-  ESP_LOGD(TAG, "Enter deep sleep");
+  ESP_LOGD(TAG, "Going to deep sleep");
+
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
+  esp_sleep_enable_timer_wakeup(mS_TO_uS(interval_millis));
   esp_deep_sleep_start();
 }
 
@@ -106,6 +107,7 @@ void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int
     }
 
     master_channel = ping_reply.channel;
+    interval_millis = ping_reply.expected_interval_millis;
     memcpy(&master_mac_addr, mac_addr, sizeof(master_mac_addr));
     master_found = true;
     ESP_LOGI(TAG, "Master found at channel: %d", master_channel);

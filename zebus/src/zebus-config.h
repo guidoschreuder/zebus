@@ -6,6 +6,7 @@
 
 #define ZEBUS_LOG_LEVEL ESP_LOG_DEBUG
 
+// Network configuration
 #define ZEBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH 8
 #define ZEBUS_WIFI_HOSTNAME "zebus.home.arpa"
 
@@ -13,6 +14,8 @@
 #define ZEBUS_NTP_GMT_OFFSET_SEC 3600
 #define ZEBUS_NTP_GMT_DST_OFFSET_SEC 3600
 #define ZEBUS_NTP_REFRESH_INTERVAL_SEC (5 * 60)
+
+#define ZEBUS_SENSOR_INTERVAL_MS 10000
 
 // eBUS configuration
 #define EBUS_UART_NUM 1

@@ -21,6 +21,7 @@ typedef struct espnow_msg_ping {
 typedef struct espnow_msg_ping_reply {
   espnow_message_base base;
   uint8_t channel;
+  uint64_t expected_interval_millis;
 } espnow_msg_ping_reply;
 
 typedef struct espnow_msg_outdoor_sensor {
