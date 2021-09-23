@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_SYSTEM_INFO
-#define _ZEBUS_SYSTEM_INFO
+#ifndef _ZEBUS_SYSTEM_INFO_H
+#define _ZEBUS_SYSTEM_INFO_H
 
 #include "zebus-messages.h"
 #include "espnow-types.h"

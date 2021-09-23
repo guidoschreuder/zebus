@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_MESSAGES
-#define _ZEBUS_MESSAGES
+#ifndef _ZEBUS_MESSAGES_H
+#define _ZEBUS_MESSAGES_H
 
 #include "Ebus.h"
 #include "zebus-log.h"

@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_EBUS
-#define _ZEBUS_EBUS
+#ifndef _ZEBUS_EBUS_H
+#define _ZEBUS_EBUS_H
 
 // helper macros
 #define CONCAT(a, b)    XCAT(a, b)
