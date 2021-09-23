@@ -7,6 +7,8 @@
 #include "zebus-messages.h"
 #include "zebus-system-info.h"
 
+bool displayInit = false;
+
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
 TFT_eSprite spriteShower = TFT_eSprite(&tft);
 TFT_eSprite spriteHeater = TFT_eSprite(&tft);
@@ -180,6 +182,9 @@ void initSprites() {
 }
 
 void setupDisplay() {
+  if (displayInit) {
+    return;
+  }
   ESP_LOGI(ZEBUS_LOG_TAG, "Setup TFT");
   tft.init();
   tft.setRotation(3);
@@ -191,6 +196,8 @@ void setupDisplay() {
   //  tft.println("Initialised default\n");
 
   initSprites();
+
+  displayInit = true;
 }
 
 size_t print_time(struct tm * timeinfo, const char * format) {
@@ -209,44 +216,48 @@ void print_ip_addr() {
   tft.printf("%d.%d.%d.%d", GET_BYTE(ip, 0), GET_BYTE(ip, 1), GET_BYTE(ip, 2), GET_BYTE(ip, 3));
 }
 
-void updateDisplay(void *pvParameter) {
-  while(1) {
-
-    tft.setCursor(0, 0, 1);
-    if (system_info->wifi.config_ap.active) {
-      tft.printf("AP Name    : %s\n", system_info->wifi.config_ap.ap_name);
-      tft.printf("AP Password: %s\n", system_info->wifi.config_ap.ap_password);
-    } else {
-      tft.println("                                  ");
-      tft.println("                                  ");
-    }
-    struct tm timeinfo;
-    if(getLocalTime(&timeinfo, 0)) {
-      print_time(&timeinfo, "%c\n");
-      tft.println();
-    }
-
-    print_ip_addr();
+void updateDisplay() {
+  tft.setCursor(0, 0, 1);
+  if (system_info->wifi.config_ap.active) {
+    tft.printf("AP Name    : %s\n", system_info->wifi.config_ap.ap_name);
+    tft.printf("AP Password: %s\n", system_info->wifi.config_ap.ap_password);
+  } else {
+    tft.println("                                  ");
+    tft.println("                                  ");
+  }
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo, 0)) {
+    print_time(&timeinfo, "%c\n");
     tft.println();
-    tft.printf("Command Queue size: %d             \n", system_info->ebus.queue_size);
+  }
 
-    tft.setCursor(0, 195, 1);
-    tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
-    tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->ebus.heater_id.device, system_info->ebus.heater_id.sw_version, system_info->ebus.heater_id.hw_version);
-    tft.printf("Flame : %s       \n", system_info->ebus.flame ? "ON" : "OFF");
-    tft.printf("Flow  : %d       \n", system_info->ebus.flow);
+  print_ip_addr();
+  tft.println();
+  tft.printf("Command Queue size: %d             \n", system_info->ebus.queue_size);
 
-    if (++flow_cntr % 4 == 0) {
-      flow += 4;
-    }
+  tft.setCursor(0, 195, 1);
+  tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
+  tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->ebus.heater_id.device, system_info->ebus.heater_id.sw_version, system_info->ebus.heater_id.hw_version);
+  tft.printf("Flame : %s       \n", system_info->ebus.flame ? "ON" : "OFF");
+  tft.printf("Flow  : %d       \n", system_info->ebus.flow);
 
-    drawSpriteHeater(280, 10, true);
-    drawSpriteHeater(240, 10, false);
-    drawSpriteShower(280, 50, flow);
-    drawSpriteShower(240, 50, 0);
-    drawSpriteWifiStrength(280, 90, system_info->wifi.rssi);
-    drawSpriteEbusQueue(240, 90, system_info->ebus.queue_size);
+  if (++flow_cntr % 4 == 0) {
+    flow += 4;
+  }
 
+  drawSpriteHeater(280, 10, true);
+  drawSpriteHeater(240, 10, false);
+  drawSpriteShower(280, 50, flow);
+  drawSpriteShower(240, 50, 0);
+  drawSpriteWifiStrength(280, 90, system_info->wifi.rssi);
+  drawSpriteEbusQueue(240, 90, system_info->ebus.queue_size);
+}
+
+void displayTask(void *pvParameter) {
+  for (;;) {
+    setupDisplay();
+    updateDisplay();
     vTaskDelay(pdMS_TO_TICKS(100));
   }
+
 }

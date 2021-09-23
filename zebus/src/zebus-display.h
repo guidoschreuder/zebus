@@ -3,8 +3,6 @@
 
 #include "zebus-log.h"
 
-void setupDisplay();
-
-void updateDisplay(void *pvParameter);
+void displayTask(void *pvParameter);
 
 #endif
