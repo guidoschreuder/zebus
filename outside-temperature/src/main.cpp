@@ -47,6 +47,10 @@ float getSupplyVoltage();
 
 // implementations, public
 void setup() {
+  Serial.begin(115200);
+  // Lower then 80MHz will prevent WifI from working
+  setCpuFrequencyMhz(80);
+
   WiFi.mode(WIFI_STA);
 
   // setup ESP-NOW
