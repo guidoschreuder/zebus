@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <WiFiManager.h>
 #include <esp_now.h>
+#include <nvs_flash.h>
 
 #include "espnow-config.h"
 #include "espnow-hmac.h"
@@ -80,6 +81,10 @@ void wiFiLoop(void *pvParameter) {
 
 // implementations
 void setupWiFi() {
+  // CRITICAL: WiFi will fail to startup without this
+  // see: https://github.com/espressif/arduino-esp32/issues/761
+  nvs_flash_init();
+
   WiFi.mode(WIFI_STA); // explicitly set mode, ESP32 defaults to STA+AP
   WiFi.setAutoReconnect(false);
 

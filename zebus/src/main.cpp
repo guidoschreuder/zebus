@@ -5,7 +5,6 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <nvs_flash.h>
 
 #include "sdkconfig.h"
 #include "zebus-display.h"
@@ -45,11 +44,6 @@ void app_main() {
   ESP_LOGI(ZEBUS_LOG_TAG, "Setup %s", ZEBUS_APPNAME);
 
   setupDisplay();
-
-  // CRITICAL: WiFi will fail to startup without this
-  // see: https://github.com/espressif/arduino-esp32/issues/761
-  nvs_flash_init();
-  vTaskDelay(pdMS_TO_TICKS(500));
 
   xTaskCreate(&updateDisplay, "updateDisplay", 2048, NULL, 5, NULL);
   xTaskCreate(&wiFiLoop, "setupWiFiAndKeepAlive", 8192, NULL, 3, NULL);
