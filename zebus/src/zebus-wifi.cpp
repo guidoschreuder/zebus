@@ -23,6 +23,8 @@ WiFiManager wiFiManager;
 void setupWiFi();
 void startConfigPortal();
 void saveConfigPortalParamsCallback();
+void onWiFiConnected();
+void onWiFiConnectionLost();
 void refreshNTP();
 void sendEspNowBeacon();
 void setupEspNow();
@@ -40,41 +42,18 @@ const char* generate_ap_password() {
 }
 
 void wiFiTask(void *pvParameter) {
-
   setupWiFi();
   setupEspNow();
   startConfigPortal();
 
-  while(1) {
+  for(;;) {
     if (system_info->wifi.config_ap.active) {
       wiFiManager.process();
-      vTaskDelay(1);
-      continue;
-    }
-    //wiFiManager.stopConfigPortal();
-
-    ESP_LOGD(ZEBUS_LOG_TAG, "WiFi status: %d", WiFi.status());
-    if (WiFi.status() == WL_CONNECTED) {
-      system_info->wifi.rssi = WiFi.RSSI();
-      system_info->wifi.ip_addr = WiFi.localIP();
-
-      refreshNTP();
-      handleTelegramMessages();
-
-      vTaskDelay(pdMS_TO_TICKS(BEACON_INTERVAL_MS));
-      continue;
-    }
-    ESP_LOGW(ZEBUS_LOG_TAG, "WiFi connection was lost");
-    system_info->wifi.rssi = WIFI_NO_SIGNAL;
-
-    ESP_ERROR_CHECK(esp_wifi_connect());
-    for (int i = 0; i < 20 && (WiFi.status() != WL_CONNECTED); i++) {
-      vTaskDelay(100);
-    }
-    if (WiFi.status() == WL_CONNECTED) {
-      ESP_LOGI(ZEBUS_LOG_TAG, "WiFi reconnection SUCCESS");
+      taskYIELD();
+    } else if (WiFi.status() == WL_CONNECTED) {
+      onWiFiConnected();
     } else {
-      ESP_LOGW(ZEBUS_LOG_TAG, "WiFi reconnection FAILED");
+      onWiFiConnectionLost();
     }
   }
 }
@@ -118,6 +97,31 @@ void startConfigPortal() {
 void saveConfigPortalParamsCallback() {
   ESP_LOGI(ZEBUS_LOG_TAG, "WiFiManager saveParamsCallback called");
   system_info->wifi.config_ap.active = false;
+}
+
+void onWiFiConnected() {
+  system_info->wifi.rssi = WiFi.RSSI();
+  system_info->wifi.ip_addr = WiFi.localIP();
+
+  refreshNTP();
+  handleTelegramMessages();
+
+  vTaskDelay(pdMS_TO_TICKS(BEACON_INTERVAL_MS));
+}
+
+void onWiFiConnectionLost() {
+  ESP_LOGW(ZEBUS_LOG_TAG, "WiFi connection was lost");
+  system_info->wifi.rssi = WIFI_NO_SIGNAL;
+
+  ESP_ERROR_CHECK(esp_wifi_connect());
+  for (int i = 0; i < 20 && (WiFi.status() != WL_CONNECTED); i++) {
+    vTaskDelay(100);
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    ESP_LOGI(ZEBUS_LOG_TAG, "WiFi reconnection SUCCESS");
+  } else {
+    ESP_LOGW(ZEBUS_LOG_TAG, "WiFi reconnection FAILED");
+  }
 }
 
 void refreshNTP() {
