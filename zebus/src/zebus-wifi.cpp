@@ -15,6 +15,7 @@
 const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
 
 WiFiManager wiFiManager;
+bool wiFiEnabled = false;
 
 // TODO: this name does not cover its meaning anymore
 #define BEACON_INTERVAL_MS 5000
@@ -42,11 +43,9 @@ const char* generate_ap_password() {
 }
 
 void wiFiTask(void *pvParameter) {
-  setupWiFi();
-  setupEspNow();
-  runConfigPortal();
-
   for(;;) {
+    setupWiFi();
+
     if (WiFi.status() == WL_CONNECTED) {
       onWiFiConnected();
     } else {
@@ -57,6 +56,9 @@ void wiFiTask(void *pvParameter) {
 
 // implementations
 void setupWiFi() {
+  if (wiFiEnabled) {
+    return;
+  }
   // CRITICAL: WiFi will fail to startup without this
   // see: https://github.com/espressif/arduino-esp32/issues/761
   nvs_flash_init();
@@ -66,6 +68,11 @@ void setupWiFi() {
 
   // disable modem sleep so ESP-NOW packets can be received
   esp_wifi_set_ps(WIFI_PS_NONE);
+
+  setupEspNow();
+  runConfigPortal();
+
+  wiFiEnabled = true;
 }
 
 void runConfigPortal() {
