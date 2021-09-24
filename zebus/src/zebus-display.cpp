@@ -62,7 +62,7 @@ void init4BitPalette() {
 
 // prototypes
 void setupDisplay();
-void shutdownDisplay();
+void disableDisplay();
 
 // prototype: init
 void initSprites();
@@ -89,9 +89,9 @@ void displayTask(void *pvParameter) {
     if (uxBits & DISPLAY_ENABLED) {
       setupDisplay();
       updateDisplay();
-    } else {
-      shutdownDisplay();
-      xEventGroupSetBits(event_group, DISPLAY_SHUTDOWN);
+    } else if (displayInit) {
+      disableDisplay();
+      xEventGroupSetBits(event_group, DISPLAY_DISABLED);
     }
     vTaskDelay(pdMS_TO_TICKS(100));
   }
@@ -102,7 +102,7 @@ void setupDisplay() {
   if (displayInit) {
     return;
   }
-  ESP_LOGI(ZEBUS_LOG_TAG, "Setup TFT");
+  ESP_LOGI(ZEBUS_LOG_TAG, "Setup display");
   tft.init();
   tft.setRotation(3);
   tft.fillScreen(TFT_BLACK);
@@ -117,7 +117,9 @@ void setupDisplay() {
   displayInit = true;
 }
 
-void shutdownDisplay() {
+void disableDisplay() {
+  ESP_LOGI(ZEBUS_LOG_TAG, "Disable display");
+
   // TODO: this should be replaced with actual shutdown when display is controlled through a mosfet
   tft.fillScreen(TFT_BLACK);
   displayInit = false;

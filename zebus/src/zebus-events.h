@@ -8,7 +8,7 @@
 
 enum event_bits {
   DISPLAY_ENABLED  = (1 << 0),
-  DISPLAY_SHUTDOWN = (1 << 1),
+  DISPLAY_DISABLED = (1 << 1),
 };
 
 void eventTask(void *pvParameter);
