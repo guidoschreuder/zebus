@@ -66,7 +66,7 @@ void initEbus() {
   ebus.setDeueueCommandFunction(ebusDequeueCommand);
   ebus.addSendResponseHandler(sendIdentificationResponse);
 
-  xTaskCreate(&processHistoricMessages, "processHistoricMessages", 2048, NULL, 5, NULL);
+  xTaskCreate(&processHistoricMessages, "processHistoricMessages", 2560, NULL, 5, NULL);
   xTaskCreate(&processReceivedEbusBytes, "processReceivedEbusBytes", 2048, NULL, 1, NULL);
 
   ebusInit = true;
@@ -177,6 +177,7 @@ void processHistoricMessages(void *pvParameter) {
   while (1) {
     if (xQueueReceive(telegramHistoryQueue, &telegram, pdMS_TO_TICKS(1000))) {
       handleMessage(telegram);
+      //ESP_LOGD(ZEBUS_LOG_TAG, "Task: %s, Stack Highwater Mark: %d", pcTaskGetTaskName(NULL), uxTaskGetStackHighWaterMark(NULL));
       taskYIELD();
     }
   }
