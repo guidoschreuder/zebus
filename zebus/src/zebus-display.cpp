@@ -85,15 +85,15 @@ void print_ip_addr();
 void displayTask(void *pvParameter) {
   EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;
   for (;;) {
-    EventBits_t uxBits = xEventGroupWaitBits(event_group, DISPLAY_ENABLED, false, true, pdMS_TO_TICKS(100));
+    EventBits_t uxBits = xEventGroupGetBits(event_group);
     if (uxBits & DISPLAY_ENABLED) {
       setupDisplay();
       updateDisplay();
-      vTaskDelay(pdMS_TO_TICKS(100));
     } else {
       shutdownDisplay();
       xEventGroupSetBits(event_group, DISPLAY_SHUTDOWN);
     }
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
 
