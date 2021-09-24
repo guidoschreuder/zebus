@@ -21,7 +21,7 @@ WiFiManager wiFiManager;
 
 // prototype
 void setupWiFi();
-void startConfigPortal();
+void runConfigPortal();
 void saveConfigPortalParamsCallback();
 void onWiFiConnected();
 void onWiFiConnectionLost();
@@ -44,13 +44,10 @@ const char* generate_ap_password() {
 void wiFiTask(void *pvParameter) {
   setupWiFi();
   setupEspNow();
-  startConfigPortal();
+  runConfigPortal();
 
   for(;;) {
-    if (system_info->wifi.config_ap.active) {
-      wiFiManager.process();
-      taskYIELD();
-    } else if (WiFi.status() == WL_CONNECTED) {
+    if (WiFi.status() == WL_CONNECTED) {
       onWiFiConnected();
     } else {
       onWiFiConnectionLost();
@@ -71,7 +68,7 @@ void setupWiFi() {
   esp_wifi_set_ps(WIFI_PS_NONE);
 }
 
-void startConfigPortal() {
+void runConfigPortal() {
   char apName[16] = {0};
   sprintf(apName, "%s %x", ZEBUS_APPNAME, (uint32_t) ESP.getEfuseMac());
 
@@ -91,6 +88,11 @@ void startConfigPortal() {
 
   if (system_info->wifi.config_ap.active) {
     ESP_LOGI(ZEBUS_LOG_TAG, "WiFi Configuration Portal is activated");
+  }
+
+  while (system_info->wifi.config_ap.active) {
+    wiFiManager.process();
+    taskYIELD();
   }
 }
 
