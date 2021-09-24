@@ -94,8 +94,8 @@ void ebusPoll() {
 }
 
 void enqueueEbusCommand(const void * const itemToQueue) {
-    xQueueSendToBack(telegramCommandQueue, itemToQueue, portMAX_DELAY);
-    system_info->ebus.queue_size = uxQueueMessagesWaiting(telegramCommandQueue);
+  xQueueSendToBack(telegramCommandQueue, itemToQueue, portMAX_DELAY);
+  system_info->ebus.queue_size = uxQueueMessagesWaiting(telegramCommandQueue);
 }
 
 void setupQueues() {
@@ -163,6 +163,7 @@ void ebusQueue(Ebus::Telegram telegram) {
 bool ebusDequeueCommand(void *const command) {
   BaseType_t xTaskWokenByReceive = pdFALSE;
   if (xQueueReceiveFromISR(telegramCommandQueue, command, &xTaskWokenByReceive)) {
+    system_info->ebus.queue_size = uxQueueMessagesWaiting(telegramCommandQueue);
     if (xTaskWokenByReceive) {
       portYIELD_FROM_ISR();
     }
