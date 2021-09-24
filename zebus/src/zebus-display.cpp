@@ -64,10 +64,7 @@ void setupDisplay();
 
 // prototype: init
 void initSprites();
-void initSpriteShower();
-void initSpriteHeater();
-void initSpriteWifiStrength();
-void initSpriteEbusQueue();
+void initSprite(TFT_eSprite &sprite, int16_t width, int16_t height);
 
 // prototypes: update
 void updateDisplay();
@@ -113,38 +110,17 @@ void setupDisplay() {
 
 void initSprites() {
   init4BitPalette();
-  initSpriteShower();
-  initSpriteHeater();
-  initSpriteWifiStrength();
-  initSpriteEbusQueue();
+  initSprite(spriteShower, 30, 30);
+  initSprite(spriteHeater, 30, 30);
+  initSprite(spriteWifiStrength, 16, 16);
+  initSprite(spriteEbusQueue, 16, 16);
 }
 
-void initSpriteShower() {
-    spriteShower.setColorDepth(4);
-    spriteShower.createSprite(30,30);
-    spriteShower.createPalette(palette);
-    spriteShower.fillSprite(EBUS_4BIT_BLACK);
-}
-
-void initSpriteHeater() {
-    spriteHeater.setColorDepth(4);
-    spriteHeater.createSprite(30,30);
-    spriteHeater.createPalette(palette);
-    spriteHeater.fillSprite(EBUS_4BIT_BLACK);
-}
-
-void initSpriteWifiStrength() {
-    spriteWifiStrength.setColorDepth(4);
-    spriteWifiStrength.createSprite(16, 16);
-    spriteWifiStrength.createPalette(palette);
-    spriteWifiStrength.fillSprite(EBUS_4BIT_BLACK);
-}
-
-void initSpriteEbusQueue() {
-  spriteEbusQueue.setColorDepth(4);
-  spriteEbusQueue.createSprite(16, 16);
-  spriteEbusQueue.createPalette(palette);
-  spriteEbusQueue.fillSprite(EBUS_4BIT_BLACK);
+void initSprite(TFT_eSprite &sprite, int16_t width, int16_t height) {
+  sprite.setColorDepth(4);
+  sprite.createSprite(width, height);
+  sprite.createPalette(palette);
+  sprite.fillSprite(EBUS_4BIT_BLACK);
 }
 
 void updateDisplay() {
