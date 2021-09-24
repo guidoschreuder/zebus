@@ -6,6 +6,7 @@
 #include "zebus-config.h"
 #include "zebus-messages.h"
 #include "zebus-system-info.h"
+#include "zebus-events.h"
 
 #define GET_BYTE(INT32, I) ((INT32 >> 8 * I) & 0XFF)
 
@@ -61,6 +62,7 @@ void init4BitPalette() {
 
 // prototypes
 void setupDisplay();
+void shutdownDisplay();
 
 // prototype: init
 void initSprites();
@@ -81,10 +83,17 @@ void print_ip_addr();
 
 // public functions
 void displayTask(void *pvParameter) {
+  EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;
   for (;;) {
-    setupDisplay();
-    updateDisplay();
-    vTaskDelay(pdMS_TO_TICKS(100));
+    EventBits_t uxBits = xEventGroupWaitBits(event_group, DISPLAY_ENABLED, false, true, pdMS_TO_TICKS(100));
+    if (uxBits & DISPLAY_ENABLED) {
+      setupDisplay();
+      updateDisplay();
+      vTaskDelay(pdMS_TO_TICKS(100));
+    } else {
+      shutdownDisplay();
+      xEventGroupSetBits(event_group, DISPLAY_SHUTDOWN);
+    }
   }
 }
 
@@ -106,6 +115,12 @@ void setupDisplay() {
   initSprites();
 
   displayInit = true;
+}
+
+void shutdownDisplay() {
+  // TODO: this should be replaced with actual shutdown when display is controlled through a mosfet
+  tft.fillScreen(TFT_BLACK);
+  displayInit = false;
 }
 
 void initSprites() {
@@ -265,5 +280,3 @@ void print_ip_addr() {
   uint32_t ip = system_info->wifi.ip_addr;
   tft.printf("%d.%d.%d.%d", GET_BYTE(ip, 0), GET_BYTE(ip, 1), GET_BYTE(ip, 2), GET_BYTE(ip, 3));
 }
-
-
