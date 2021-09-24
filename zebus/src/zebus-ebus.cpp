@@ -176,8 +176,6 @@ void processHistoricMessages(void *pvParameter) {
   while (1) {
     if (xQueueReceive(telegramHistoryQueue, &telegram, pdMS_TO_TICKS(1000))) {
       handleMessage(telegram);
-      //debugLogger(telegram);
-      //tftLogger(telegram);
       taskYIELD();
     }
   }
