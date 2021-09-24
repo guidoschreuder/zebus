@@ -174,13 +174,11 @@ bool ebusDequeueCommand(void *const command) {
 void processHistoricMessages(void *pvParameter) {
   Ebus::Telegram telegram;
   while (1) {
-    if (xQueueReceive(telegramHistoryQueue, &telegram, portMAX_DELAY)) {
+    if (xQueueReceive(telegramHistoryQueue, &telegram, pdMS_TO_TICKS(1000))) {
       handleMessage(telegram);
       //debugLogger(telegram);
       //tftLogger(telegram);
       taskYIELD();
-    } else {
-      vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }
 }
@@ -188,11 +186,9 @@ void processHistoricMessages(void *pvParameter) {
 void processReceivedEbusBytes(void *pvParameter) {
   while (1) {
     uint8_t receivedByte;
-    if (xQueueReceive(receivedByteQueue, &receivedByte, portMAX_DELAY)) {
+    if (xQueueReceive(receivedByteQueue, &receivedByte, pdMS_TO_TICKS(1000))) {
       ebus.processReceivedChar(receivedByte);
       taskYIELD();
-    } else {
-      vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }
 }
