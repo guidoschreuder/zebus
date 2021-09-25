@@ -46,7 +46,10 @@ void wiFiTask(void *pvParameter) {
   for(;;) {
     setupWiFi();
 
-    if (WiFi.status() == WL_CONNECTED) {
+    if (system_info->wifi.config_ap.active) {
+      wiFiManager.process();
+      vTaskDelay(1);
+    } else if (WiFi.status() == WL_CONNECTED) {
       onWiFiConnected();
     } else {
       onWiFiConnectionLost();
@@ -95,11 +98,6 @@ void runConfigPortal() {
 
   if (system_info->wifi.config_ap.active) {
     ESP_LOGI(ZEBUS_LOG_TAG, "WiFi Configuration Portal is activated");
-  }
-
-  while (system_info->wifi.config_ap.active) {
-    wiFiManager.process();
-    taskYIELD();
   }
 }
 
