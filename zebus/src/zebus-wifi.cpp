@@ -90,13 +90,14 @@ void setupWiFi() {
   // TODO: this is not very power efficient, investigate if we can estimate when ESP_NOW packets are expected to be received
   esp_wifi_set_ps(WIFI_PS_NONE);
 
-  setupEspNow();
   if (!configPortalHasRan) {
     runConfigPortal();
     configPortalHasRan = true;
   } else {
     esp_wifi_start();
   }
+
+  setupEspNow();
 
   system_info->wifi.rssi = WIFI_NO_SIGNAL;
 
