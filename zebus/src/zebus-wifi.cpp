@@ -17,12 +17,11 @@ const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz12
 
 WiFiManager wiFiManager;
 bool wiFiEnabled = false;
-
-// TODO: this name does not cover its meaning anymore
-#define BEACON_INTERVAL_MS 5000
+RTC_DATA_ATTR bool configPortalHasRan = false;
 
 // prototype
 void setupWiFi();
+void disableWiFi();
 void runConfigPortal();
 void saveConfigPortalParamsCallback();
 void onWiFiConnected();
@@ -44,23 +43,33 @@ const char* generate_ap_password() {
 }
 
 void wiFiTask(void *pvParameter) {
+  // CRITICAL: WiFi will fail to startup without this
+  // see: https://github.com/espressif/arduino-esp32/issues/761
+  nvs_flash_init();
+
   EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;
   for(;;) {
+    // always wait for the config portal to finish before turning off WiFi
+    if (system_info->wifi.config_ap.active) {
+      wiFiManager.process();
+      vTaskDelay(1);
+      continue;
+    }
+
     EventBits_t uxBits = xEventGroupGetBits(event_group);
     if (uxBits & WIFI_ENABLED) {
       setupWiFi();
 
-      if (system_info->wifi.config_ap.active) {
-        wiFiManager.process();
-        vTaskDelay(1);
-      } else if (WiFi.status() == WL_CONNECTED) {
+      if (WiFi.status() == WL_CONNECTED) {
         onWiFiConnected();
       } else {
         onWiFiConnectionLost();
       }
-    } else {
-      vTaskDelay(pdMS_TO_TICKS(100));
+    } else if (wiFiEnabled) {
+      disableWiFi();
+      xEventGroupSetBits(event_group, WIFI_DISABLED);
     }
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
 
@@ -69,20 +78,45 @@ void setupWiFi() {
   if (wiFiEnabled) {
     return;
   }
-  // CRITICAL: WiFi will fail to startup without this
-  // see: https://github.com/espressif/arduino-esp32/issues/761
-  nvs_flash_init();
+  ESP_LOGI(ZEBUS_LOG_TAG, "Setup WiFi");
 
-  WiFi.mode(WIFI_STA); // explicitly set mode, ESP32 defaults to STA+AP
+  esp_wifi_set_storage(WIFI_STORAGE_FLASH);
+
+  // explicitly set mode, ESP32 defaults to STA+AP
+  esp_wifi_set_mode(WIFI_MODE_STA);
   WiFi.setAutoReconnect(false);
 
   // disable modem sleep so ESP-NOW packets can be received
+  // TODO: this is not very power efficient, investigate if we can estimate when ESP_NOW packets are expected to be received
   esp_wifi_set_ps(WIFI_PS_NONE);
 
   setupEspNow();
-  runConfigPortal();
+  if (!configPortalHasRan) {
+    runConfigPortal();
+    configPortalHasRan = true;
+  } else {
+    esp_wifi_start();
+  }
+
+  system_info->wifi.rssi = WIFI_NO_SIGNAL;
 
   wiFiEnabled = true;
+}
+
+void disableWiFi() {
+  ESP_LOGI(ZEBUS_LOG_TAG, "Disable WiFi");
+
+  system_info->wifi.config_ap.active = false;
+
+  esp_now_deinit();
+
+  // set storage to RAM so saved settings are not erased
+  esp_wifi_set_storage(WIFI_STORAGE_RAM);
+  esp_wifi_disconnect();
+  esp_wifi_set_mode(WIFI_MODE_NULL);
+  esp_wifi_stop();
+
+  wiFiEnabled = false;
 }
 
 void runConfigPortal() {
@@ -119,8 +153,6 @@ void onWiFiConnected() {
 
   refreshNTP();
   handleTelegramMessages();
-
-  vTaskDelay(pdMS_TO_TICKS(BEACON_INTERVAL_MS));
 }
 
 void onWiFiConnectionLost() {
