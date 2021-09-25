@@ -9,6 +9,7 @@
 #include "espnow-hmac.h"
 #include "espnow-types.h"
 #include "zebus-config.h"
+#include "zebus-events.h"
 #include "zebus-system-info.h"
 #include "zebus-telegram-bot.h"
 
@@ -43,16 +44,22 @@ const char* generate_ap_password() {
 }
 
 void wiFiTask(void *pvParameter) {
+  EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;
   for(;;) {
-    setupWiFi();
+    EventBits_t uxBits = xEventGroupGetBits(event_group);
+    if (uxBits & WIFI_ENABLED) {
+      setupWiFi();
 
-    if (system_info->wifi.config_ap.active) {
-      wiFiManager.process();
-      vTaskDelay(1);
-    } else if (WiFi.status() == WL_CONNECTED) {
-      onWiFiConnected();
+      if (system_info->wifi.config_ap.active) {
+        wiFiManager.process();
+        vTaskDelay(1);
+      } else if (WiFi.status() == WL_CONNECTED) {
+        onWiFiConnected();
+      } else {
+        onWiFiConnectionLost();
+      }
     } else {
-      onWiFiConnectionLost();
+      vTaskDelay(pdMS_TO_TICKS(100));
     }
   }
 }

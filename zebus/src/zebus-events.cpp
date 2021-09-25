@@ -3,7 +3,7 @@
 void eventTask(void *pvParameter) {
   EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;
   // TODO: toggling if for demonstration purposes only
-  bool displayOn = true, wiFiOn = true;
+  bool displayOn = true, wiFiOn = false;
   for(;;) {
     if (displayOn) {
       xEventGroupSetBits(event_group, DISPLAY_ENABLED);
