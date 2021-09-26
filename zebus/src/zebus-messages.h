@@ -10,8 +10,8 @@ struct identification_t {
    char hw_version[6];
 };
 
-void handleMessage(Ebus::Telegram telegram);
+void handleMessage(Ebus::Telegram &telegram);
 
-uint8_t sendIdentificationResponse(Ebus::Telegram telegram, uint8_t *buffer);
+uint8_t sendIdentificationResponse(Ebus::Telegram &telegram, uint8_t *buffer);
 
 #endif

@@ -13,7 +13,7 @@ void Ebus::setUartSendFunction(void (*uart_send)(const char *, int16_t)) {
   uartSend = uart_send;
 }
 
-void Ebus::setQueueHistoricFunction(void (*queue_historic)(Telegram)) {
+void Ebus::setQueueHistoricFunction(void (*queue_historic)(Telegram &)) {
   queueHistoric = queue_historic;
 }
 
@@ -237,7 +237,7 @@ void Ebus::addSendResponseHandler(send_response_handler handler) {
   sendResponseHandlers.push_back(handler);
 }
 
-void Ebus::handleResponse(Telegram telegram) {
+void Ebus::handleResponse(Telegram &telegram) {
   if (telegram.getState() != TelegramState::waitForRequestAck ||
       telegram.getZZ() != EBUS_SLAVE_ADDRESS(masterAddress)) {
     return;

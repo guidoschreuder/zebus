@@ -38,7 +38,7 @@ void ebusPoll();
 void setupQueues();
 void setupEbusUart();
 void ebusUartSend(const char *src, int16_t size);
-void ebusQueue(Ebus::Telegram telegram);
+void ebusQueue(Ebus::Telegram &telegram);
 bool ebusDequeueCommand(void *const command);
 void processHistoricMessages(void *pvParameter);
 void processReceivedEbusBytes(void *pvParameter);
@@ -146,12 +146,11 @@ void setupEbusUart() {
   ESP_ERROR_CHECK(uart_enable_rx_intr(UART_NUM_EBUS));
 }
 
-
 void ebusUartSend(const char *src, int16_t size) {
   uart_write_bytes(UART_NUM_EBUS, src, size);
 }
 
-void ebusQueue(Ebus::Telegram telegram) {
+void ebusQueue(Ebus::Telegram &telegram) {
   BaseType_t xHigherPriorityTaskWoken;
   xHigherPriorityTaskWoken = pdFALSE;
   xQueueSendToBackFromISR(telegramHistoryQueue, &telegram, &xHigherPriorityTaskWoken);

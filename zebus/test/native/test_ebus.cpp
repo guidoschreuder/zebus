@@ -37,7 +37,7 @@ ebus_config_t ebus_config = ebus_config_t {
   .max_lock_counter = 2,
 };
 
-uint8_t fixedResponse(Ebus::Telegram telegram, uint8_t *buffer) {
+uint8_t fixedResponse(Ebus::Telegram &telegram, uint8_t *buffer) {
   buffer[0] = 'f';
   buffer[1] = 'i';
   buffer[2] = 'x';
@@ -72,7 +72,7 @@ void uartSend(const char* src, int16_t size) {
   }
 }
 
-void ebusQueue(Ebus::Telegram telegram) {
+void ebusQueue(Ebus::Telegram &telegram) {
   Ebus::Telegram* copy = (Ebus::Telegram*)malloc(sizeof(Ebus::Telegram));
   memcpy(copy, &telegram, sizeof(Ebus::Telegram));
   telegramHistoryMockQueue.enqueue(copy);
