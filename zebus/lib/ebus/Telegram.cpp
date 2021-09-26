@@ -7,7 +7,7 @@ Telegram::Telegram() {
 }
 
 int16_t Telegram::getResponseByte(uint8_t pos) {
-  if (pos > getResponseNN() || EBUS_RESPONSE_OFFSET + pos > EBUS_RESPONSE_BUFFER_SIZE) {
+  if (pos > getResponseNN() || pos > EBUS_MAX_DATA_LENGTH) {
     return -1;
   }
   return responseBuffer[EBUS_RESPONSE_OFFSET + pos];
