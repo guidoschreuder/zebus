@@ -12,7 +12,7 @@ struct system_info_t {
     identification_t heater_id;
     uint8_t queue_size;
     bool flame = false;
-    uint16_t flow;
+    float flow;
   } ebus;
   struct wifi {
     struct config_ap {

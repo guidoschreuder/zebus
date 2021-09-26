@@ -75,10 +75,8 @@ void handle_device_config_read_flame(Ebus::Telegram telegram) {
 }
 
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram telegram) {
-  uint16_t flow = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0));
-  // TODO: FIXME: range of 'flow' is actually litres per minute!
-  system_info->ebus.flow = flow; //map(flow, 0, 0xFFFF, 0, 0xFF);
-  ESP_LOGD(ZEBUS_LOG_TAG, "Flow  : %f", system_info->ebus.flow / 100.0);
+  system_info->ebus.flow = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 100.0;
+  ESP_LOGD(ZEBUS_LOG_TAG, "Flow  : %.2f", system_info->ebus.flow);
 }
 
 message_handler device_config_read_message_handlers[] =

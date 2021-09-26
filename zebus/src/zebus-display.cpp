@@ -21,10 +21,6 @@ uint16_t heaterWaveOffset = 0;
 TFT_eSprite spriteWifiStrength = TFT_eSprite(&tft);
 TFT_eSprite spriteEbusQueue = TFT_eSprite(&tft);
 
-// TODO: remove the test variables
-uint8_t flow = 0;
-uint8_t flow_cntr = 0;
-
 // 4-bit Palette colour table
 uint16_t palette[16];
 
@@ -72,7 +68,7 @@ void initSprite(TFT_eSprite &sprite, int16_t width, int16_t height);
 void updateDisplay();
 
 // prototypes: draw sprites
-void drawSpriteShower(int32_t x, int32_t y, uint8_t flow);
+void drawSpriteShower(int32_t x, int32_t y, float flow);
 void drawSpriteHeater(int32_t x, int32_t y, bool on);
 void drawSpriteWifiStrength(int32_t x, int32_t y, int32_t rssi);
 void drawSpriteEbusQueue(int32_t x, int32_t y, uint8_t queue_size);
@@ -163,33 +159,31 @@ void updateDisplay() {
   tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
   tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->ebus.heater_id.device, system_info->ebus.heater_id.sw_version, system_info->ebus.heater_id.hw_version);
   tft.printf("Flame : %s       \n", system_info->ebus.flame ? "ON" : "OFF");
-  tft.printf("Flow  : %d       \n", system_info->ebus.flow);
-
-  if (++flow_cntr % 4 == 0) {
-    flow += 4;
-  }
+  tft.printf("Flow  : %.2f     \n", system_info->ebus.flow);
 
   drawSpriteHeater(280, 10, true);
   drawSpriteHeater(240, 10, false);
-  drawSpriteShower(280, 50, flow);
-  drawSpriteShower(240, 50, 0);
+  drawSpriteShower(280, 50, system_info->ebus.flow);
   drawSpriteWifiStrength(280, 90, system_info->wifi.rssi);
   drawSpriteEbusQueue(240, 90, system_info->ebus.queue_size);
 }
 
-void drawSpriteShower(int32_t x, int32_t y, uint8_t flow) {
+void drawSpriteShower(int32_t x, int32_t y, float flow) {
+  // scale flow to 8 bits
+  int8_t scaledFlow = flow >= EBUS_HEATER_MAX_FLOW ? 255 : (int8_t) (flow * 255 / EBUS_HEATER_MAX_FLOW);
+
   // remove previous water
   spriteShower.fillRect(10, 12, 20, 18, EBUS_4BIT_BLACK);
 
-  spriteShower.fillRoundRect(16, 0, 8, 12, 1, flow ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
-  spriteShower.fillRoundRect(0, 2, 14, 4, 1, flow ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
-  if (!flow) {
+  spriteShower.fillRoundRect(16, 0, 8, 12, 1, scaledFlow ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
+  spriteShower.fillRoundRect(0, 2, 14, 4, 1, scaledFlow ? EBUS_4BIT_RED : EBUS_4BIT_BLACK);
+  if (!scaledFlow) {
     spriteShower.drawRoundRect(16, 0, 8, 12, 1, EBUS_4BIT_WHITE);
     spriteShower.drawRoundRect(0, 2, 14, 4, 1, EBUS_4BIT_WHITE);
   } else {
-    for (uint8_t i = 0; i < 2 + (flow / 2); i++) {
+    for (uint8_t i = 0; i < 2 + (scaledFlow / 2); i++) {
       uint16_t w_y = random(16);
-      uint16_t w_x = random((flow * w_y  / 512) + 3);
+      uint16_t w_x = random((scaledFlow * w_y  / 512) + 3);
       w_x = 20 + (random(2) ? w_x : -w_x);
       uint8_t c = EBUS_4BIT_CYAN;
       uint8_t rnd = random(256);
