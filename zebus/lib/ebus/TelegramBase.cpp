@@ -7,6 +7,14 @@ namespace Ebus {
 TelegramBase::TelegramBase() {
 }
 
+uint8_t TelegramBase::getNN() {
+  uint8_t nn = requestBuffer[EBUS_OFFSET_NN];
+  if (nn >= EBUS_MAX_DATA_LENGTH) {
+    return 0;
+  }
+  return nn;
+}
+
 TelegramState TelegramBase::getState() {
   return state;
 }

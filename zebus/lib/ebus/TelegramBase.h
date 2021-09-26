@@ -45,7 +45,7 @@ class TelegramBase {
   _EBUS_GETTER(requestBuffer, ZZ);
   _EBUS_GETTER(requestBuffer, PB);
   _EBUS_GETTER(requestBuffer, SB);
-  _EBUS_GETTER(requestBuffer, NN);
+  uint8_t getNN();
 
   TelegramState getState();
   const char * getStateString();

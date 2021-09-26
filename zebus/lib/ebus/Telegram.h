@@ -13,7 +13,11 @@ class Telegram : public TelegramBase {
   Telegram();
 
   uint8_t getResponseNN() {
-    return responseBuffer[0];
+    uint8_t nn = responseBuffer[0];
+    if (nn >= EBUS_MAX_DATA_LENGTH) {
+      return 0;
+    }
+    return nn;
   }
 
   int16_t getResponseByte(uint8_t pos);
