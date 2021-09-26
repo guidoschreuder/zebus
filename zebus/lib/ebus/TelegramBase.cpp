@@ -56,7 +56,7 @@ TelegramType TelegramBase::getType() {
 }
 
 int16_t TelegramBase::getRequestByte(uint8_t pos) {
-  if (pos > getNN() || pos > EBUS_MAX_DATA_LENGTH) {
+  if (pos > getNN() || pos >= EBUS_MAX_DATA_LENGTH) {
     return -1;
   }
   return requestBuffer[EBUS_OFFSET_DATA + pos];
