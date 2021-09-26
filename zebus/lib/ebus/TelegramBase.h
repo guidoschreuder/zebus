@@ -22,7 +22,7 @@
 #define EBUS_RESPONSE_OFFSET 1
 
 #define _EBUS_GETTER(BUFFER, POS)     \
-  uint8_t get##POS() {           \
+  uint8_t get##POS() {                \
     return BUFFER[EBUS_OFFSET_##POS]; \
   }
 

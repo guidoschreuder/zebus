@@ -131,14 +131,24 @@ void debugLogger(Ebus::Telegram telegram) {
     telegram.getSB(),
     telegram.getNN(),
     telegram.getRequestCRC());
-  for (int i = 0; i < telegram.getNN(); i++) {
-     printf(" %02X", telegram.getRequestByte(i));
+  for (int8_t i = 0; i < telegram.getNN(); i++) {
+    int16_t reqByte = telegram.getRequestByte(i);
+    if (reqByte == -1) {
+      printf(" -> REQUEST OVERFLOW");
+      break;
+    }
+    printf(" %02X", (uint8_t) reqByte);
   }
   printf("\n");
   if (telegram.isResponseExpected()) {
     printf("resp(size: %d, CRC: %02x): ", telegram.getResponseNN(), telegram.getResponseCRC());
     for (int i = 0; i < telegram.getResponseNN(); i++) {
-      printf(" %02X", telegram.getResponseByte(i));
+      int16_t respByte = telegram.getResponseByte(i);
+      if (respByte == -1) {
+        printf(" -> RESPONSE OVERFLOW");
+        break;
+      }
+      printf(" %02X", (uint8_t) respByte);
     }
     printf("\n");
   }
