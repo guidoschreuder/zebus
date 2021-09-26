@@ -18,11 +18,49 @@
 
 extern struct system_info_t* system_info;
 
+struct message_handler {
+    uint16_t command;
+    void (*handler)(Ebus::Telegram telegram);
+};
+
 // prototypes
+void handle_identification(Ebus::Telegram telegram);
+void handle_device_config_read(Ebus::Telegram telegram);
+void handle_device_config_read_flame(Ebus::Telegram telegram);
+void handle_device_config_read_hwc_waterflow(Ebus::Telegram telegram);
+void handle_error(Ebus::Telegram telegram);
 void debugLogger(Ebus::Telegram telegram);
 
-// Send Response Handlers, these are replies we need to send in Master/Slave communication
-// Reply to identification request
+message_handler message_handlers[] =
+{
+    {CMD_IDENTIFICATION, handle_identification},
+    {CMD_DEVICE_CONFIG, handle_device_config_read}
+};
+
+message_handler device_config_read_message_handlers[] =
+{
+    {DEVICE_CONFIG_FLAME, handle_device_config_read_flame},
+    {DEVICE_CONFIG_HWC_WATERFLOW, handle_device_config_read_hwc_waterflow},
+};
+
+// public functions
+void handleMessage(Ebus::Telegram telegram) {
+  if (telegram.getState() != Ebus::TelegramState::endCompleted) {
+      handle_error(telegram);
+      return;
+  }
+  for (uint8_t i = 0; i < sizeof(message_handlers) / sizeof(message_handler); i++) {
+    uint16_t command = BYTES_TO_WORD(telegram.getPB(), telegram.getSB());
+    if (command == message_handlers[i].command) {
+      message_handlers[i].handler(telegram);
+    }
+  }
+}
+
+// Send Response Handlers, these are replies we need to send in Master/Slave communication.
+/**
+ * Reply to identification request
+*/
 uint8_t sendIdentificationResponse(Ebus::Telegram telegram, uint8_t *buffer) {
   uint8_t fixedIdentificationResponse[10] = {0x00};
   fixedIdentificationResponse[0] = EBUS_DEVICE_VENDOR_ID;
@@ -40,11 +78,7 @@ uint8_t sendIdentificationResponse(Ebus::Telegram telegram, uint8_t *buffer) {
   return 0;
 }
 
-struct message_handler {
-    uint16_t command;
-    void (*handler)(Ebus::Telegram telegram);
-};
-
+// implementations
 void handle_identification(Ebus::Telegram telegram) {
   identification_t identity = identification_t {
       .device = {0},
@@ -69,23 +103,6 @@ void handle_identification(Ebus::Telegram telegram) {
   }
 }
 
-void handle_device_config_read_flame(Ebus::Telegram telegram) {
-  system_info->ebus.flame = telegram.getResponseByte(0) & 0x0F;
-  ESP_LOGD(ZEBUS_LOG_TAG, "Flame : %s", system_info->ebus.flame ? "ON " : "OFF");
-}
-
-void handle_device_config_read_hwc_waterflow(Ebus::Telegram telegram) {
-  system_info->ebus.flow = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 100.0;
-  ESP_LOGD(ZEBUS_LOG_TAG, "Flow  : %.2f", system_info->ebus.flow);
-}
-
-message_handler device_config_read_message_handlers[] =
-{
-    {DEVICE_CONFIG_FLAME, handle_device_config_read_flame},
-    {DEVICE_CONFIG_HWC_WATERFLOW, handle_device_config_read_hwc_waterflow},
-};
-
-
 void handle_device_config_read(Ebus::Telegram telegram) {
   if (telegram.getRequestByte(0) == DEVICE_CONFIG_SUBCOMMAND_READ) {
     for (uint8_t i = 0; i < sizeof(device_config_read_message_handlers) / sizeof(message_handler); i++) {
@@ -97,28 +114,19 @@ void handle_device_config_read(Ebus::Telegram telegram) {
   }
 }
 
-message_handler message_handlers[] =
-{
-    {CMD_IDENTIFICATION, handle_identification},
-    {CMD_DEVICE_CONFIG, handle_device_config_read}
-};
+void handle_device_config_read_flame(Ebus::Telegram telegram) {
+  system_info->ebus.flame = telegram.getResponseByte(0) & 0x0F;
+  ESP_LOGD(ZEBUS_LOG_TAG, "Flame : %s", system_info->ebus.flame ? "ON " : "OFF");
+}
+
+void handle_device_config_read_hwc_waterflow(Ebus::Telegram telegram) {
+  system_info->ebus.flow = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 100.0;
+  ESP_LOGD(ZEBUS_LOG_TAG, "Flow  : %.2f", system_info->ebus.flow);
+}
 
 void handle_error(Ebus::Telegram telegram) {
   ESP_LOGW(ZEBUS_LOG_TAG, "ERROR IN TELEGRAM: %s", telegram.getStateString());
   debugLogger(telegram);
-}
-
-void handleMessage(Ebus::Telegram telegram) {
-  if (telegram.getState() != Ebus::TelegramState::endCompleted) {
-      handle_error(telegram);
-      return;
-  }
-  for (uint8_t i = 0; i < sizeof(message_handlers) / sizeof(message_handler); i++) {
-    uint16_t command = BYTES_TO_WORD(telegram.getPB(), telegram.getSB());
-    if (command == message_handlers[i].command) {
-      message_handlers[i].handler(telegram);
-    }
-  }
 }
 
 void debugLogger(Ebus::Telegram telegram) {
