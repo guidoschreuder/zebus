@@ -1,9 +1,8 @@
 #include <Ebus.h>
-#include <algorithm>
 
 namespace Ebus {
 
-Ebus::Ebus(ebus_config_t config) {
+Ebus::Ebus(ebus_config_t &config) {
   masterAddress = config.master_address;
   maxTries = config.max_tries;
   maxLockCounter = config.max_lock_counter;
@@ -51,7 +50,7 @@ void Ebus::uartSendChar(uint8_t cr, bool esc) {
   uartSendChar(cr, esc, false, 0);
 }
 
-void Ebus::uartSendRemainingRequestPart(SendCommand command) {
+void Ebus::uartSendRemainingRequestPart(SendCommand &command) {
   uartSendChar(command.getZZ());
   uartSendChar(command.getPB());
   uartSendChar(command.getSB());

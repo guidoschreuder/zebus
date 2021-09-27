@@ -36,11 +36,11 @@ class Ebus {
   bool (*dequeueCommand)(void *const command);
   uint8_t uartSendChar(uint8_t cr, bool esc, bool runCrc, uint8_t crc_init);
   void uartSendChar(uint8_t cr, bool esc = true);
-  void uartSendRemainingRequestPart(SendCommand command);
+  void uartSendRemainingRequestPart(SendCommand &command);
   void handleResponse(Telegram &telegram);
 
   public:
-  explicit Ebus(ebus_config_t config);
+  explicit Ebus(ebus_config_t &config);
   void setUartSendFunction(void (*uartSend)(const char *, int16_t size));
   void setQueueHistoricFunction(void (*queue_historic)(Telegram &telegram));
   void setDeueueCommandFunction(bool (*dequeue_command)(void *const command));
