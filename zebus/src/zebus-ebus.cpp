@@ -59,12 +59,13 @@ void initEbus() {
     return;
   }
   setupQueues();
-  setupEbusUart();
 
   ebus.setUartSendFunction(ebusUartSend);
   ebus.setQueueHistoricFunction(ebusQueue);
   ebus.setDeueueCommandFunction(ebusDequeueCommand);
   ebus.addSendResponseHandler(sendIdentificationResponse);
+
+  setupEbusUart();
 
   xTaskCreate(&processHistoricMessages, "processHistoricMessages", 2560, NULL, 5, NULL);
   xTaskCreate(&processReceivedEbusBytes, "processReceivedEbusBytes", 2048, NULL, 1, NULL);
@@ -117,6 +118,10 @@ void setupQueues() {
 }
 
 void setupEbusUart() {
+
+  portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+  portENTER_CRITICAL(&mux);
+
   uart_config_t uart_config = {
       .baud_rate = 2400,
       .data_bits = UART_DATA_8_BITS,
@@ -144,6 +149,8 @@ void setupEbusUart() {
   ESP_ERROR_CHECK(uart_isr_free(UART_NUM_EBUS));
   ESP_ERROR_CHECK(uart_isr_register(UART_NUM_EBUS, ebus_uart_intr_handle, NULL, 0 /*ESP_INTR_FLAG_IRAM*/, NULL));
   ESP_ERROR_CHECK(uart_enable_rx_intr(UART_NUM_EBUS));
+
+  portEXIT_CRITICAL(&mux);
 }
 
 void ebusUartSend(const char *src, int16_t size) {
