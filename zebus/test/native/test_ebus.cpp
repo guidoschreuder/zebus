@@ -90,7 +90,7 @@ bool ebusDequeueCommand(void* command) {
 void setupEbus() {
   ebus = Ebus::Ebus(ebus_config);
   ebus.setUartSendFunction(uartSend);
-  ebus.setQueueHistoricFunction(ebusQueue);
+  ebus.setQueueReceivedTelegramFunction(ebusQueue);
   ebus.setDeueueCommandFunction(ebusDequeueCommand);
   ebus.processReceivedChar(EBUS_SYN);
   ebus.addSendResponseHandler(fixedResponse);

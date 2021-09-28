@@ -61,7 +61,7 @@ void initEbus() {
   setupQueues();
 
   ebus.setUartSendFunction(ebusUartSend);
-  ebus.setQueueHistoricFunction(ebusQueue);
+  ebus.setQueueReceivedTelegramFunction(ebusQueue);
   ebus.setDeueueCommandFunction(ebusDequeueCommand);
   ebus.addSendResponseHandler(sendIdentificationResponse);
 

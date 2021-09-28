@@ -12,8 +12,8 @@ void Ebus::setUartSendFunction(void (*uart_send)(const char *, int16_t)) {
   uartSend = uart_send;
 }
 
-void Ebus::setQueueHistoricFunction(void (*queue_historic)(Telegram &)) {
-  queueHistoric = queue_historic;
+void Ebus::setQueueReceivedTelegramFunction(void (*queue_received_telegram)(Telegram &)) {
+  queueReceivedTelegram = queue_received_telegram;
 }
 
 void Ebus::setDeueueCommandFunction(bool (*dequeue_command)(void *const command)) {
@@ -78,8 +78,8 @@ void Ebus::processReceivedChar(unsigned char receivedByte) {
   }
 
   if (receivingTelegram.isFinished()) {
-    if (queueHistoric) {
-      queueHistoric(receivingTelegram);
+    if (queueReceivedTelegram) {
+      queueReceivedTelegram(receivingTelegram);
     }
     receivingTelegram = Telegram();
   }
