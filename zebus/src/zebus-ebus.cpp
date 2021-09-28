@@ -40,7 +40,7 @@ void setupEbusUart();
 void ebusUartSend(const char *src, int16_t size);
 void ebusQueue(Ebus::Telegram &telegram);
 bool ebusDequeueCommand(void *const command);
-void processHistoricMessages(void *pvParameter);
+void processReceivedMessages(void *pvParameter);
 void processReceivedEbusBytes(void *pvParameter);
 static void ebus_uart_intr_handle(void *arg);
 
@@ -67,7 +67,7 @@ void initEbus() {
 
   setupEbusUart();
 
-  xTaskCreate(&processHistoricMessages, "processHistoricMessages", 2560, NULL, 5, NULL);
+  xTaskCreate(&processReceivedMessages, "processReceivedMessages", 2560, NULL, 5, NULL);
   xTaskCreate(&processReceivedEbusBytes, "processReceivedEbusBytes", 2048, NULL, 1, NULL);
 
   ebusInit = true;
@@ -167,7 +167,7 @@ bool ebusDequeueCommand(void *const command) {
   return false;
 }
 
-void processHistoricMessages(void *pvParameter) {
+void processReceivedMessages(void *pvParameter) {
   Ebus::Telegram telegram;
   while (1) {
     if (xQueueReceive(telegramHistoryQueue, &telegram, pdMS_TO_TICKS(1000))) {
