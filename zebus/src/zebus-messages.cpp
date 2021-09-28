@@ -7,14 +7,7 @@
 #include "zebus-system-info.h"
 
 #define BYTES_TO_WORD(HIGH_BYTE, LOW_BYTE) ((((uint16_t)HIGH_BYTE) << 8) | LOW_BYTE)
-
-#define CMD_IDENTIFICATION 0x0704
-#define CMD_DEVICE_CONFIG 0xB509
-
-#define DEVICE_CONFIG_SUBCOMMAND_READ 0x0D
-
-#define DEVICE_CONFIG_FLAME 0x0500
-#define DEVICE_CONFIG_HWC_WATERFLOW 0x5500
+#define GET_BYTE(CMD, I) ((uint8_t) ((CMD >> 8 * I) & 0XFF))
 
 extern struct system_info_t* system_info;
 
@@ -76,6 +69,44 @@ uint8_t sendIdentificationResponse(Ebus::Telegram &telegram, uint8_t *buffer) {
     return sizeof(fixedIdentificationResponse);
   }
   return 0;
+}
+
+Ebus::SendCommand createCommand(uint8_t target, unsigned short command) {
+  return createCommand(  //
+      target,
+      command,
+      0,
+      NULL);
+}
+
+Ebus::SendCommand createCommand(uint8_t target, unsigned short command, uint8_t NN, uint8_t *data) {
+  return Ebus::SendCommand(  //
+      EBUS_MASTER_ADDRESS,
+      Ebus::Ebus::Elf::isMaster(target) ? EBUS_SLAVE_ADDRESS(target) : target,
+      GET_BYTE(command, 1),
+      GET_BYTE(command, 0),
+      NN,
+      data);
+}
+
+Ebus::SendCommand createHeaterCommand(unsigned short command) {
+  return createHeaterCommand( //
+      command,
+      0,
+      NULL);
+}
+
+Ebus::SendCommand createHeaterCommand(unsigned short command, uint8_t NN, uint8_t *data) {
+  return createCommand(  //
+      EBUS_HEATER_MASTER_ADDRESS,
+      command,
+      NN,
+      data);
+}
+
+Ebus::SendCommand createHeaterReadConfigCommand(unsigned short config_element) {
+  uint8_t data[] = { DEVICE_CONFIG_SUBCOMMAND_READ, GET_BYTE(config_element, 1), GET_BYTE(config_element, 0)};
+  return createHeaterCommand(CMD_DEVICE_CONFIG, sizeof(data), data);
 }
 
 // implementations

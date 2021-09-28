@@ -33,7 +33,7 @@ Ebus::Ebus ebus = Ebus::Ebus(ebus_config);
 
 // prototypes
 void initEbus();
-void enqueueEbusCommand(const void * const itemToQueue);
+void enqueueEbusCommand(const Ebus::SendCommand &);
 void ebusPoll();
 void setupQueues();
 void setupEbusUart();
@@ -75,27 +75,16 @@ void initEbus() {
 
 // TODO: this is all very much test code for now
 void ebusPoll() {
-  Ebus::SendCommand getIdCommandSelf = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
-  enqueueEbusCommand(&getIdCommandSelf);
+  enqueueEbusCommand(createCommand(EBUS_MASTER_ADDRESS, CMD_IDENTIFICATION));
+  enqueueEbusCommand(createHeaterCommand(CMD_IDENTIFICATION));
+  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_HWC_WATERFLOW));
+  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_FLAME));
 
-  Ebus::SendCommand getIdCommandHeater = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0x07, 0x04, 0, NULL);
-  enqueueEbusCommand(&getIdCommandHeater);
-
-  uint8_t getHwcWaterflowData[] = {0x0D, 0x55, 0x00};
-  Ebus::SendCommand getHwcWaterflowCommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0xB5, 0x09, sizeof(getHwcWaterflowData), getHwcWaterflowData);
-  enqueueEbusCommand(&getHwcWaterflowCommand);
-
-  //uint8_t getHwcDemandData[] = {0x0D, 0x58, 0x00};
-  //Ebus::SendCommand getHwcDemandcommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0xB5, 0x09, sizeof(getHwcDemandData), getHwcData);
-  //enqueueEbusCommand(&getHwcDemandcommand);
-
-  uint8_t getFlameData[] = {0x0D, 0x05, 0x00};
-  Ebus::SendCommand getFlameCommand = Ebus::SendCommand(EBUS_MASTER_ADDRESS, EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS), 0xB5, 0x09, sizeof(getFlameData), getFlameData);
-  enqueueEbusCommand(&getFlameCommand);
+  //enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_HWC_DEMAND));
 }
 
-void enqueueEbusCommand(const void * const itemToQueue) {
-  xQueueSendToBack(telegramCommandQueue, itemToQueue, portMAX_DELAY);
+void enqueueEbusCommand(const Ebus::SendCommand &command) {
+  xQueueSendToBack(telegramCommandQueue, &command, portMAX_DELAY);
   system_info->ebus.queue_size = uxQueueMessagesWaiting(telegramCommandQueue);
 }
 
