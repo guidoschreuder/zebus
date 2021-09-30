@@ -49,8 +49,10 @@ float getSupplyVoltage();
 // implementations, public
 void setup() {
   Serial.begin(115200);
-  // Lower then 80MHz will prevent WifI from working
-  setCpuFrequencyMhz(80);
+
+  // Lower then 80MHz will prevent Wifi from working
+  // NOTE: disabled for now: works on one ESP32, randomly hangs entire chip on another
+  // setCpuFrequencyMhz(80);
 
   WiFi.mode(WIFI_STA);
 
