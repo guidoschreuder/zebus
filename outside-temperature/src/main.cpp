@@ -59,7 +59,11 @@ void setup() {
   // setup ESP-NOW
   initEspNow();
 
-  // setup tenperature sensor
+  // KLUDGE: without this the Dallas library fails to detect parasitic devices
+  uint8_t addr[8];
+  oneWire.search(addr);
+
+  // setup temperature sensor
   sensors.begin();
 
   // setup ADC
