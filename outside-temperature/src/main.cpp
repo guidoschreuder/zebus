@@ -18,8 +18,6 @@
 #define MAX_SEND_ATTEMPT 3
 
 #define ADC_SAMPLES 16
-#define ADC_REF_VOLTAGE 3.281
-#define ADC_REF_SAMPLE 3701
 
 #define mS_TO_uS(millis) (millis * 1000)
 
