@@ -1,0 +1,8 @@
+*.bck
+*.kicad_pcb-bak
+*.net
+*.sch-bak
+
+_autosave-*
+
+**/fab/**
