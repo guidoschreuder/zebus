@@ -128,7 +128,7 @@ void handle_identification(Ebus::Telegram &telegram) {
 
   switch (telegram.getZZ()) {
   case EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS):
-    ESP_LOGD(ZEBUS_LOG_TAG, "Self  : %s, sw: %s, hw: %s", identity.device, identity.sw_version, identity.hw_version);
+    ESP_LOGD(ZEBUS_LOG_TAG, "Self: %s, sw: %s, hw: %s", identity.device, identity.sw_version, identity.hw_version);
     system_info->ebus.self_id = identity;
     break;
   case EBUS_SLAVE_ADDRESS(EBUS_HEATER_MASTER_ADDRESS):
@@ -151,7 +151,7 @@ void handle_device_config_read(Ebus::Telegram &telegram) {
 
 void handle_device_config_read_flame(Ebus::Telegram &telegram) {
   system_info->ebus.flame = telegram.getResponseByte(0) & 0x0F;
-  ESP_LOGD(ZEBUS_LOG_TAG, "Flame : %s", system_info->ebus.flame ? "ON " : "OFF");
+  ESP_LOGD(ZEBUS_LOG_TAG, "Flame: %s", system_info->ebus.flame ? "ON " : "OFF");
 }
 
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram &telegram) {
