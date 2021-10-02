@@ -79,6 +79,8 @@ void ebusPoll() {
   enqueueEbusCommand(createHeaterCommand(CMD_IDENTIFICATION));
   enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_HWC_WATERFLOW));
   enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_FLAME));
+  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_FLOW_TEMP));
+  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_RETURN_TEMP));
 
   //enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_HWC_DEMAND));
 }
