@@ -89,17 +89,6 @@ F 3 "" H 2750 2200 50  0001 C CNN
 	1    2750 2200
 	1    0    0    -1  
 $EndComp
-$Comp
-L Sensor_Temperature:DS18B20 U2
-U 1 1 61550BDD
-P 4250 3050
-F 0 "U2" H 4600 2900 50  0000 R CNN
-F 1 "DS18B20" H 4850 2800 50  0000 R CNN
-F 2 "Package_TO_SOT_THT:TO-92_Inline" H 3250 2800 50  0001 C CNN
-F 3 "http://datasheets.maximintegrated.com/en/ds/DS18B20.pdf" H 4100 3300 50  0001 C CNN
-	1    4250 3050
-	1    0    0    -1  
-$EndComp
 Text Label 4750 3050 0    50   ~ 0
 TEMP_DATA
 Text Label 7050 2850 0    50   ~ 0
@@ -120,12 +109,12 @@ $EndComp
 $Comp
 L power:+3.3V #PWR0108
 U 1 1 61552A13
-P 4250 2700
-F 0 "#PWR0108" H 4250 2550 50  0001 C CNN
-F 1 "+3.3V" H 4265 2873 50  0000 C CNN
-F 2 "" H 4250 2700 50  0001 C CNN
-F 3 "" H 4250 2700 50  0001 C CNN
-	1    4250 2700
+P 4600 2700
+F 0 "#PWR0108" H 4600 2550 50  0001 C CNN
+F 1 "+3.3V" H 4615 2873 50  0000 C CNN
+F 2 "" H 4600 2700 50  0001 C CNN
+F 3 "" H 4600 2700 50  0001 C CNN
+	1    4600 2700
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
@@ -147,12 +136,7 @@ Wire Wire Line
 Wire Wire Line
 	4600 2950 4600 3050
 Wire Wire Line
-	4250 2700 4600 2700
-Wire Wire Line
 	4600 2700 4600 2750
-Wire Wire Line
-	4250 2700 4250 2750
-Connection ~ 4250 2700
 Wire Wire Line
 	6250 1950 6250 2250
 $Comp
@@ -424,4 +408,15 @@ Wire Wire Line
 	3150 3950 3250 3950
 Wire Wire Line
 	3250 3850 3250 3950
+$Comp
+L Sensor_Temperature:DS18B20-PAR U2
+U 1 1 616C9587
+P 4250 3050
+F 0 "U2" H 4307 3417 50  0000 C CNN
+F 1 "DS18B20-PAR" H 4307 3326 50  0000 C CNN
+F 2 "Package_TO_SOT_THT:TO-92_Inline" H 3250 2800 50  0001 C CNN
+F 3 "http://datasheets.maximintegrated.com/en/ds/DS18B20-PAR.pdf" H 4100 3300 50  0001 C CNN
+	1    4250 3050
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC
