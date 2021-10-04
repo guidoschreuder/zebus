@@ -1,6 +1,5 @@
 #include "main.h"
 
-#include "sdkconfig.h"
 #include "zebus-display.h"
 #include "zebus-ebus.h"
 #include "zebus-events.h"
