@@ -1,17 +1,19 @@
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+
 #include <DallasTemperature.h>
 #include <OneWire.h>
 #include <driver/adc.h>
 
-#include "Arduino.h"
-#include "WiFi.h"
+#include "tcpip_adapter.h"
 #include "esp_log.h"
 #include "esp_now.h"
+#include "nvs_flash.h"
 #include "esp_wifi.h"
 #include "espnow-config.h"
 #include "espnow-hmac.h"
 #include "espnow-types.h"
 
-#define TAG "Ignored"
+#define TAG "outdoor-sensor"
 
 #define ONE_WIRE_PIN 4
 #define SCAN_MASTER_INTERVAL_MILLIS 1000
@@ -35,7 +37,8 @@ bool sendGotResult = false;
 bool sendSuccess = false;
 
 // declarations
-void initEspNow();
+void wifi_init();
+void espnow_init();
 void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len);
 void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 bool findMaster();
@@ -45,17 +48,23 @@ float getOutsideTemp();
 float getSupplyVoltage();
 
 // implementations, public
-void setup() {
+extern "C" {
+void app_main();
+}
+
+void app_main() {
   Serial.begin(115200);
+
+  nvs_flash_init();
 
   // Lower then 80MHz will prevent Wifi from working
   // NOTE: disabled for now: works on one ESP32, randomly hangs entire chip on another
   // setCpuFrequencyMhz(80);
 
-  WiFi.mode(WIFI_STA);
+  wifi_init();
 
   // setup ESP-NOW
-  initEspNow();
+  espnow_init();
 
   // KLUDGE: without this the Dallas library fails to detect parasitic devices
   uint8_t addr[8];
@@ -67,9 +76,7 @@ void setup() {
   // setup ADC
   adc1_config_width(ADC_WIDTH_BIT_12);
   adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_11db);
-}
 
-void loop() {
   if (findMaster()) {
     espnow_msg_outdoor_sensor data;
     data.base.type = espnow_outdoor_sensor_data;
@@ -89,7 +96,21 @@ void loop() {
 }
 
 // implementations, local
-void initEspNow() {
+void wifi_init() {
+    tcpip_adapter_init();
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
+    ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
+    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
+    ESP_ERROR_CHECK( esp_wifi_start());
+
+#if CONFIG_ESPNOW_ENABLE_LONG_RANGE
+    ESP_ERROR_CHECK( esp_wifi_set_protocol(ESPNOW_WIFI_IF, WIFI_PROTOCOL_11B|WIFI_PROTOCOL_11G|WIFI_PROTOCOL_11N|WIFI_PROTOCOL_LR) );
+#endif
+}
+
+void espnow_init() {
   ESP_ERROR_CHECK(esp_now_init());
   ESP_ERROR_CHECK(esp_now_register_send_cb(onEspNowDataSent));
   ESP_ERROR_CHECK(esp_now_register_recv_cb(onEspNowDataRecv));
