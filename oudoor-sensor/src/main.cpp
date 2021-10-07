@@ -67,6 +67,7 @@ void app_main() {
   espnow_init();
 
   // KLUDGE: without this the Dallas library fails to detect parasitic devices
+  // TODO: figure out if adding disabling of interrupts fixes this proper
   uint8_t addr[8];
   oneWire.search(addr);
 
