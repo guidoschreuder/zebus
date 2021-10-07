@@ -57,10 +57,6 @@ void app_main() {
 
   nvs_flash_init();
 
-  // Lower then 80MHz will prevent Wifi from working
-  // NOTE: disabled for now: works on one ESP32, randomly hangs entire chip on another
-  // setCpuFrequencyMhz(80);
-
   wifi_init();
 
   // setup ESP-NOW
