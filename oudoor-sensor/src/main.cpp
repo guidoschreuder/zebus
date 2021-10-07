@@ -224,7 +224,11 @@ void sendData(espnow_msg_outdoor_sensor data) {
 
 float getOutsideTemp() {
   sensors.requestTemperatures();
+
+  portDISABLE_INTERRUPTS();
   float temp = sensors.getTempCByIndex(0);
+  portENABLE_INTERRUPTS();
+
   ESP_LOGD(TAG, "Temperature: %f", temp);
   return temp;
 }
