@@ -62,11 +62,6 @@ void app_main() {
   // setup ESP-NOW
   espnow_init();
 
-  // KLUDGE: without this the Dallas library fails to detect parasitic devices
-  // TODO: figure out if adding disabling of interrupts fixes this proper
-  uint8_t addr[8];
-  oneWire.search(addr);
-
   // setup temperature sensor
   sensors.begin();
 
@@ -221,11 +216,7 @@ void sendData(espnow_msg_outdoor_sensor data) {
 
 float getOutsideTemp() {
   sensors.requestTemperatures();
-
-  portDISABLE_INTERRUPTS();
   float temp = sensors.getTempCByIndex(0);
-  portENABLE_INTERRUPTS();
-
   ESP_LOGD(TAG, "Temperature: %f", temp);
   return temp;
 }
