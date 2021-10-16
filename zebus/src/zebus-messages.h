@@ -14,6 +14,7 @@
 #define DEVICE_CONFIG_HWC_DEMAND 0x5800
 #define DEVICE_CONFIG_FLOW_TEMP 0x1800
 #define DEVICE_CONFIG_RETURN_TEMP 0x9800
+#define DEVICE_CONFIG_EBUS_CONTROL 0x0004
 
 struct identification_t {
    char device[6];

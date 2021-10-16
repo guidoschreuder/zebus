@@ -23,6 +23,7 @@ void handle_device_config_read_flame(Ebus::Telegram &telegram);
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram &telegram);
 void handle_device_config_read_hwc_flow_temp(Ebus::Telegram &telegram);
 void handle_device_config_read_hwc_return_temp(Ebus::Telegram &telegram);
+void handle_device_config_read_ebus_control(Ebus::Telegram &telegram);
 void handle_error(Ebus::Telegram &telegram);
 void debugLogger(Ebus::Telegram &telegram);
 
@@ -38,6 +39,7 @@ message_handler device_config_read_message_handlers[] =
     {DEVICE_CONFIG_HWC_WATERFLOW, handle_device_config_read_hwc_waterflow},
     {DEVICE_CONFIG_FLOW_TEMP, handle_device_config_read_hwc_flow_temp},
     {DEVICE_CONFIG_RETURN_TEMP, handle_device_config_read_hwc_return_temp},
+    {DEVICE_CONFIG_EBUS_CONTROL, handle_device_config_read_ebus_control},
 };
 
 // public functions
@@ -165,6 +167,10 @@ void handle_device_config_read_hwc_flow_temp(Ebus::Telegram &telegram) {
 
 void handle_device_config_read_hwc_return_temp(Ebus::Telegram &telegram) {
   ESP_LOGD(ZEBUS_LOG_TAG, "Return Temp: %.2f", BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0);
+}
+
+void handle_device_config_read_ebus_control(Ebus::Telegram &telegram) {
+  ESP_LOGD(ZEBUS_LOG_TAG, "EBus Heat Control: %s", telegram.getResponseByte(0) & 0x0F ? "YES" : "NO");
 }
 
 void handle_error(Ebus::Telegram &telegram) {
