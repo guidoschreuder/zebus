@@ -1,6 +1,5 @@
 #include "zebus-wifi.h"
 
-#include <Arduino.h>
 #include <WiFiManager.h>
 #include <esp_now.h>
 #include <nvs_flash.h>
@@ -160,6 +159,7 @@ void onWiFiConnectionLost() {
   ESP_LOGW(ZEBUS_LOG_TAG, "WiFi connection was lost");
   system_info->wifi.rssi = WIFI_NO_SIGNAL;
 
+  esp_wifi_set_storage(WIFI_STORAGE_FLASH);
   ESP_ERROR_CHECK(esp_wifi_connect());
   for (int i = 0; i < 20 && (WiFi.status() != WL_CONNECTED); i++) {
     vTaskDelay(100);
