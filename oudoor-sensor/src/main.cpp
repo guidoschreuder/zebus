@@ -64,6 +64,7 @@ void app_main() {
 
   // setup temperature sensor
   sensors.begin();
+  sensors.setResolution(9);
 
   // setup ADC
   adc1_config_width(ADC_WIDTH_BIT_12);
