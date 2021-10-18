@@ -179,7 +179,8 @@ void processReceivedMessages(void *pvParameter) {
   while (1) {
     if (xQueueReceive(telegramHistoryQueue, &telegram, pdMS_TO_TICKS(1000))) {
       handleMessage(telegram);
-      //ESP_LOGD(ZEBUS_LOG_TAG, "Task: %s, Stack Highwater Mark: %d", pcTaskGetTaskName(NULL), uxTaskGetStackHighWaterMark(NULL));
+      // TODO: this comment is kept as reference on how to debug stack overflows. Could be generalized.
+      // ESP_LOGD(ZEBUS_LOG_TAG, "Task: %s, Stack Highwater Mark: %d", pcTaskGetTaskName(NULL), uxTaskGetStackHighWaterMark(NULL));
       taskYIELD();
     }
   }
