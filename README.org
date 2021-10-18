@@ -113,6 +113,7 @@ bought here: https://www.aliexpress.com/item/4000830895622.html
  - https://www.thingforward.io/techblog/2017-08-08-embedded-testing-with-platformio-part-2.html
  - set datetime: https://github.com/john30/ebusd/issues/286
  - formatting C time struct: https://www.ibm.com/docs/en/i/7.3?topic=functions-strftime-convert-datetime-string
+ - discussion on calculating power consumption: https://github.com/john30/ebusd-configuration/issues/89
 
 * project log
 ** DONE create hardware interface for eBUS

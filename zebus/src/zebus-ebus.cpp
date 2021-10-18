@@ -83,6 +83,10 @@ void ebusPoll() {
   enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_RETURN_TEMP));
   enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_EBUS_CONTROL));
 
+  // TODO: OK, this does seem to work but we do not have a proper way to set or control the room temparature yet
+  // uint8_t setModeData[] = {0x00, 0x00, 0x5E, 0x78, 0xFF, 0xFF, 0x00, 0xFF, 0x00};
+  // enqueueEbusCommand(createHeaterCommand(CMD_DATA_TO_BURNER, sizeof(setModeData), setModeData));
+
   //enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_HWC_DEMAND));
 }
 
