@@ -61,6 +61,9 @@ void handleMessage(Ebus::Telegram &telegram) {
  * Reply to identification request
 */
 uint8_t sendIdentificationResponse(Ebus::Telegram &telegram, uint8_t *buffer) {
+  if (BYTES_TO_WORD(telegram.getPB(), telegram.getSB()) != CMD_IDENTIFICATION) {
+    return 0;
+  }
   uint8_t fixedIdentificationResponse[10] = {0x00};
   fixedIdentificationResponse[0] = EBUS_DEVICE_VENDOR_ID;
   for (uint8_t i = 0; i < 5; i++) {
@@ -70,11 +73,9 @@ uint8_t sendIdentificationResponse(Ebus::Telegram &telegram, uint8_t *buffer) {
   fixedIdentificationResponse[7] = EBUS_DEVICE_SW_VERSION & 0XFF;
   fixedIdentificationResponse[8] = (EBUS_DEVICE_HW_VERSION >> 8) & 0XFF;
   fixedIdentificationResponse[9] = EBUS_DEVICE_HW_VERSION & 0XFF;
-  if (BYTES_TO_WORD(telegram.getPB(), telegram.getSB()) == CMD_IDENTIFICATION) {
-    memcpy(buffer, fixedIdentificationResponse, sizeof(fixedIdentificationResponse));
-    return sizeof(fixedIdentificationResponse);
-  }
-  return 0;
+
+  memcpy(buffer, fixedIdentificationResponse, sizeof(fixedIdentificationResponse));
+  return sizeof(fixedIdentificationResponse);
 }
 
 Ebus::SendCommand createCommand(uint8_t target, unsigned short command) {
