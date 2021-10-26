@@ -8,7 +8,7 @@
 
 // Network configuration
 #define ZEBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH 8
-#define ZEBUS_WIFI_HOSTNAME "zebus.home.arpa"
+#define ZEBUS_WIFI_HOSTNAME "zebus"
 
 #define ZEBUS_NTP_SERVER "1.be.pool.ntp.org"
 #define ZEBUS_NTP_GMT_OFFSET_SEC 3600
