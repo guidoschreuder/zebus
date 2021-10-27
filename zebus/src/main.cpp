@@ -5,6 +5,7 @@
 #include "zebus-events.h"
 #include "zebus-system-info.h"
 #include "zebus-wifi.h"
+#include "zebus-temp-control.h"
 
 struct system_info_t* system_info = new system_info_t();
 
@@ -23,4 +24,5 @@ void app_main() {
   xTaskCreate(&wiFiTask, "wiFiTask", 8192, zebus_event_group, 3, NULL);
   xTaskCreate(&ebusTask, "ebusTask", 2048, NULL, 5, NULL);
   xTaskCreate(&eventTask, "eventTask", 2048, zebus_event_group, 5, NULL);
+  xTaskCreate(&temparatureControlTask, "temparatureControlTask", 1024, NULL, 4, NULL);
 }
