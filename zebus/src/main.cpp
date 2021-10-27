@@ -24,5 +24,5 @@ void app_main() {
   xTaskCreate(&wiFiTask, "wiFiTask", 8192, zebus_event_group, 3, NULL);
   xTaskCreate(&ebusTask, "ebusTask", 2048, NULL, 5, NULL);
   xTaskCreate(&eventTask, "eventTask", 2048, zebus_event_group, 5, NULL);
-  xTaskCreate(&temparatureControlTask, "temparatureControlTask", 1024, NULL, 4, NULL);
+  xTaskCreate(&temparatureControlTask, "temparatureControlTask", 2048, NULL, 4, NULL);
 }
