@@ -2,6 +2,7 @@
 
 #include <WiFiManager.h>
 #include <esp_now.h>
+#include <mqtt_client.h>
 #include <nvs_flash.h>
 
 #include "espnow-config.h"
@@ -11,12 +12,16 @@
 #include "zebus-events.h"
 #include "zebus-system-info.h"
 #include "zebus-telegram-bot.h"
+#include "zebus-secrets.h"
 
 const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
 
 WiFiManager wiFiManager;
 bool wiFiEnabled = false;
 RTC_DATA_ATTR bool configPortalHasRan = false;
+
+esp_mqtt_client_handle_t mqtt_client;
+unsigned long last_mqtt_sent = 0;
 
 // prototype
 void setupWiFi();
@@ -28,11 +33,13 @@ void onWiFiConnectionLost();
 void refreshNTP();
 void sendEspNowBeacon();
 void setupEspNow();
-void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len);
+void onEspNowDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len);
 void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+void mqtt_setup();
+void mqtt_log_state();
 
 // public functions
-const char* generate_ap_password() {
+const char *generate_ap_password() {
   uint32_t seed = ESP.getEfuseMac() >> 32;
   static char pwd[ZEBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH + 1] = {0};
   for (uint8_t i = 0; i < ZEBUS_WIFI_CONFIG_AP_PASSWORD_LENGTH; i++) {
@@ -46,8 +53,8 @@ void wiFiTask(void *pvParameter) {
   // see: https://github.com/espressif/arduino-esp32/issues/761
   nvs_flash_init();
 
-  EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;
-  for(;;) {
+  EventGroupHandle_t event_group = (EventGroupHandle_t)pvParameter;
+  for (;;) {
     // always wait for the config portal to finish before turning off WiFi
     if (system_info->wifi.config_ap.active) {
       wiFiManager.process();
@@ -97,6 +104,7 @@ void setupWiFi() {
   }
 
   setupEspNow();
+  mqtt_setup();
 
   system_info->wifi.rssi = WIFI_NO_SIGNAL;
 
@@ -121,7 +129,7 @@ void disableWiFi() {
 
 void runConfigPortal() {
   char apName[16] = {0};
-  sprintf(apName, "%s %x", ZEBUS_APPNAME, (uint32_t) ESP.getEfuseMac());
+  sprintf(apName, "%s %x", ZEBUS_APPNAME, (uint32_t)ESP.getEfuseMac());
 
   system_info->wifi.rssi = WIFI_NO_SIGNAL;
   system_info->wifi.config_ap.ap_name = strdup(apName);
@@ -152,6 +160,9 @@ void onWiFiConnected() {
   system_info->wifi.ip_addr = WiFi.localIP();
 
   refreshNTP();
+
+  mqtt_log_state();
+
   handleTelegramMessages();
 }
 
@@ -207,7 +218,7 @@ void handlePing(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   ping_reply.expected_interval_millis = ZEBUS_SENSOR_INTERVAL_MS;
   ping_reply.base.type = espnow_ping_reply;
 
-  fillHmac((espnow_msg_base *) &ping_reply, sizeof(ping_reply));
+  fillHmac((espnow_msg_base *)&ping_reply, sizeof(ping_reply));
 
   esp_err_t result = esp_now_send(mac_addr, (uint8_t *)&ping_reply, sizeof(ping_reply));
   if (result != ESP_OK) {
@@ -215,7 +226,7 @@ void handlePing(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   }
 }
 
-void handleOutdoorSensor(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+void handleOutdoorSensor(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   espnow_msg_outdoor_sensor message;
   if (!validate_and_copy(&message, sizeof(message), incomingData, len)) {
     ESP_LOGE(ZEBUS_LOG_TAG, "%s", getLastHmacError());
@@ -227,7 +238,7 @@ void handleOutdoorSensor(const uint8_t * mac_addr, const uint8_t *incomingData, 
   ESP_LOGD(ZEBUS_LOG_TAG, "Outdoor Voltage: %f", system_info->outdoor.supplyVoltage);
 }
 
-void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
+void onEspNowDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   ESP_LOGV(ZEBUS_LOG_TAG, "Packet received from %02X:%02x:%02x:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   switch (incomingData[0]) {
   case espnow_ping:
@@ -243,4 +254,36 @@ void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int
 
 void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   ESP_LOGV(ZEBUS_LOG_TAG, "Last Packet Send Status: %s", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+void mqtt_setup() {
+  esp_mqtt_client_config_t mqtt_cfg = {
+      .host = ZEBUS_MQTT_HOST,
+      .username = ZEBUS_MQTT_USERNAME,
+      .password = ZEBUS_MQTT_PASSWORD,
+      .transport = ZEBUS_MQTT_TRANSPORT,
+  };
+  mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
+  /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
+  // esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+  esp_mqtt_client_start(mqtt_client);
+}
+
+#define LOG_VALID_TEMP_TO_MQTT(client, topic, temp) do { \
+  if (temp != INVALID_TEMP) { \
+    esp_mqtt_client_publish(client, topic, String(temp).c_str(), 0, 1, 0); \
+  } \
+} while(0);
+
+void mqtt_log_state() {
+  long now = millis();
+  if (last_mqtt_sent == 0 ||
+      last_mqtt_sent + ZEBUS_MQTT_UPDATE_INTERVAL_MS < now) {
+
+    LOG_VALID_TEMP_TO_MQTT(mqtt_client, "zebus/outdoor/temperature", system_info->outdoor.temperatureC);
+    LOG_VALID_TEMP_TO_MQTT(mqtt_client, "zebus/heater/flow/temperature", system_info->heater.flow_temp);
+    LOG_VALID_TEMP_TO_MQTT(mqtt_client, "zebus/heater/return/temperature", system_info->heater.return_temp);
+
+    last_mqtt_sent = now;
+  }
 }

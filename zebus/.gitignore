@@ -1,6 +1,6 @@
 .pio
 .vscode
-src/zebus-telegram-config.h
+src/zebus-secrets.h
 
 sdkconfig.*
 !sdkconfig.defaults

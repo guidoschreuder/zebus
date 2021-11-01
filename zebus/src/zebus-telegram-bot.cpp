@@ -6,7 +6,7 @@
 
 #include "zebus-config.h"
 #include "zebus-system-info.h"
-#include "zebus-telegram-config.h"
+#include "zebus-secrets.h"
 
 WiFiClientSecure client;
 UniversalTelegramBot telegramBot(ZEBUS_TELEGRAM_TOKEN, client);

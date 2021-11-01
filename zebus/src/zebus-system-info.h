@@ -5,6 +5,7 @@
 #include "espnow-types.h"
 
 #define WIFI_NO_SIGNAL 0x80000000
+#define INVALID_TEMP -255.0
 
 struct system_info_t {
   struct ebus {
@@ -26,8 +27,12 @@ struct system_info_t {
   struct ntp {
     long last_init;
   } ntp;
+  struct heater {
+    float flow_temp = INVALID_TEMP;
+    float return_temp = INVALID_TEMP;
+  } heater;
   struct outdoor {
-    float temperatureC;
+    float temperatureC = INVALID_TEMP;
     float supplyVoltage;
   } outdoor;
 };

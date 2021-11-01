@@ -167,11 +167,13 @@ void handle_device_config_read_hwc_waterflow(Ebus::Telegram &telegram) {
 }
 
 void handle_device_config_read_hwc_flow_temp(Ebus::Telegram &telegram) {
-  ESP_LOGD(ZEBUS_LOG_TAG, "Flow Temp: %.2f", BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0);
+  system_info->heater.flow_temp = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
+  ESP_LOGD(ZEBUS_LOG_TAG, "Flow Temp: %.2f", system_info->heater.flow_temp);
 }
 
 void handle_device_config_read_hwc_return_temp(Ebus::Telegram &telegram) {
-  ESP_LOGD(ZEBUS_LOG_TAG, "Return Temp: %.2f", BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0);
+  system_info->heater.return_temp = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
+  ESP_LOGD(ZEBUS_LOG_TAG, "Return Temp: %.2f", system_info->heater.return_temp);
 }
 
 void handle_device_config_read_ebus_control(Ebus::Telegram &telegram) {
