@@ -227,7 +227,7 @@ void handlePing(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 }
 
 void handleOutdoorSensor(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
-  espnow_msg_outdoor_sensor message;
+  espnow_msg_temperature_sensor message;
   if (!validate_and_copy(&message, sizeof(message), incomingData, len)) {
     ESP_LOGE(ZEBUS_LOG_TAG, "%s", getLastHmacError());
     return;
@@ -244,7 +244,7 @@ void onEspNowDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int 
   case espnow_ping:
     handlePing(mac_addr, incomingData, len);
     break;
-  case espnow_outdoor_sensor_data:
+  case espnow_temperature_sensor_data:
     handleOutdoorSensor(mac_addr, incomingData, len);
     break;
   default:

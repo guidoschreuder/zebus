@@ -6,7 +6,7 @@ const uint8_t espnow_broadcast_address[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 enum espnow_message_type {
   espnow_ping,
   espnow_ping_reply,
-  espnow_outdoor_sensor_data,
+  espnow_temperature_sensor_data,
 };
 
 typedef struct espnow_msg_base {
@@ -24,10 +24,10 @@ typedef struct espnow_msg_ping_reply {
   uint64_t expected_interval_millis;
 } espnow_msg_ping_reply;
 
-typedef struct espnow_msg_outdoor_sensor {
+typedef struct espnow_msg_temperature_sensor {
   espnow_message_base base;
   float temperatureC;
   float supplyVoltage;
-} espnow_msg_outdoor_sensor;
+} espnow_msg_temperature_sensor;
 
 #endif

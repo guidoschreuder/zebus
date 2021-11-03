@@ -13,7 +13,7 @@
 #include "espnow-hmac.h"
 #include "espnow-types.h"
 
-#define TAG "outdoor-sensor"
+#define TAG "temperature-sensor"
 
 #define ONE_WIRE_PIN 4
 #define SCAN_MASTER_INTERVAL_MILLIS 1000
@@ -42,9 +42,9 @@ void espnow_init();
 void onEspNowDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len);
 void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 bool findMaster();
-esp_err_t doSendData(espnow_msg_outdoor_sensor data);
-void sendData(espnow_msg_outdoor_sensor data);
-float getOutsideTemp();
+esp_err_t doSendData(espnow_msg_temperature_sensor data);
+void sendData(espnow_msg_temperature_sensor data);
+float getTemperature();
 float getSupplyVoltage();
 
 // implementations, public
@@ -71,9 +71,9 @@ void app_main() {
   adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_11db);
 
   if (findMaster()) {
-    espnow_msg_outdoor_sensor data;
-    data.base.type = espnow_outdoor_sensor_data;
-    data.temperatureC = getOutsideTemp();
+    espnow_msg_temperature_sensor data;
+    data.base.type = espnow_temperature_sensor_data;
+    data.temperatureC = getTemperature();
     data.supplyVoltage = getSupplyVoltage();
     sendData(data);
   } else {
@@ -172,7 +172,7 @@ bool findMaster() {
   return master_found;
 }
 
-esp_err_t doSendData(espnow_msg_outdoor_sensor data) {
+esp_err_t doSendData(espnow_msg_temperature_sensor data) {
   if (!esp_now_is_peer_exist(master_mac_addr)) {
 
     // NOTE: needs to be declared `static` otherwise the follow error occurs:
@@ -194,7 +194,7 @@ esp_err_t doSendData(espnow_msg_outdoor_sensor data) {
   return esp_now_send(master_mac_addr, (uint8_t *) &data, sizeof(data));
 }
 
-void sendData(espnow_msg_outdoor_sensor data) {
+void sendData(espnow_msg_temperature_sensor data) {
   do {
     sendAttempt++;
     sendGotResult = false;
@@ -215,7 +215,7 @@ void sendData(espnow_msg_outdoor_sensor data) {
   ESP_LOGD(TAG, "Send result %s after %d attempt(s)", sendSuccess ? "OK" : "FAIL", sendAttempt);
 }
 
-float getOutsideTemp() {
+float getTemperature() {
   sensors.requestTemperatures();
   float temp = sensors.getTempCByIndex(0);
   ESP_LOGD(TAG, "Temperature: %f", temp);
