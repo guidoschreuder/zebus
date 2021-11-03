@@ -38,10 +38,15 @@ void handleNewMessages(int numNewMessages) {
       reply += system_info->ebus.heater_id.sw_version;
       reply += ", HW: ";
       reply += system_info->ebus.heater_id.hw_version;
-      reply += ")\nOutdoor Sensor Temperature: ";
-      reply += system_info->outdoor.temperatureC;
-      reply += "\nOutdoor Sensor Voltage: ";
-      reply += system_info->outdoor.supplyVoltage;
+      reply += ")";
+
+      for (uint8_t i = 0; i < system_info->num_sensors; i++) {
+        reply += "\nSensor " + String(system_info->sensors[i].location) + ":\n  Temperature: ";
+        reply += system_info->sensors[i].temperatureC;
+        reply += "\n  Voltage: ";
+        reply += system_info->sensors[i].supplyVoltage;
+      }
+
       telegramBot.sendMessage(telegramBot.messages[i].chat_id, reply);
     }
   }

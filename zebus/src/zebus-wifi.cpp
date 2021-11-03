@@ -232,13 +232,33 @@ void handleTemperatureSensor(const uint8_t *mac_addr, const uint8_t *incomingDat
     ESP_LOGE(ZEBUS_LOG_TAG, "%s", getLastHmacError());
     return;
   }
-  system_info->outdoor.temperatureC = message.temperatureC;
-  system_info->outdoor.supplyVoltage = message.supplyVoltage;
+
+  int8_t sensor_index = -1;
+  for (uint8_t i = 0; i < system_info->num_sensors; i++) {
+    if (strcmp(system_info->sensors[i].location, message.location) == 0) {
+      sensor_index = i;
+      break;
+    }
+  }
+
+  if (sensor_index == -1) {
+    ESP_LOGD(ZEBUS_LOG_TAG, "found new sensor \"%s\"", message.location);
+    if (system_info->num_sensors == MAX_SENSORS) {
+      ESP_LOGE(ZEBUS_LOG_TAG, "Maximum sensors exceeded, ignoring sensor %s", message.location);
+      return;
+    }
+    sensor_index = system_info->num_sensors;
+    system_info->num_sensors++;
+    strcpy(system_info->sensors[sensor_index].location, message.location);
+  }
+
+  system_info->sensors[sensor_index].temperatureC = message.temperatureC;
+  system_info->sensors[sensor_index].supplyVoltage = message.supplyVoltage;
 
   ESP_LOGD(ZEBUS_LOG_TAG, "Temperature Sensor: {location: %s, temp: %f, voltage: %f}",
            message.location,
-           system_info->outdoor.temperatureC,
-           system_info->outdoor.supplyVoltage);
+           message.temperatureC,
+           message.supplyVoltage);
 
 }
 
@@ -288,8 +308,11 @@ void mqtt_log_state() {
   if (last_mqtt_sent == 0 ||
       last_mqtt_sent + ZEBUS_MQTT_UPDATE_INTERVAL_MS < now) {
 
-    MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/outdoor/temperature", system_info->outdoor.temperatureC);
-    MQTT_LOG(system_info->outdoor.supplyVoltage > 1, mqtt_client, "zebus/outdoor/voltage", system_info->outdoor.supplyVoltage);
+    for (uint8_t i = 0; i < system_info->num_sensors; i++) {
+      String topic_base = "zebus/sensor/" + String(system_info->sensors[i].location);
+      MQTT_LOG_VALID_TEMP(mqtt_client, (topic_base + "/temperature").c_str(), system_info->sensors[i].temperatureC);
+      MQTT_LOG(system_info->sensors[i].supplyVoltage > 1, mqtt_client, (topic_base + "/voltage").c_str(), system_info->sensors[i].supplyVoltage);
+    }
 
     MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/heater/setpoint/flow/temperature", system_info->heater.max_flow_setpoint);
     MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/heater/flow/temperature", system_info->heater.flow_temp);

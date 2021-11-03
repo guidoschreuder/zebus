@@ -4,8 +4,12 @@
 #include "zebus-messages.h"
 #include "espnow-types.h"
 
+#define MAX_SENSORS 8
+
 #define WIFI_NO_SIGNAL 0x80000000
 #define INVALID_TEMP -255.0
+
+#define OUTSIDE_TEMP_FALLBACK 10.0;
 
 struct system_info_t {
   struct ebus {
@@ -33,10 +37,8 @@ struct system_info_t {
     float flow;
     float modulation;
   } heater;
-  struct outdoor {
-    float temperatureC = INVALID_TEMP;
-    float supplyVoltage;
-  } outdoor;
+  espnow_msg_temperature_sensor sensors[MAX_SENSORS];
+  uint8_t num_sensors = 0;
 };
 
 extern struct system_info_t* system_info;

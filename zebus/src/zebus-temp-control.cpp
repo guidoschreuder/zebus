@@ -3,6 +3,7 @@
 #include "PID.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "string.h"
 #include "zebus-system-info.h"
 
 bool tempControlInit = false;
@@ -18,6 +19,7 @@ PID pid = PID(&current_room_temp, &heat_request_temp, &desired_room_temp, Kp, Ki
 // prototypes
 void initTempControl();
 float get_max_weather_flow_temp(float outside_temp, float flow_setpoint);
+float get_outdoor_temperature();
 
 // public functions
 void temparatureControlTask(void *pvParameter) {
@@ -30,7 +32,7 @@ void temparatureControlTask(void *pvParameter) {
     desired_room_temp = 19.5;
 
     pid.SetOutputLimits(TEMP_MIN_HEATING,
-                        get_max_weather_flow_temp(system_info->outdoor.temperatureC,
+                        get_max_weather_flow_temp(get_outdoor_temperature(),
                                                   system_info->heater.max_flow_setpoint));
 
     pid.Compute();
@@ -53,4 +55,13 @@ void initTempControl() {
 float get_max_weather_flow_temp(float outside_temp, float flow_setpoint) {
   float curve = (flow_setpoint - TEMP_MIN_HEATING) / (TEMP_OUTSIDE_MAX - TEMP_OUTSIDE_MIN);
   return clamp(flow_setpoint - (outside_temp - TEMP_OUTSIDE_MIN) * curve, TEMP_MIN_HEATING, flow_setpoint);
+}
+
+float get_outdoor_temperature() {
+ for (uint8_t i = 0; i < system_info->num_sensors; i++) {
+    if (strcmp(system_info->sensors[i].location, "outdoor") == 0) {
+      return system_info->sensors[i].temperatureC;
+    }
+  }
+  return OUTSIDE_TEMP_FALLBACK;
 }
