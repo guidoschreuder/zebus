@@ -158,12 +158,12 @@ void updateDisplay() {
   tft.setCursor(0, 195, 1);
   tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
   tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->ebus.heater_id.device, system_info->ebus.heater_id.sw_version, system_info->ebus.heater_id.hw_version);
-  tft.printf("Flame : %s       \n", system_info->ebus.flame ? "ON" : "OFF");
-  tft.printf("Flow  : %.2f     \n", system_info->ebus.flow);
+  tft.printf("Flame : %s       \n", system_info->heater.flame ? "ON" : "OFF");
+  tft.printf("Flow  : %.2f     \n", system_info->heater.flow);
 
   drawSpriteHeater(280, 10, true);
   drawSpriteHeater(240, 10, false);
-  drawSpriteShower(280, 50, system_info->ebus.flow);
+  drawSpriteShower(280, 50, system_info->heater.flow);
   drawSpriteWifiStrength(280, 90, system_info->wifi.rssi);
   drawSpriteEbusQueue(240, 90, system_info->ebus.queue_size);
 }

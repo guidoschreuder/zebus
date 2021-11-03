@@ -12,8 +12,6 @@ struct system_info_t {
     identification_t self_id;
     identification_t heater_id;
     uint8_t queue_size;
-    bool flame = false;
-    float flow;
   } ebus;
   struct wifi {
     struct config_ap {
@@ -28,8 +26,12 @@ struct system_info_t {
     long last_init;
   } ntp;
   struct heater {
+    float max_flow_setpoint = INVALID_TEMP;
     float flow_temp = INVALID_TEMP;
     float return_temp = INVALID_TEMP;
+    bool flame = false;
+    float flow;
+    float modulation;
   } heater;
   struct outdoor {
     float temperatureC = INVALID_TEMP;

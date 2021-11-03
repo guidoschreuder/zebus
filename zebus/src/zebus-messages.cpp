@@ -21,11 +21,12 @@ void handle_identification(Ebus::Telegram &telegram);
 void handle_device_config_read(Ebus::Telegram &telegram);
 void handle_device_config_read_flame(Ebus::Telegram &telegram);
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram &telegram);
-void handle_device_config_read_hwc_flow_temp(Ebus::Telegram &telegram);
-void handle_device_config_read_hwc_return_temp(Ebus::Telegram &telegram);
+void handle_device_config_read_flow_temp(Ebus::Telegram &telegram);
+void handle_device_config_read_return_temp(Ebus::Telegram &telegram);
 void handle_device_config_read_ebus_control(Ebus::Telegram &telegram);
 void handle_device_config_read_partload_hc_kw(Ebus::Telegram &telegram);
 void handle_device_config_read_modulation(Ebus::Telegram &telegram);
+void handle_device_config_read_max_flow_setpoint(Ebus::Telegram &telegram);
 void handle_error(Ebus::Telegram &telegram);
 void debugLogger(Ebus::Telegram &telegram);
 
@@ -39,11 +40,12 @@ message_handler device_config_read_message_handlers[] =
 {
     {DEVICE_CONFIG_FLAME, handle_device_config_read_flame},
     {DEVICE_CONFIG_HWC_WATERFLOW, handle_device_config_read_hwc_waterflow},
-    {DEVICE_CONFIG_FLOW_TEMP, handle_device_config_read_hwc_flow_temp},
-    {DEVICE_CONFIG_RETURN_TEMP, handle_device_config_read_hwc_return_temp},
+    {DEVICE_CONFIG_FLOW_TEMP, handle_device_config_read_flow_temp},
+    {DEVICE_CONFIG_RETURN_TEMP, handle_device_config_read_return_temp},
     {DEVICE_CONFIG_EBUS_CONTROL, handle_device_config_read_ebus_control},
     {DEVICE_CONFIG_PARTLOAD_HC_KW, handle_device_config_read_partload_hc_kw},
     {DEVICE_CONFIG_MODULATION, handle_device_config_read_modulation},
+    {DEVICE_CONFIG_MAX_FLOW_SETPOINT, handle_device_config_read_max_flow_setpoint},
 };
 
 // public functions
@@ -157,21 +159,21 @@ void handle_device_config_read(Ebus::Telegram &telegram) {
 }
 
 void handle_device_config_read_flame(Ebus::Telegram &telegram) {
-  system_info->ebus.flame = telegram.getResponseByte(0) & 0x0F;
-  ESP_LOGD(ZEBUS_LOG_TAG, "Flame: %s", system_info->ebus.flame ? "ON " : "OFF");
+  system_info->heater.flame = telegram.getResponseByte(0) & 0x0F;
+  ESP_LOGD(ZEBUS_LOG_TAG, "Flame: %s", system_info->heater.flame ? "ON " : "OFF");
 }
 
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram &telegram) {
-  system_info->ebus.flow = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 100.0;
-  ESP_LOGD(ZEBUS_LOG_TAG, "Flow: %.2f", system_info->ebus.flow);
+  system_info->heater.flow = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 100.0;
+  ESP_LOGD(ZEBUS_LOG_TAG, "Flow: %.2f", system_info->heater.flow);
 }
 
-void handle_device_config_read_hwc_flow_temp(Ebus::Telegram &telegram) {
+void handle_device_config_read_flow_temp(Ebus::Telegram &telegram) {
   system_info->heater.flow_temp = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
   ESP_LOGD(ZEBUS_LOG_TAG, "Flow Temp: %.2f", system_info->heater.flow_temp);
 }
 
-void handle_device_config_read_hwc_return_temp(Ebus::Telegram &telegram) {
+void handle_device_config_read_return_temp(Ebus::Telegram &telegram) {
   system_info->heater.return_temp = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
   ESP_LOGD(ZEBUS_LOG_TAG, "Return Temp: %.2f", system_info->heater.return_temp);
 }
@@ -185,7 +187,13 @@ void handle_device_config_read_partload_hc_kw(Ebus::Telegram &telegram) {
 }
 
 void handle_device_config_read_modulation(Ebus::Telegram &telegram) {
-  ESP_LOGD(ZEBUS_LOG_TAG, "Modulation: %.1f", BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 10.0);
+  system_info->heater.modulation = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 10.0;
+  ESP_LOGD(ZEBUS_LOG_TAG, "Modulation: %.1f", system_info->heater.modulation);
+}
+
+void handle_device_config_read_max_flow_setpoint(Ebus::Telegram &telegram) {
+  system_info->heater.max_flow_setpoint = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
+  ESP_LOGD(ZEBUS_LOG_TAG, "Max Flow Setpoint: %.1f", system_info->heater.max_flow_setpoint);
 }
 
 void handle_error(Ebus::Telegram &telegram) {

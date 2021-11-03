@@ -269,10 +269,14 @@ void mqtt_setup() {
   esp_mqtt_client_start(mqtt_client);
 }
 
-#define LOG_VALID_TEMP_TO_MQTT(client, topic, temp) do { \
-  if (temp != INVALID_TEMP) { \
-    esp_mqtt_client_publish(client, topic, String(temp).c_str(), 0, 1, 0); \
+#define MQTT_LOG(predicate, client, topic, value) do { \
+  if (predicate) { \
+    esp_mqtt_client_publish(client, topic, String(value).c_str(), 0, 1, 0); \
   } \
+} while(0)
+
+#define MQTT_LOG_VALID_TEMP(client, topic, temp) do { \
+    MQTT_LOG(temp != INVALID_TEMP, client, topic, temp); \
 } while(0);
 
 void mqtt_log_state() {
@@ -280,9 +284,15 @@ void mqtt_log_state() {
   if (last_mqtt_sent == 0 ||
       last_mqtt_sent + ZEBUS_MQTT_UPDATE_INTERVAL_MS < now) {
 
-    LOG_VALID_TEMP_TO_MQTT(mqtt_client, "zebus/outdoor/temperature", system_info->outdoor.temperatureC);
-    LOG_VALID_TEMP_TO_MQTT(mqtt_client, "zebus/heater/flow/temperature", system_info->heater.flow_temp);
-    LOG_VALID_TEMP_TO_MQTT(mqtt_client, "zebus/heater/return/temperature", system_info->heater.return_temp);
+    MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/outdoor/temperature", system_info->outdoor.temperatureC);
+    MQTT_LOG(system_info->outdoor.supplyVoltage > 1, mqtt_client, "zebus/outdoor/voltage", system_info->outdoor.supplyVoltage);
+
+    MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/heater/setpoint/flow/temperature", system_info->heater.max_flow_setpoint);
+    MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/heater/flow/temperature", system_info->heater.flow_temp);
+    MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/heater/return/temperature", system_info->heater.return_temp);
+    MQTT_LOG(true, mqtt_client, "zebus/heater/hcw/flowrate", system_info->heater.flow);
+    MQTT_LOG(true, mqtt_client, "zebus/heater/flame/onoff", system_info->heater.flame);
+    MQTT_LOG(true, mqtt_client, "zebus/heater/modulation/percentage", system_info->heater.modulation);
 
     last_mqtt_sent = now;
   }

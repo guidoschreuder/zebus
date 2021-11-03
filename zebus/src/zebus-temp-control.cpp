@@ -17,7 +17,7 @@ PID pid = PID(&current_room_temp, &heat_request_temp, &desired_room_temp, Kp, Ki
 
 // prototypes
 void initTempControl();
-float get_max_weather_flow_temp(float outside_temp);
+float get_max_weather_flow_temp(float outside_temp, float flow_setpoint);
 
 // public functions
 void temparatureControlTask(void *pvParameter) {
@@ -29,7 +29,9 @@ void temparatureControlTask(void *pvParameter) {
     // TODO: should be set by user on room controller
     desired_room_temp = 19.5;
 
-    pid.SetOutputLimits(TEMP_MIN_HEATING, get_max_weather_flow_temp(system_info->outdoor.temperatureC));
+    pid.SetOutputLimits(TEMP_MIN_HEATING,
+                        get_max_weather_flow_temp(system_info->outdoor.temperatureC,
+                                                  system_info->heater.max_flow_setpoint));
 
     pid.Compute();
 
@@ -41,15 +43,14 @@ void temparatureControlTask(void *pvParameter) {
 
 // implementations
 void initTempControl() {
-  if(tempControlInit) {
-      return;
+  if (tempControlInit) {
+    return;
   }
-  pid.SetOutputLimits(TEMP_MIN_HEATING, TEMP_MAX_HEATING);
   pid.SetMode(AUTOMATIC);
   tempControlInit = true;
 }
 
-
-float get_max_weather_flow_temp(float outside_temp) {
-  return clamp(TEMP_MAX_HEATING - (outside_temp - TEMP_OUTSIDE_MIN) * HEATING_CURVE, TEMP_MIN_HEATING, TEMP_MAX_HEATING);
+float get_max_weather_flow_temp(float outside_temp, float flow_setpoint) {
+  float curve = (flow_setpoint - TEMP_MIN_HEATING) / (TEMP_OUTSIDE_MAX - TEMP_OUTSIDE_MIN);
+  return clamp(flow_setpoint - (outside_temp - TEMP_OUTSIDE_MIN) * curve, TEMP_MIN_HEATING, flow_setpoint);
 }
