@@ -73,6 +73,7 @@ void app_main() {
   if (findMaster()) {
     espnow_msg_temperature_sensor data;
     data.base.type = espnow_temperature_sensor_data;
+    strcpy(data.location, SENSOR_LOCATION);
     data.temperatureC = getTemperature();
     data.supplyVoltage = getSupplyVoltage();
     sendData(data);

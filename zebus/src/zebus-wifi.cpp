@@ -226,7 +226,7 @@ void handlePing(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   }
 }
 
-void handleOutdoorSensor(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
+void handleTemperatureSensor(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   espnow_msg_temperature_sensor message;
   if (!validate_and_copy(&message, sizeof(message), incomingData, len)) {
     ESP_LOGE(ZEBUS_LOG_TAG, "%s", getLastHmacError());
@@ -234,8 +234,12 @@ void handleOutdoorSensor(const uint8_t *mac_addr, const uint8_t *incomingData, i
   }
   system_info->outdoor.temperatureC = message.temperatureC;
   system_info->outdoor.supplyVoltage = message.supplyVoltage;
-  ESP_LOGD(ZEBUS_LOG_TAG, "Outdoor Temperature: %f", system_info->outdoor.temperatureC);
-  ESP_LOGD(ZEBUS_LOG_TAG, "Outdoor Voltage: %f", system_info->outdoor.supplyVoltage);
+
+  ESP_LOGD(ZEBUS_LOG_TAG, "Temperature Sensor: {location: %s, temp: %f, voltage: %f}",
+           message.location,
+           system_info->outdoor.temperatureC,
+           system_info->outdoor.supplyVoltage);
+
 }
 
 void onEspNowDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
@@ -245,7 +249,7 @@ void onEspNowDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int 
     handlePing(mac_addr, incomingData, len);
     break;
   case espnow_temperature_sensor_data:
-    handleOutdoorSensor(mac_addr, incomingData, len);
+    handleTemperatureSensor(mac_addr, incomingData, len);
     break;
   default:
     ESP_LOGW(ZEBUS_LOG_TAG, "Got invalid message type: %d", incomingData[0]);

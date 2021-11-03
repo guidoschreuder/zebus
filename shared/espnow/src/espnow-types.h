@@ -26,6 +26,7 @@ typedef struct espnow_msg_ping_reply {
 
 typedef struct espnow_msg_temperature_sensor {
   espnow_message_base base;
+  char location[16];
   float temperatureC;
   float supplyVoltage;
 } espnow_msg_temperature_sensor;
