@@ -21,6 +21,8 @@
 #define EBUS_RESPONSE_BUFFER_SIZE (EBUS_MAX_DATA_LENGTH + 2)
 #define EBUS_RESPONSE_OFFSET 1
 
+#define EBUS_INVALID_RESPONSE_BYTE -1
+
 #define _EBUS_GETTER(BUFFER, POS)     \
   uint8_t get##POS() {                \
     return BUFFER[EBUS_OFFSET_##POS]; \
