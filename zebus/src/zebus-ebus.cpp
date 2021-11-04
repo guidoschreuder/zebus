@@ -11,6 +11,7 @@
 #define CHECK_INT_STATUS(ST, MASK) (((ST) & (MASK)) == (MASK))
 
 bool ebusInit = false;
+long ebus_tick = 0;
 
 // queues
 QueueHandle_t telegramHistoryQueue;
@@ -49,7 +50,8 @@ void ebusTask(void *pvParameter) {
   while(1) {
     initEbus();
     ebusPoll();
-    vTaskDelay(pdMS_TO_TICKS(5000));
+    vTaskDelay(pdMS_TO_TICKS(ZEBUS_EBUS_TICK_MS));
+    ebus_tick++;
   }
 }
 
@@ -75,16 +77,24 @@ void initEbus() {
 
 // TODO: this is all very much test code for now
 void ebusPoll() {
-  enqueueEbusCommand(createCommand(EBUS_MASTER_ADDRESS, CMD_IDENTIFICATION));
-  enqueueEbusCommand(createHeaterCommand(CMD_IDENTIFICATION));
-  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_HWC_WATERFLOW));
-  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_FLAME));
-  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_FLOW_TEMP));
-  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_RETURN_TEMP));
-  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_EBUS_CONTROL));
-  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_PARTLOAD_HC_KW));
-  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_MODULATION));
-  enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_MAX_FLOW_SETPOINT));
+  if (ebus_tick % 60 == 0) {
+    enqueueEbusCommand(createCommand(EBUS_MASTER_ADDRESS, CMD_IDENTIFICATION));
+    enqueueEbusCommand(createHeaterCommand(CMD_IDENTIFICATION));
+    enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_MAX_FLOW_SETPOINT));
+    enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_EBUS_CONTROL));
+    enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_PARTLOAD_HC_KW));
+  }
+
+  if (ebus_tick % 5 == 0) {
+    enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_FLOW_TEMP));
+    enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_RETURN_TEMP));
+    enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_MODULATION));
+  }
+
+  if (ebus_tick % 1 == 0) {
+    enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_HWC_WATERFLOW));
+    enqueueEbusCommand(createHeaterReadConfigCommand(DEVICE_CONFIG_FLAME));
+  }
 
   // TODO: OK, this does seem to work but we do not have a proper way to set or control the room temparature yet
   // uint8_t setModeData[] = {0x00, 0x00, 0x5E, 0x78, 0xFF, 0xFF, 0x00, 0xFF, 0x00};

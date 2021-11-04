@@ -24,6 +24,8 @@
 #define ZEBUS_SENSOR_INTERVAL_MS 10000
 
 // eBUS configuration
+#define ZEBUS_EBUS_TICK_MS 1000
+
 #define EBUS_UART_NUM 1
 #define EBUS_UART_RX_PIN 32
 #define EBUS_UART_TX_PIN 33
