@@ -8,7 +8,7 @@
 
 #define VERIFY_RESPONSE_LENGTH(min_length) \
   if (telegram.getResponseNN() < min_length) { \
-    ESP_LOGE(ZEBUS_LOG_TAG, "RESPONSE TOO SHORT"); \
+    ESP_LOGE(ZEBUS_LOG_TAG, "RESPONSE TOO SHORT: is %d, expected at least %d bytes", telegram.getResponseNN(), min_length); \
     debugLogger(telegram); \
     return; \
   }
