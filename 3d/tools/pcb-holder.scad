@@ -11,7 +11,7 @@ pcb_thickness = 1.6;
 pcb_heigth_offset = 3.5;
 
 // Thickness of base plate
-baseplate_thickness = 2.1;
+baseplate_thickness = 1.5;
 
 // Thickness of the ledge that supports the PCB
 pcb_support_width = 2.1;

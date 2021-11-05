@@ -2,22 +2,22 @@
 part = "box"; // [box:box only,front:front only]
 
 // Heigth of box in mm (Inside).
-height = 80; 
+height = 75; 
 
 // Width of box in mm (Inside).
-width = 55;
+width = 52;
 
 // Depth of box in mm (Inside).
-depth = 20;
+depth = 16;
 
 // Wall thicknes of box in mm.
-thickness = 2.2; 
+thickness = 1.5; 
 
 // Diameter of screw hole in mm.
 diameter_hole = 0;
 
 // Length of the slats in mm.
-length_slats = 8;
+length_slats = 7;
 
 // Pointed or flat roof?
 roof = "flat"; // [pointed:pointed roof, flat:flat roof]
