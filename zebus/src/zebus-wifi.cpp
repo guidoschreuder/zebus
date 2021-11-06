@@ -12,6 +12,7 @@
 #include "zebus-events.h"
 #include "zebus-system-info.h"
 #include "zebus-telegram-bot.h"
+#include "zebus-time.h"
 #include "zebus-secrets.h"
 
 const char PWD_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
@@ -21,7 +22,7 @@ bool wiFiEnabled = false;
 RTC_DATA_ATTR bool configPortalHasRan = false;
 
 esp_mqtt_client_handle_t mqtt_client;
-unsigned long last_mqtt_sent = 0;
+uint64_t last_mqtt_sent = 0;
 
 // prototype
 void setupWiFi();
@@ -183,12 +184,9 @@ void onWiFiConnectionLost() {
 }
 
 void refreshNTP() {
-  long now = millis();
-  if (system_info->ntp.last_init == 0 ||
-      system_info->ntp.last_init + ZEBUS_NTP_REFRESH_INTERVAL_SEC * 1000 < now) {
+  if (interval_expired(&system_info->ntp.last_init, ZEBUS_NTP_REFRESH_INTERVAL_MS)) {
     ESP_LOGD(ZEBUS_LOG_TAG, "Refreshing NTP");
     configTime(ZEBUS_NTP_GMT_OFFSET_SEC, ZEBUS_NTP_GMT_DST_OFFSET_SEC, ZEBUS_NTP_SERVER);
-    system_info->ntp.last_init = now;
   }
 }
 
@@ -304,10 +302,7 @@ void mqtt_setup() {
 } while(0);
 
 void mqtt_log_state() {
-  long now = millis();
-  if (last_mqtt_sent == 0 ||
-      last_mqtt_sent + ZEBUS_MQTT_UPDATE_INTERVAL_MS < now) {
-
+  if (interval_expired(&last_mqtt_sent, ZEBUS_MQTT_UPDATE_INTERVAL_MS)) {
     for (uint8_t i = 0; i < system_info->num_sensors; i++) {
       String topic_base = "zebus/sensor/" + String(system_info->sensors[i].location);
       MQTT_LOG_VALID_TEMP(mqtt_client, (topic_base + "/temperature").c_str(), system_info->sensors[i].temperatureC);
@@ -320,7 +315,5 @@ void mqtt_log_state() {
     MQTT_LOG(true, mqtt_client, "zebus/heater/hcw/flowrate", system_info->heater.flow);
     MQTT_LOG(true, mqtt_client, "zebus/heater/flame/onoff", system_info->heater.flame);
     MQTT_LOG(true, mqtt_client, "zebus/heater/modulation/percentage", system_info->heater.modulation);
-
-    last_mqtt_sent = now;
   }
 }

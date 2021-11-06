@@ -27,7 +27,7 @@ struct system_info_t {
     int32_t rssi;
   } wifi;
   struct ntp {
-    long last_init;
+    uint64_t last_init;
   } ntp;
   struct heater {
     float max_flow_setpoint = INVALID_TEMP;

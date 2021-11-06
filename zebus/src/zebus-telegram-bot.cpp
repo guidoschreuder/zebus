@@ -5,14 +5,15 @@
 #include <WiFiClientSecure.h>
 
 #include "zebus-config.h"
-#include "zebus-system-info.h"
 #include "zebus-secrets.h"
+#include "zebus-system-info.h"
+#include "zebus-time.h"
 
 WiFiClientSecure client;
 UniversalTelegramBot telegramBot(ZEBUS_TELEGRAM_TOKEN, client);
 
 bool telegramInit = false;
-unsigned long bot_lasttime; // last time messages' scan has been done
+uint64_t bot_lasttime; // last time messages' scan has been done
 
 void setupTelegram() {
   if (telegramInit) {
@@ -55,7 +56,7 @@ void handleNewMessages(int numNewMessages) {
 void handleTelegramMessages() {
   setupTelegram();
 
-  if (millis() - bot_lasttime > ZEBUS_TELEGRAM_MTBS_MS) {
+  if (interval_expired(&bot_lasttime, ZEBUS_TELEGRAM_MTBS_MS)) {
     ESP_LOGV(ZEBUS_LOG_TAG, "telegram poll");
 
     int numNewMessages = telegramBot.getUpdates(telegramBot.last_message_received + 1);
@@ -63,6 +64,5 @@ void handleTelegramMessages() {
       handleNewMessages(numNewMessages);
       numNewMessages = telegramBot.getUpdates(telegramBot.last_message_received + 1);
     }
-    bot_lasttime = millis();
   }
 }
