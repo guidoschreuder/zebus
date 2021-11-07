@@ -9,7 +9,7 @@
 #include "espnow-hmac.h"
 #include "espnow-types.h"
 #include "zebus-config.h"
-#include "zebus-events.h"
+#include "zebus-state.h"
 #include "zebus-system-info.h"
 #include "zebus-telegram-bot.h"
 #include "zebus-time.h"

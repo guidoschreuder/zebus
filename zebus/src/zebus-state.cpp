@@ -1,4 +1,4 @@
-#include "zebus-events.h"
+#include "zebus-state.h"
 
 void eventTask(void *pvParameter) {
   EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;

@@ -6,7 +6,7 @@
 #include "zebus-config.h"
 #include "zebus-messages.h"
 #include "zebus-system-info.h"
-#include "zebus-events.h"
+#include "zebus-state.h"
 
 #define GET_BYTE(INT32, I) ((INT32 >> 8 * I) & 0XFF)
 
