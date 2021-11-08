@@ -1,6 +1,6 @@
 #include "zebus-state.h"
 
-void eventTask(void *pvParameter) {
+void stateTask(void *pvParameter) {
   EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;
   // TODO: toggling if for demonstration purposes only
   bool displayOn = true, wiFiOn = true;
