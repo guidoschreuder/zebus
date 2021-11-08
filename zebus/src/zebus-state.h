@@ -6,13 +6,13 @@
 
 #include "zebus-log.h"
 
-enum event_bits {
+enum state_bits {
   DISPLAY_ENABLED  = (1 << 0),
   DISPLAY_DISABLED = (1 << 1),
   WIFI_ENABLED     = (1 << 2),
   WIFI_DISABLED    = (1 << 3),
 };
 
-void eventTask(void *pvParameter);
+void stateTask(void *pvParameter);
 
 #endif
