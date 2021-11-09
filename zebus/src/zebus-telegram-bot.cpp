@@ -42,10 +42,12 @@ void handleNewMessages(int numNewMessages) {
       reply += ")";
 
       for (uint8_t i = 0; i < system_info->num_sensors; i++) {
-        reply += "\nSensor " + String(system_info->sensors[i].location) + ":\n  Temperature: ";
-        reply += system_info->sensors[i].temperatureC;
-        reply += "\n  Voltage: ";
-        reply += system_info->sensors[i].supplyVoltage;
+        if (system_info->sensors[i].valid()) {
+          reply += "\nSensor " + String(system_info->sensors[i].value.location) + ":\n  Temperature: ";
+          reply += system_info->sensors[i].value.temperatureC;
+          reply += "\n  Voltage: ";
+          reply += system_info->sensors[i].value.supplyVoltage;
+        }
       }
 
       telegramBot.sendMessage(telegramBot.messages[i].chat_id, reply);

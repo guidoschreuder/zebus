@@ -7,9 +7,24 @@
 #define MAX_SENSORS 8
 
 #define WIFI_NO_SIGNAL 0x80000000
-#define INVALID_TEMP -255.0
-
 #define OUTSIDE_TEMP_FALLBACK 10.0;
+
+#define MEASUREMENT(DATATYPE)               \
+  uint64_t timestamp = 0;                   \
+  bool valid() { return timestamp != 0; };  \
+  DATATYPE value;
+
+struct measurement_float {
+  MEASUREMENT(float)
+};
+
+struct measurement_bool {
+  MEASUREMENT(bool)
+};
+
+struct measurement_temperature_sensor {
+  MEASUREMENT(espnow_msg_temperature_sensor)
+};
 
 struct system_info_t {
   struct ebus {
@@ -30,14 +45,14 @@ struct system_info_t {
     uint64_t last_init;
   } ntp;
   struct heater {
-    float max_flow_setpoint = INVALID_TEMP;
-    float flow_temp = INVALID_TEMP;
-    float return_temp = INVALID_TEMP;
-    bool flame = false;
-    float flow;
-    float modulation;
+    measurement_float max_flow_setpoint;
+    measurement_float flow_temp;
+    measurement_float return_temp;
+    measurement_bool flame;
+    measurement_float flow;
+    measurement_float modulation;
   } heater;
-  espnow_msg_temperature_sensor sensors[MAX_SENSORS];
+  measurement_temperature_sensor sensors[MAX_SENSORS];
   uint8_t num_sensors = 0;
 };
 

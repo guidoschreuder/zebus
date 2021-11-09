@@ -31,13 +31,15 @@ void temparatureControlTask(void *pvParameter) {
     // TODO: should be set by user on room controller
     desired_room_temp = 19.5;
 
-    pid.SetOutputLimits(TEMP_MIN_HEATING,
-                        get_max_weather_flow_temp(get_outdoor_temperature(),
-                                                  system_info->heater.max_flow_setpoint));
+    if (system_info->heater.max_flow_setpoint.valid()) {
+      pid.SetOutputLimits(TEMP_MIN_HEATING,
+                          get_max_weather_flow_temp(get_outdoor_temperature(),
+                                                    system_info->heater.max_flow_setpoint.value));
 
-    pid.Compute();
+      pid.Compute();
 
-    ESP_LOGD(ZEBUS_LOG_TAG, "PID heating target: %.2f", heat_request_temp);
+      ESP_LOGD(ZEBUS_LOG_TAG, "PID heating target: %.2f", heat_request_temp);
+    }
 
     vTaskDelay(pdMS_TO_TICKS(PID_COMPUTE_INTERVAL_MS));
   }
@@ -59,8 +61,8 @@ float get_max_weather_flow_temp(float outside_temp, float flow_setpoint) {
 
 float get_outdoor_temperature() {
  for (uint8_t i = 0; i < system_info->num_sensors; i++) {
-    if (strcmp(system_info->sensors[i].location, "outdoor") == 0) {
-      return system_info->sensors[i].temperatureC;
+    if (strcmp(system_info->sensors[i].value.location, "outdoor") == 0) {
+      return system_info->sensors[i].value.temperatureC;
     }
   }
   return OUTSIDE_TEMP_FALLBACK;

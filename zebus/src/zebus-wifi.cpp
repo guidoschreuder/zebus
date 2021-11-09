@@ -233,7 +233,7 @@ void handleTemperatureSensor(const uint8_t *mac_addr, const uint8_t *incomingDat
 
   int8_t sensor_index = -1;
   for (uint8_t i = 0; i < system_info->num_sensors; i++) {
-    if (strcmp(system_info->sensors[i].location, message.location) == 0) {
+    if (strcmp(system_info->sensors[i].value.location, message.location) == 0) {
       sensor_index = i;
       break;
     }
@@ -247,11 +247,10 @@ void handleTemperatureSensor(const uint8_t *mac_addr, const uint8_t *incomingDat
     }
     sensor_index = system_info->num_sensors;
     system_info->num_sensors++;
-    strcpy(system_info->sensors[sensor_index].location, message.location);
   }
 
-  system_info->sensors[sensor_index].temperatureC = message.temperatureC;
-  system_info->sensors[sensor_index].supplyVoltage = message.supplyVoltage;
+  system_info->sensors[sensor_index].timestamp = get_rtc_millis();
+  memcpy(&system_info->sensors[sensor_index].value, &message, sizeof(message));
 
   ESP_LOGD(ZEBUS_LOG_TAG, "Temperature Sensor: {location: %s, temp: %f, voltage: %f}",
            message.location,
@@ -297,23 +296,23 @@ void mqtt_setup() {
   } \
 } while(0)
 
-#define MQTT_LOG_VALID_TEMP(client, topic, temp) do { \
-    MQTT_LOG(temp != INVALID_TEMP, client, topic, temp); \
+#define MQTT_LOG_VALID_MEASUREMENT(client, topic, measurement, field) do { \
+    MQTT_LOG(measurement.valid(), client, topic, measurement.field); \
 } while(0);
 
 void mqtt_log_state() {
   if (interval_expired(&last_mqtt_sent, ZEBUS_MQTT_UPDATE_INTERVAL_MS)) {
     for (uint8_t i = 0; i < system_info->num_sensors; i++) {
-      String topic_base = "zebus/sensor/" + String(system_info->sensors[i].location);
-      MQTT_LOG_VALID_TEMP(mqtt_client, (topic_base + "/temperature").c_str(), system_info->sensors[i].temperatureC);
-      MQTT_LOG(system_info->sensors[i].supplyVoltage > 1, mqtt_client, (topic_base + "/voltage").c_str(), system_info->sensors[i].supplyVoltage);
+      String topic_base = "zebus/sensor/" + String(system_info->sensors[i].value.location);
+      MQTT_LOG_VALID_MEASUREMENT(mqtt_client, (topic_base + "/temperature").c_str(), system_info->sensors[i], value.temperatureC);
+      MQTT_LOG_VALID_MEASUREMENT(mqtt_client, (topic_base + "/voltage").c_str(), system_info->sensors[i], value.supplyVoltage);
     }
 
-    MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/heater/setpoint/flow/temperature", system_info->heater.max_flow_setpoint);
-    MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/heater/flow/temperature", system_info->heater.flow_temp);
-    MQTT_LOG_VALID_TEMP(mqtt_client, "zebus/heater/return/temperature", system_info->heater.return_temp);
-    MQTT_LOG(true, mqtt_client, "zebus/heater/hcw/flowrate", system_info->heater.flow);
-    MQTT_LOG(true, mqtt_client, "zebus/heater/flame/onoff", system_info->heater.flame);
-    MQTT_LOG(true, mqtt_client, "zebus/heater/modulation/percentage", system_info->heater.modulation);
+    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/setpoint/flow/temperature", system_info->heater.max_flow_setpoint, value);
+    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/flow/temperature", system_info->heater.flow_temp, value);
+    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/return/temperature", system_info->heater.return_temp, value);
+    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/hcw/flowrate", system_info->heater.flow, value);
+    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/flame/onoff", system_info->heater.flame, value);
+    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/modulation/percentage", system_info->heater.modulation, value);
   }
 }
