@@ -21,7 +21,7 @@
 #define ZEBUS_MQTT_UPDATE_INTERVAL_MS (2 * 1000)
 
 // Sensors
-#define ZEBUS_SENSOR_INTERVAL_MS 10000
+#define ZEBUS_SENSOR_INTERVAL_MS 60 * 1000
 
 // eBUS configuration
 #define ZEBUS_EBUS_TICK_MS 1000
