@@ -4,6 +4,7 @@
 #include <time.h>
 
 #include "zebus-config.h"
+#include "zebus-events.h"
 #include "zebus-messages.h"
 #include "zebus-system-info.h"
 #include "zebus-state.h"
@@ -23,6 +24,10 @@ TFT_eSprite spriteEbusQueue = TFT_eSprite(&tft);
 
 // 4-bit Palette colour table
 uint16_t palette[16];
+
+measurement_bool flame;
+measurement_float flow;
+uint8_t queue_size;
 
 // upfront implementations
 // for now this is just to keep the defines with the palette
@@ -57,6 +62,10 @@ void init4BitPalette() {
 #define EBUS_4BIT_WHITE 15
 
 // prototypes
+void display_handle_flame(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+void display_handle_flow(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+void display_handle_queue_size(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+
 void setupDisplay();
 void disableDisplay();
 
@@ -79,6 +88,9 @@ void print_ip_addr();
 
 // public functions
 void displayTask(void *pvParameter) {
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLAME, display_handle_flame, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLOW, display_handle_flow, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLOW, display_handle_queue_size, NULL));
   EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;
   for (;;) {
     EventBits_t uxBits = xEventGroupGetBits(event_group);
@@ -91,6 +103,18 @@ void displayTask(void *pvParameter) {
     }
     vTaskDelay(pdMS_TO_TICKS(100));
   }
+}
+
+void display_handle_flame(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  flame = *((measurement_bool*) event_data);
+}
+
+void display_handle_flow(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  flow = *((measurement_float*) event_data);
+}
+
+void display_handle_queue_size(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  queue_size = *((uint8_t*) event_data);
 }
 
 // implementations
@@ -118,6 +142,7 @@ void disableDisplay() {
 
   // TODO: this should be replaced with actual shutdown when display is controlled through a mosfet
   tft.fillScreen(TFT_BLACK);
+
   displayInit = false;
 }
 
@@ -153,19 +178,19 @@ void updateDisplay() {
 
   print_ip_addr();
   tft.println();
-  tft.printf("Command Queue size: %d             \n", system_info->ebus.queue_size);
+  tft.printf("Command Queue size: %d             \n", queue_size);
 
   tft.setCursor(0, 195, 1);
   tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
   tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->ebus.heater_id.device, system_info->ebus.heater_id.sw_version, system_info->ebus.heater_id.hw_version);
-  tft.printf("Flame : %s       \n", system_info->heater.flame.value ? "ON" : "OFF");
-  tft.printf("Flow  : %.2f     \n", system_info->heater.flow.value);
+  tft.printf("Flame : %s       \n", flame.valid() ? (flame.value ? "ON" : "OFF") : "UNKNOWN");
+  tft.printf("Flow  : %.2f     \n", flow.valid() ? flow.value : -1 );
 
   drawSpriteHeater(280, 10, true);
   drawSpriteHeater(240, 10, false);
-  drawSpriteShower(280, 50, system_info->heater.flow.value);
+  drawSpriteShower(280, 50, flow.valid() ? flow.value : 0);
   drawSpriteWifiStrength(280, 90, system_info->wifi.rssi);
-  drawSpriteEbusQueue(240, 90, system_info->ebus.queue_size);
+  drawSpriteEbusQueue(240, 90, queue_size);
 }
 
 void drawSpriteShower(int32_t x, int32_t y, float flow) {

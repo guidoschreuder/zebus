@@ -2,8 +2,10 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <vector>
 
 #include "zebus-config.h"
+#include "zebus-events.h"
 #include "zebus-system-info.h"
 #include "zebus-time.h"
 
@@ -17,7 +19,7 @@
 #define BYTES_TO_WORD(HIGH_BYTE, LOW_BYTE) ((((uint16_t)HIGH_BYTE) << 8) | LOW_BYTE)
 #define GET_BYTE(CMD, I) ((uint8_t) ((CMD >> 8 * I) & 0XFF))
 
-extern struct system_info_t* system_info;
+std::vector<measurement *> cache(zebus_events::MAX_EVNT);
 
 struct message_handler {
     uint16_t command;
@@ -167,44 +169,60 @@ void handle_device_config_read(Ebus::Telegram &telegram) {
   }
 }
 
+bool set_value(uint8_t event_id, measurement* m, void* val, uint8_t size) {
+  if (!m->valid() || !m->value_equal(val) || interval_expired(&m->timestamp, 10000)) {
+    m->set_value(val);
+    m->timestamp = get_rtc_millis();
+    ESP_ERROR_CHECK(esp_event_post(ZEBUS_EVENTS,
+                                   event_id,
+                                   m,
+                                   size,
+                                   portMAX_DELAY));
+    return true;
+  }
+  return false;
+}
+
+void set_float_value(uint8_t event_id, float val, const char* label) {
+  if (cache.at(event_id) == NULL) {
+    cache.at(event_id) = new measurement_float();
+  }
+  if (set_value(event_id, cache.at(event_id), &val, sizeof(measurement_float))) {
+    ESP_LOGD(ZEBUS_LOG_TAG, "%s: %.2f", label, val);
+  }
+}
+
+void set_bool_value(uint8_t event_id, bool val, const char* label) {
+  if (cache.at(event_id) == NULL) {
+    cache.at(event_id) = new measurement_bool();
+  }
+  if (set_value(event_id, cache.at(event_id), &val, sizeof(measurement_bool))) {
+    ESP_LOGD(ZEBUS_LOG_TAG, "%s: %s", label, val ? "true" : "false");
+  }
+}
+
 void handle_device_config_read_flame(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(1);
   bool val = telegram.getResponseByte(0) & 0X0F;
-  if (!system_info->heater.flame.valid() || system_info->heater.flame.value != val) {
-    system_info->heater.flame.value = val;
-    ESP_LOGD(ZEBUS_LOG_TAG, "Flame: %s", system_info->heater.flame.value ? "ON" : "OFF");
-  }
-  system_info->heater.flame.timestamp = get_rtc_millis();
+  set_bool_value(zebus_events::EVNT_RECVD_FLAME, val, "Flame");
 }
 
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(2);
   float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 100.0;
-  if (!system_info->heater.flow.valid() || system_info->heater.flow.value != val) {
-    system_info->heater.flow.value = val;
-    ESP_LOGD(ZEBUS_LOG_TAG, "Flow: %.2f", system_info->heater.flow.value);
-  }
-  system_info->heater.flow.timestamp = get_rtc_millis();
+  set_float_value(zebus_events::EVNT_RECVD_FLOW, val, "Flow");
 }
 
 void handle_device_config_read_flow_temp(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(2);
   float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
-  if (!system_info->heater.flow_temp.valid() || system_info->heater.flow_temp.value != val) {
-    system_info->heater.flow_temp.value = val;
-    ESP_LOGD(ZEBUS_LOG_TAG, "Flow Temp: %.2f", system_info->heater.flow_temp.value);
-  }
-  system_info->heater.flow_temp.timestamp = get_rtc_millis();
+  set_float_value(zebus_events::EVNT_RECVD_FLOW_TEMP, val, "Flow Temp");
 }
 
 void handle_device_config_read_return_temp(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(2);
   float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
-  if (!system_info->heater.return_temp.valid() || system_info->heater.return_temp.value != val) {
-    system_info->heater.return_temp.value = val;
-    ESP_LOGD(ZEBUS_LOG_TAG, "Return Temp: %.2f", system_info->heater.return_temp.value);
-  }
-  system_info->heater.return_temp.timestamp = get_rtc_millis();
+  set_float_value(zebus_events::EVNT_RECVD_RETURN_TEMP, val, "Return Temp");
 }
 
 void handle_device_config_read_ebus_control(Ebus::Telegram &telegram) {
@@ -220,18 +238,13 @@ void handle_device_config_read_partload_hc_kw(Ebus::Telegram &telegram) {
 void handle_device_config_read_modulation(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(2);
   float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 10.0;
-  if (!system_info->heater.modulation.valid() || system_info->heater.modulation.value != val) {
-    system_info->heater.modulation.value = val;
-    ESP_LOGD(ZEBUS_LOG_TAG, "Modulation: %.1f", system_info->heater.modulation.value);
-  }
-  system_info->heater.modulation.timestamp = get_rtc_millis();
+  set_float_value(zebus_events::EVNT_RECVD_MODULATION, val, "Modulation");
 }
 
 void handle_device_config_read_max_flow_setpoint(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(2);
-  system_info->heater.max_flow_setpoint.timestamp = get_rtc_millis();
-  system_info->heater.max_flow_setpoint.value = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
-  ESP_LOGD(ZEBUS_LOG_TAG, "Max Flow Setpoint: %.1f", system_info->heater.max_flow_setpoint.value);
+  float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
+  set_float_value(zebus_events::EVNT_RECVD_MAX_FLOW_SETPOINT, val, "Max Flow Setpoint");
 }
 
 void handle_error(Ebus::Telegram &telegram) {

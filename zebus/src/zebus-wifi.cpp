@@ -9,6 +9,7 @@
 #include "espnow-hmac.h"
 #include "espnow-types.h"
 #include "zebus-config.h"
+#include "zebus-events.h"
 #include "zebus-state.h"
 #include "zebus-system-info.h"
 #include "zebus-telegram-bot.h"
@@ -24,6 +25,8 @@ RTC_DATA_ATTR bool configPortalHasRan = false;
 esp_mqtt_client_handle_t mqtt_client;
 uint64_t last_mqtt_sent = 0;
 
+uint64_t ntp_last_init;
+
 // prototype
 void setupWiFi();
 void disableWiFi();
@@ -37,7 +40,6 @@ void setupEspNow();
 void onEspNowDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len);
 void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 void mqtt_setup();
-void mqtt_log_state();
 
 // public functions
 const char *generate_ap_password() {
@@ -162,8 +164,6 @@ void onWiFiConnected() {
 
   refreshNTP();
 
-  mqtt_log_state();
-
   handleTelegramMessages();
 }
 
@@ -184,7 +184,7 @@ void onWiFiConnectionLost() {
 }
 
 void refreshNTP() {
-  if (interval_expired(&system_info->ntp.last_init, ZEBUS_NTP_REFRESH_INTERVAL_MS)) {
+  if (interval_expired(&ntp_last_init, ZEBUS_NTP_REFRESH_INTERVAL_MS)) {
     ESP_LOGD(ZEBUS_LOG_TAG, "Refreshing NTP");
     configTime(ZEBUS_NTP_GMT_OFFSET_SEC, ZEBUS_NTP_GMT_DST_OFFSET_SEC, ZEBUS_NTP_SERVER);
   }
@@ -231,32 +231,21 @@ void handleTemperatureSensor(const uint8_t *mac_addr, const uint8_t *incomingDat
     return;
   }
 
-  int8_t sensor_index = -1;
-  for (uint8_t i = 0; i < system_info->num_sensors; i++) {
-    if (strcmp(system_info->sensors[i].value.location, message.location) == 0) {
-      sensor_index = i;
-      break;
-    }
-  }
+  measurement_temperature_sensor data;
 
-  if (sensor_index == -1) {
-    ESP_LOGD(ZEBUS_LOG_TAG, "found new sensor \"%s\"", message.location);
-    if (system_info->num_sensors == MAX_SENSORS) {
-      ESP_LOGE(ZEBUS_LOG_TAG, "Maximum sensors exceeded, ignoring sensor %s", message.location);
-      return;
-    }
-    sensor_index = system_info->num_sensors;
-    system_info->num_sensors++;
-  }
-
-  system_info->sensors[sensor_index].timestamp = get_rtc_millis();
-  memcpy(&system_info->sensors[sensor_index].value, &message, sizeof(message));
+  data.timestamp = get_rtc_millis();
+  memcpy(&data.value, &message, sizeof(message));
 
   ESP_LOGD(ZEBUS_LOG_TAG, "Temperature Sensor: {location: %s, temp: %f, voltage: %f}",
            message.location,
            message.temperatureC,
            message.supplyVoltage);
 
+  esp_event_post(ZEBUS_EVENTS,
+                 zebus_events::EVNT_RECVD_SENSOR,
+                 &data,
+                 sizeof(measurement_temperature_sensor),
+                 portMAX_DELAY);
 }
 
 void onEspNowDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
@@ -277,6 +266,29 @@ void onEspNowDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   ESP_LOGV(ZEBUS_LOG_TAG, "Last Packet Send Status: %s", status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
+#define MQTT_LOG(predicate, client, topic, value) do { \
+  if (predicate) { \
+    esp_mqtt_client_publish(client, topic, String(value).c_str(), 0, 1, 0); \
+  } \
+} while(0)
+
+void mqtt_handle_float(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  measurement_float data = *((measurement_float*) event_data);
+  MQTT_LOG(true, mqtt_client, ((const char*) event_handler_arg), data.value);
+}
+
+void mqtt_handle_bool(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  measurement_bool data = *((measurement_bool*) event_data);
+  MQTT_LOG(true, mqtt_client, ((const char*) event_handler_arg), data.value);
+}
+
+void mqtt_handle_sensor(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  measurement_temperature_sensor data = *((measurement_temperature_sensor*) event_data);
+  String topic_base = "zebus/sensor/" + String(data.value.location);
+  MQTT_LOG(true, mqtt_client, (topic_base + "/temperature").c_str(), data.value.temperatureC);
+  MQTT_LOG(true, mqtt_client, (topic_base + "/voltage").c_str(), data.value.supplyVoltage);
+}
+
 void mqtt_setup() {
   esp_mqtt_client_config_t mqtt_cfg = {
       .host = ZEBUS_MQTT_HOST,
@@ -288,31 +300,14 @@ void mqtt_setup() {
   /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
   // esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
   esp_mqtt_client_start(mqtt_client);
-}
 
-#define MQTT_LOG(predicate, client, topic, value) do { \
-  if (predicate) { \
-    esp_mqtt_client_publish(client, topic, String(value).c_str(), 0, 1, 0); \
-  } \
-} while(0)
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_SENSOR, mqtt_handle_sensor, NULL));
 
-#define MQTT_LOG_VALID_MEASUREMENT(client, topic, measurement, field) do { \
-    MQTT_LOG(measurement.valid(), client, topic, measurement.field); \
-} while(0);
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_MAX_FLOW_SETPOINT, mqtt_handle_float, (void*) "zebus/heater/setpoint/flow/temperature"));
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLOW, mqtt_handle_float, (void*) "zebus/heater/hcw/flowrate"));
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLOW_TEMP, mqtt_handle_float, (void*) "zebus/heater/flow/temperature"));
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_RETURN_TEMP, mqtt_handle_float, (void*) "zebus/heater/return/temperature"));
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_MODULATION, mqtt_handle_float, (void*) "zebus/heater/modulation/percentage"));
 
-void mqtt_log_state() {
-  if (interval_expired(&last_mqtt_sent, ZEBUS_MQTT_UPDATE_INTERVAL_MS)) {
-    for (uint8_t i = 0; i < system_info->num_sensors; i++) {
-      String topic_base = "zebus/sensor/" + String(system_info->sensors[i].value.location);
-      MQTT_LOG_VALID_MEASUREMENT(mqtt_client, (topic_base + "/temperature").c_str(), system_info->sensors[i], value.temperatureC);
-      MQTT_LOG_VALID_MEASUREMENT(mqtt_client, (topic_base + "/voltage").c_str(), system_info->sensors[i], value.supplyVoltage);
-    }
-
-    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/setpoint/flow/temperature", system_info->heater.max_flow_setpoint, value);
-    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/flow/temperature", system_info->heater.flow_temp, value);
-    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/return/temperature", system_info->heater.return_temp, value);
-    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/hcw/flowrate", system_info->heater.flow, value);
-    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/flame/onoff", system_info->heater.flame, value);
-    MQTT_LOG_VALID_MEASUREMENT(mqtt_client, "zebus/heater/modulation/percentage", system_info->heater.modulation, value);
-  }
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLAME, mqtt_handle_bool, (void*) "zebus/heater/flame/onoff"));
 }

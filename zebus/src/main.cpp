@@ -2,6 +2,7 @@
 
 #include "zebus-display.h"
 #include "zebus-ebus.h"
+#include "zebus-events.h"
 #include "zebus-state.h"
 #include "zebus-system-info.h"
 #include "zebus-temp-control.h"
@@ -19,6 +20,8 @@ void app_main() {
   ESP_LOGI(ZEBUS_LOG_TAG, "Setup %s", ZEBUS_APPNAME);
 
   zebus_state_event_group = xEventGroupCreate();
+
+  initEventLoop();
 
   xTaskCreate(&displayTask, "displayTask", 2048, zebus_state_event_group, 5, NULL);
   xTaskCreate(&wiFiTask, "wiFiTask", 8192, zebus_state_event_group, 3, NULL);

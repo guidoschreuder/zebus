@@ -5,8 +5,8 @@
 
 #include "Ebus.h"
 #include "zebus-config.h"
+#include "zebus-events.h"
 #include "zebus-messages.h"
-#include "zebus-system-info.h"
 
 #define CHECK_INT_STATUS(ST, MASK) (((ST) & (MASK)) == (MASK))
 
@@ -105,7 +105,12 @@ void ebusPoll() {
 
 void enqueueEbusCommand(const Ebus::SendCommand &command) {
   xQueueSendToBack(telegramCommandQueue, &command, portMAX_DELAY);
-  system_info->ebus.queue_size = uxQueueMessagesWaiting(telegramCommandQueue);
+  uint8_t queue_size = (uint8_t)uxQueueMessagesWaiting(telegramCommandQueue);
+  ESP_ERROR_CHECK(esp_event_post(ZEBUS_EVENTS,
+                                 zebus_events::EVNT_UPD_QUEUE_SIZE,
+                                 &queue_size,
+                                 sizeof(uint8_t),
+                                 portMAX_DELAY));
 }
 
 void setupQueues() {
@@ -178,7 +183,12 @@ void ebusQueue(Ebus::Telegram &telegram) {
 bool ebusDequeueCommand(void *const command) {
   BaseType_t xTaskWokenByReceive = pdFALSE;
   if (xQueueReceiveFromISR(telegramCommandQueue, command, &xTaskWokenByReceive)) {
-    system_info->ebus.queue_size = uxQueueMessagesWaiting(telegramCommandQueue);
+    uint8_t queue_size = (uint8_t)uxQueueMessagesWaiting(telegramCommandQueue);
+    ESP_ERROR_CHECK(esp_event_isr_post(ZEBUS_EVENTS,
+                                   zebus_events::EVNT_UPD_QUEUE_SIZE,
+                                   &queue_size,
+                                   sizeof(uint8_t),
+                                   &xTaskWokenByReceive));
     if (xTaskWokenByReceive) {
       portYIELD_FROM_ISR();
     }
