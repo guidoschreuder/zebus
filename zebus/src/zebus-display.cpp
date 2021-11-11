@@ -90,7 +90,7 @@ void print_ip_addr();
 void displayTask(void *pvParameter) {
   ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLAME, display_handle_flame, NULL));
   ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLOW, display_handle_flow, NULL));
-  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLOW, display_handle_queue_size, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_UPD_QUEUE_SIZE, display_handle_queue_size, NULL));
   EventGroupHandle_t event_group = (EventGroupHandle_t) pvParameter;
   for (;;) {
     EventBits_t uxBits = xEventGroupGetBits(event_group);
