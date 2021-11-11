@@ -171,40 +171,40 @@ void handle_device_config_read_flame(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(1);
   bool val = telegram.getResponseByte(0) & 0X0F;
   if (!system_info->heater.flame.valid() || system_info->heater.flame.value != val) {
-    system_info->heater.flame.timestamp = get_rtc_millis();
     system_info->heater.flame.value = val;
     ESP_LOGD(ZEBUS_LOG_TAG, "Flame: %s", system_info->heater.flame.value ? "ON" : "OFF");
   }
+  system_info->heater.flame.timestamp = get_rtc_millis();
 }
 
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(2);
   float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 100.0;
   if (!system_info->heater.flow.valid() || system_info->heater.flow.value != val) {
-    system_info->heater.flow.timestamp = get_rtc_millis();
     system_info->heater.flow.value = val;
     ESP_LOGD(ZEBUS_LOG_TAG, "Flow: %.2f", system_info->heater.flow.value);
   }
+  system_info->heater.flow.timestamp = get_rtc_millis();
 }
 
 void handle_device_config_read_flow_temp(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(2);
   float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
   if (!system_info->heater.flow_temp.valid() || system_info->heater.flow_temp.value != val) {
-    system_info->heater.flow_temp.timestamp = get_rtc_millis();
     system_info->heater.flow_temp.value = val;
     ESP_LOGD(ZEBUS_LOG_TAG, "Flow Temp: %.2f", system_info->heater.flow_temp.value);
   }
+  system_info->heater.flow_temp.timestamp = get_rtc_millis();
 }
 
 void handle_device_config_read_return_temp(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(2);
   float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
   if (!system_info->heater.return_temp.valid() || system_info->heater.return_temp.value != val) {
-    system_info->heater.return_temp.timestamp = get_rtc_millis();
     system_info->heater.return_temp.value = val;
     ESP_LOGD(ZEBUS_LOG_TAG, "Return Temp: %.2f", system_info->heater.return_temp.value);
   }
+  system_info->heater.return_temp.timestamp = get_rtc_millis();
 }
 
 void handle_device_config_read_ebus_control(Ebus::Telegram &telegram) {
@@ -221,10 +221,10 @@ void handle_device_config_read_modulation(Ebus::Telegram &telegram) {
   VERIFY_RESPONSE_LENGTH(2);
   float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 10.0;
   if (!system_info->heater.modulation.valid() || system_info->heater.modulation.value != val) {
-    system_info->heater.modulation.timestamp = get_rtc_millis();
     system_info->heater.modulation.value = val;
     ESP_LOGD(ZEBUS_LOG_TAG, "Modulation: %.1f", system_info->heater.modulation.value);
   }
+  system_info->heater.modulation.timestamp = get_rtc_millis();
 }
 
 void handle_device_config_read_max_flow_setpoint(Ebus::Telegram &telegram) {
