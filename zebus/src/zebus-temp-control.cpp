@@ -23,7 +23,6 @@ PID pid = PID((double*) &current_room_temp.value.temperatureC, &heat_request_tem
 // prototypes
 void initTempControl();
 float get_max_weather_flow_temp(float outside_temp, float flow_setpoint);
-float get_outdoor_temperature();
 
 // public functions
 void temparatureControlTask(void *pvParameter) {
