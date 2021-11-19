@@ -23,6 +23,10 @@
 // Sensors
 #define ZEBUS_SENSOR_INTERVAL_MS 60 * 1000
 
+// Display
+#define ZEBUS_BACKLIGHT_PIN 13
+#define ZEBUS_BACKLIGHT_FADEOUT_MS 5000
+
 // eBUS configuration
 #define ZEBUS_EBUS_TICK_MS 1000
 
