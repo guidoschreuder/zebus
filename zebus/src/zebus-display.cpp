@@ -13,7 +13,6 @@
 #define GET_BYTE(INT32, I) ((INT32 >> 8 * I) & 0XFF)
 
 // variables
-bool displayInit = false;
 EventGroupHandle_t event_group;
 
 TFT_eSPI tft = TFT_eSPI(); // Invoke library
@@ -88,19 +87,64 @@ void drawSpriteEbusQueue(int32_t x, int32_t y, uint8_t queue_size);
 size_t print_time(struct tm * timeinfo, const char * format);
 void print_ip_addr();
 
+// state
+typedef enum {
+  DISPLAY_STATE_OFF = 0,
+  DISPLAY_STATE_ACTIVE,
+  DISPLAY_STATE_DISABLE,
+  DISPLAY_STATE_STOPPING,
+} display_state_t;
+
+typedef display_state_t (*display_handler)(EventBits_t);
+
+display_state_t display_off(EventBits_t uxBits) {
+  if (uxBits & DISPLAY_ENABLED) {
+    setupDisplay();
+    updateDisplay();
+    return DISPLAY_STATE_ACTIVE;
+  }
+  return DISPLAY_STATE_OFF;
+}
+
+display_state_t display_active(EventBits_t uxBits) {
+  xEventGroupClearBits(event_group, DISPLAY_DISABLED);
+  updateDisplay();
+  return uxBits & DISPLAY_ENABLED ? DISPLAY_STATE_ACTIVE : DISPLAY_STATE_DISABLE;
+}
+
+display_state_t display_disable(EventBits_t uxBits) {
+  disableDisplay();
+  updateDisplay();
+  return DISPLAY_STATE_STOPPING;
+}
+
+display_state_t display_stopping(EventBits_t uxBits) {
+  // also return OFF when display is re-enabled before fadeout is complete
+  if (uxBits & DISPLAY_DISABLED || uxBits & DISPLAY_ENABLED) {
+    return DISPLAY_STATE_OFF;
+  }
+  updateDisplay();
+  return DISPLAY_STATE_STOPPING;
+}
+
+display_handler handlers[] = {
+  [DISPLAY_STATE_OFF] = display_off,
+  [DISPLAY_STATE_ACTIVE] = display_active,
+  [DISPLAY_STATE_DISABLE] = display_disable,
+  [DISPLAY_STATE_STOPPING] = display_stopping,
+};
+
 // public functions
 void displayTask(void *pvParameter) {
   ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLAME, display_handle_flame, NULL));
   ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLOW, display_handle_flow, NULL));
   ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_UPD_QUEUE_SIZE, display_handle_queue_size, NULL));
   event_group = (EventGroupHandle_t) pvParameter;
+  display_state_t display_state = DISPLAY_STATE_OFF;
   for (;;) {
-    EventBits_t uxBits = xEventGroupGetBits(event_group);
-    if (uxBits & DISPLAY_ENABLED) {
-      setupDisplay();
-      updateDisplay();
-    } else if (displayInit) {
-      disableDisplay();
+    display_handler handler = handlers[display_state];
+    if (handler) {
+      display_state = handler(xEventGroupGetBits(event_group));
     }
     vTaskDelay(pdMS_TO_TICKS(100));
   }
@@ -118,7 +162,7 @@ void display_handle_queue_size(void* event_handler_arg, esp_event_base_t event_b
   queue_size = *((uint8_t*) event_data);
 }
 
-void display_fadeout_complete(void *param) {
+static void IRAM_ATTR display_fadeout_complete(void *param) {
   xEventGroupSetBits(event_group, DISPLAY_DISABLED);
 }
 
@@ -148,16 +192,13 @@ void display_enable_backlight() {
       .hpoint = 0,
   };
   ledc_channel_config(&ledc_channel);
-  ledc_fade_func_install(0);
+  ledc_fade_func_install(ESP_INTR_FLAG_IRAM|ESP_INTR_FLAG_SHARED);
   ledc_set_duty_and_update(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_0, 900, 0);
-  ledc_isr_register(display_fadeout_complete, NULL, 0, NULL);
+  ESP_ERROR_CHECK(ledc_isr_register(display_fadeout_complete, NULL, ESP_INTR_FLAG_IRAM|ESP_INTR_FLAG_SHARED, NULL));
 }
 
 // implementations
 void setupDisplay() {
-  if (displayInit) {
-    return;
-  }
   ESP_LOGI(ZEBUS_LOG_TAG, "Setup display");
   tft.init();
   tft.setRotation(3);
@@ -171,16 +212,12 @@ void setupDisplay() {
   display_enable_backlight();
 
   initSprites();
-
-  displayInit = true;
 }
 
 void disableDisplay() {
   ESP_LOGI(ZEBUS_LOG_TAG, "Disable display");
 
   display_disable_backlight();
-
-  displayInit = false;
 }
 
 void initSprites() {
