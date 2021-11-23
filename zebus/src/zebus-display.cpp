@@ -95,9 +95,9 @@ typedef enum {
   DISPLAY_STATE_STOPPING,
 } display_state_t;
 
-typedef display_state_t (*display_handler)(EventBits_t);
+typedef display_state_t (*display_handler)(EventBits_t &);
 
-display_state_t display_off(EventBits_t uxBits) {
+display_state_t display_off(EventBits_t &uxBits) {
   if (uxBits & DISPLAY_ENABLED) {
     setupDisplay();
     updateDisplay();
@@ -106,21 +106,20 @@ display_state_t display_off(EventBits_t uxBits) {
   return DISPLAY_STATE_OFF;
 }
 
-display_state_t display_active(EventBits_t uxBits) {
+display_state_t display_active(EventBits_t &uxBits) {
   xEventGroupClearBits(event_group, DISPLAY_DISABLED);
   updateDisplay();
   return uxBits & DISPLAY_ENABLED ? DISPLAY_STATE_ACTIVE : DISPLAY_STATE_DISABLE;
 }
 
-display_state_t display_disable(EventBits_t uxBits) {
+display_state_t display_disable(EventBits_t &uxBits) {
   disableDisplay();
   updateDisplay();
   return DISPLAY_STATE_STOPPING;
 }
 
-display_state_t display_stopping(EventBits_t uxBits) {
-  // also return OFF when display is re-enabled before fadeout is complete
-  if (uxBits & DISPLAY_DISABLED || uxBits & DISPLAY_ENABLED) {
+display_state_t display_stopping(EventBits_t &uxBits) {
+  if (uxBits & DISPLAY_DISABLED) {
     return DISPLAY_STATE_OFF;
   }
   updateDisplay();
@@ -144,7 +143,8 @@ void displayTask(void *pvParameter) {
   for (;;) {
     display_handler handler = handlers[display_state];
     if (handler) {
-      display_state = handler(xEventGroupGetBits(event_group));
+      EventBits_t uxBits = xEventGroupGetBits(event_group);
+      display_state = handler(uxBits);
     }
     vTaskDelay(pdMS_TO_TICKS(100));
   }
