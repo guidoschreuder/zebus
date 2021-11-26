@@ -1,5 +1,5 @@
-#ifndef __EBUS_SEND_COMMAND
-#define __EBUS_SEND_COMMAND
+#ifndef EBUS_SEND_COMMAND_H
+#define EBUS_SEND_COMMAND_H
 
 #include <stdint.h>
 

@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_WIFI_H
-#define _ZEBUS_WIFI_H
+#ifndef ZEBUS_WIFI_H
+#define ZEBUS_WIFI_H
 
 #include "zebus-log.h"
 

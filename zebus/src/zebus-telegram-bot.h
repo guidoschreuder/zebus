@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_TELEGRAM_BOT_H
-#define _ZEBUS_TELEGRAM_BOT_H
+#ifndef ZEBUS_TELEGRAM_BOT_H
+#define ZEBUS_TELEGRAM_BOT_H
 
 #include "zebus-log.h"
 

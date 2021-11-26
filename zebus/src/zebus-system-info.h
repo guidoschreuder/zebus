@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_SYSTEM_INFO_H
-#define _ZEBUS_SYSTEM_INFO_H
+#ifndef ZEBUS_SYSTEM_INFO_H
+#define ZEBUS_SYSTEM_INFO_H
 
 #include "zebus-datatypes.h"
 #include "zebus-messages.h"

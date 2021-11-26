@@ -1,5 +1,5 @@
-#ifndef _EBUS_TELEGRAM
-#define _EBUS_TELEGRAM
+#ifndef EBUS_TELEGRAM_H
+#define EBUS_TELEGRAM_H
 
 #include "TelegramBase.h"
 

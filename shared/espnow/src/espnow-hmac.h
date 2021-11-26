@@ -1,5 +1,5 @@
-#ifndef _ESPNOW_HMAC_H
-#define _ESPNOW_HMAC_H
+#ifndef ESPNOW_HMAC_H
+#define ESPNOW_HMAC_H
 
 #include <stddef.h>
 #include <stdint.h>

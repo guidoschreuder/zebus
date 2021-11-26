@@ -1,5 +1,5 @@
-#ifndef _EBUS_COMMAND
-#define _EBUS_COMMAND
+#ifndef EBUS_COMMAND_H
+#define EBUS_COMMAND_H
 
 #include "ebus-defines.h"
 #include "ebus-enums.h"

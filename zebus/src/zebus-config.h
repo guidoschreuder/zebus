@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_CONFIG_H
-#define _ZEBUS_CONFIG_H
+#ifndef ZEBUS_CONFIG_H
+#define ZEBUS_CONFIG_H
 
 // application configuration
 #define ZEBUS_APPNAME "Zebus"

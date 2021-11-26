@@ -1,5 +1,5 @@
-#ifndef __EBUS
-#define __EBUS
+#ifndef EBUS_H
+#define EBUS_H
 
 #include <stdint.h>
 

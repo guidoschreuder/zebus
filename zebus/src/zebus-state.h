@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_STATE_H
-#define _ZEBUS_STATE_H
+#ifndef ZEBUS_STATE_H
+#define ZEBUS_STATE_H
 
 #include "freertos/FreeRTOS.h"
 #include <freertos/event_groups.h>

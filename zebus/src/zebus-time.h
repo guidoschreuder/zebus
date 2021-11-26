@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_UTIL_H
-#define _ZEBUS_UTIL_H
+#ifndef ZEBUS_UTIL_H
+#define ZEBUS_UTIL_H
 
 #include "soc/rtc.h"
 extern "C" {

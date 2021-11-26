@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_TEMP_CONTROL_H
-#define _ZEBUS_TEMP_CONTROL_H
+#ifndef ZEBUS_TEMP_CONTROL_H
+#define ZEBUS_TEMP_CONTROL_H
 
 #include "zebus-log.h"
 

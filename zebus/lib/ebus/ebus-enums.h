@@ -1,5 +1,5 @@
-#ifndef _EBUS_ENUMS
-#define _EBUS_ENUMS
+#ifndef EBUS_ENUMS_H
+#define EBUS_ENUMS_H
 
 #include <stdint.h>
 

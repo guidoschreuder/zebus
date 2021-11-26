@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_EVENTS_H
-#define _ZEBUS_EVENTS_H
+#ifndef ZEBUS_EVENTS_H
+#define ZEBUS_EVENTS_H
 
 #include "esp_event.h"
 #include "espnow-types.h"

@@ -1,5 +1,5 @@
-#ifndef _ZEBUS_DISPLAY_H
-#define _ZEBUS_DISPLAY_H
+#ifndef ZEBUS_DISPLAY_H
+#define ZEBUS_DISPLAY_H
 
 #include "zebus-log.h"
 

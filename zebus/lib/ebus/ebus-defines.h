@@ -1,5 +1,5 @@
-#ifndef __EBUS_DEFINES
-#define __EBUS_DEFINES
+#ifndef EBUS_DEFINES_H
+#define EBUS_DEFINES_H
 
 #define EBUS_SLAVE_ADDRESS(MASTER) ((uint8_t) (((MASTER) + 5) % 0xFF))
 
@@ -11,4 +11,3 @@
 #define EBUS_BROADCAST_ADDRESS 0xFE
 
 #endif
-
