@@ -12,6 +12,7 @@ enum espnow_message_type {
 typedef struct espnow_msg_base {
   uint8_t type;
   uint8_t payloadHmac[32];
+  uint64_t nonce;
 } espnow_message_base;
 
 typedef struct espnow_msg_ping {
