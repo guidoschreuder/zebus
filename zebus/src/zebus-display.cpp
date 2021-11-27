@@ -260,11 +260,14 @@ void updateDisplay() {
   tft.printf("Flame : %s       \n", flame.valid() ? (flame.value ? "ON" : "OFF") : "UNKNOWN");
   tft.printf("Flow  : %.2f     \n", flow.valid() ? flow.value : -1 );
 
-  drawSpriteHeater(280, 10, true);
-  drawSpriteHeater(240, 10, false);
-  drawSpriteShower(280, 50, flow.valid() ? flow.value : 0);
-  drawSpriteWifiStrength(280, 90, system_info->wifi.rssi);
-  drawSpriteEbusQueue(240, 90, queue_size);
+  if (flame.valid() && flow.valid()) {
+    drawSpriteHeater(280, 0, flame.value && !flow.value);
+  }
+  if (flow.valid()) {
+    drawSpriteShower(280, 40, flow.valid() ? flow.value : 0);
+  }
+  drawSpriteWifiStrength(280, 80, system_info->wifi.rssi);
+  drawSpriteEbusQueue(280, 120, queue_size);
 }
 
 void drawSpriteShower(int32_t x, int32_t y, float flow) {
