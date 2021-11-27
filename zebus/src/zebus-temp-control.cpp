@@ -11,14 +11,15 @@ bool tempControlInit = false;
 
 measurement_temperature_sensor current_room_temp;
 measurement_temperature_sensor outdoor_temp;
+measurement_float max_flow_setpoint;
+
+double input_room_temp;
 double desired_room_temp;
 double heat_request_temp;
 
-measurement_float max_flow_setpoint;
-
 double Kp = 2, Ki = 5, Kd = 1;
 
-PID pid = PID((double*) &current_room_temp.value.temperatureC, &heat_request_temp, &desired_room_temp, Kp, Ki, Kd, DIRECT);
+PID pid = PID((double*) &input_room_temp, &heat_request_temp, &desired_room_temp, Kp, Ki, Kd, DIRECT);
 
 // prototypes
 void initTempControl();
@@ -29,12 +30,14 @@ void temparatureControlTask(void *pvParameter) {
   while (1) {
     initTempControl();
 
-    // TODO: should be set by user on room controller
-    desired_room_temp = 19.5;
-
     if (outdoor_temp.valid() &&
         current_room_temp.valid() &&
         max_flow_setpoint.valid()) {
+
+      // TODO: should be set by user on room controller
+      desired_room_temp = 19.5;
+
+      input_room_temp = current_room_temp.value.temperatureC;
 
       pid.SetOutputLimits(TEMP_MIN_HEATING,
                           get_max_weather_flow_temp(outdoor_temp.value.temperatureC,
