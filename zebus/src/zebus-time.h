@@ -1,7 +1,7 @@
 #ifndef ZEBUS_UTIL_H
 #define ZEBUS_UTIL_H
 
-#include "soc/rtc.h"
+#include <soc/rtc.h>
 extern "C" {
   #include <esp32/clk.h>
 }

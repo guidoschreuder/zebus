@@ -1,7 +1,7 @@
 #ifndef ZEBUS_STATE_H
 #define ZEBUS_STATE_H
 
-#include "freertos/FreeRTOS.h"
+#include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 
 #include "zebus-log.h"
