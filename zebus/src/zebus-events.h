@@ -14,6 +14,7 @@ enum zebus_events : uint8_t {
     EVNT_RECVD_MODULATION,
     EVNT_RECVD_SENSOR,
     EVNT_RECVD_FLAME,
+    EVNT_RECVD_EBUS_CONTROL,
     EVNT_UPD_QUEUE_SIZE,
     MAX_EVNT,
 };

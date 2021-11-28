@@ -8,7 +8,7 @@
 #include "zebus-system-info.h"
 #include "zebus-time.h"
 
-#define VERIFY_RESPONSE_LENGTH(min_length) \
+#define VERIFY_RESPONSE_LENGTH(telegram, min_length) \
   if (telegram.getResponseNN() < min_length) { \
     ESP_LOGE(ZEBUS_LOG_TAG, "RESPONSE TOO SHORT: is %d, expected at least %d bytes", telegram.getResponseNN(), min_length); \
     debugLogger(telegram); \
@@ -131,7 +131,7 @@ Ebus::SendCommand createHeaterReadConfigCommand(unsigned short config_element) {
 
 // implementations
 void handle_identification(Ebus::Telegram &telegram) {
-  VERIFY_RESPONSE_LENGTH(10);
+  VERIFY_RESPONSE_LENGTH(telegram, 10);
   identification_t identity = identification_t {
       .device = {0},
       .sw_version = {0},
@@ -166,74 +166,63 @@ void handle_device_config_read(Ebus::Telegram &telegram) {
   }
 }
 
-void emit_float_value(uint8_t event_id, float val, const char *label, esp_log_level_t log_level = ESP_LOG_DEBUG) {
+void emit_float_value(uint8_t event_id, Ebus::Telegram& telegram, float divider, const char *label, esp_log_level_t log_level = ESP_LOG_DEBUG) {
+  VERIFY_RESPONSE_LENGTH(telegram, 2);
   measurement_float m;
   m.timestamp = get_rtc_millis();
-  m.value = val;
+  m.value = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / divider;
   ESP_ERROR_CHECK(esp_event_post(ZEBUS_EVENTS,
                                  event_id,
                                  &m,
                                  sizeof(m),
                                  portMAX_DELAY));
-  ESP_LOG_LEVEL_LOCAL(log_level, ZEBUS_LOG_TAG, "%s: %.2f", label, val);
+  ESP_LOG_LEVEL_LOCAL(log_level, ZEBUS_LOG_TAG, "%s: %.2f", label, m.value);
 }
 
-void emit_bool_value(uint8_t event_id, bool val, const char* label, esp_log_level_t log_level = ESP_LOG_DEBUG) {
+void emit_bool_value(uint8_t event_id, Ebus::Telegram& telegram, const char* label, esp_log_level_t log_level = ESP_LOG_DEBUG) {
+  VERIFY_RESPONSE_LENGTH(telegram, 1);
   measurement_bool m;
   m.timestamp = get_rtc_millis();
-  m.value = val;
+  m.value = telegram.getResponseByte(0) & 0X0F;
   ESP_ERROR_CHECK(esp_event_post(ZEBUS_EVENTS,
                                  event_id,
                                  &m,
                                  sizeof(m),
                                  portMAX_DELAY));
-  ESP_LOG_LEVEL_LOCAL(log_level, ZEBUS_LOG_TAG, "%s: %s", label, val ? "true" : "false");
+  ESP_LOG_LEVEL_LOCAL(log_level, ZEBUS_LOG_TAG, "%s: %s", label, m.value ? "true" : "false");
 }
 
 void handle_device_config_read_flame(Ebus::Telegram &telegram) {
-  VERIFY_RESPONSE_LENGTH(1);
-  bool val = telegram.getResponseByte(0) & 0X0F;
-  emit_bool_value(zebus_events::EVNT_RECVD_FLAME, val, "Flame", ESP_LOG_VERBOSE);
+  emit_bool_value(zebus_events::EVNT_RECVD_FLAME, telegram, "Flame", ESP_LOG_VERBOSE);
 }
 
 void handle_device_config_read_hwc_waterflow(Ebus::Telegram &telegram) {
-  VERIFY_RESPONSE_LENGTH(2);
-  float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 100.0;
-  emit_float_value(zebus_events::EVNT_RECVD_FLOW, val, "Flow", ESP_LOG_VERBOSE);
+  emit_float_value(zebus_events::EVNT_RECVD_FLOW, telegram, 100.0, "Flow", ESP_LOG_VERBOSE);
 }
 
 void handle_device_config_read_flow_temp(Ebus::Telegram &telegram) {
-  VERIFY_RESPONSE_LENGTH(2);
-  float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
-  emit_float_value(zebus_events::EVNT_RECVD_FLOW_TEMP, val, "Flow Temp");
+  emit_float_value(zebus_events::EVNT_RECVD_FLOW_TEMP, telegram, 16.0, "Flow Temp");
 }
 
 void handle_device_config_read_return_temp(Ebus::Telegram &telegram) {
-  VERIFY_RESPONSE_LENGTH(2);
-  float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
-  emit_float_value(zebus_events::EVNT_RECVD_RETURN_TEMP, val, "Return Temp");
+  emit_float_value(zebus_events::EVNT_RECVD_RETURN_TEMP, telegram, 16.0, "Return Temp");
 }
 
 void handle_device_config_read_ebus_control(Ebus::Telegram &telegram) {
-  VERIFY_RESPONSE_LENGTH(1);
-  ESP_LOGD(ZEBUS_LOG_TAG, "EBus Heat Control: %s", telegram.getResponseByte(0) & 0x0F ? "YES" : "NO");
+  emit_bool_value(zebus_events::EVNT_RECVD_EBUS_CONTROL, telegram, "EBus Heat Control");
 }
 
 void handle_device_config_read_partload_hc_kw(Ebus::Telegram &telegram) {
-  VERIFY_RESPONSE_LENGTH(1);
+  VERIFY_RESPONSE_LENGTH(telegram, 1);
   ESP_LOGD(ZEBUS_LOG_TAG, "Partload HC KW: %d", telegram.getResponseByte(0));
 }
 
 void handle_device_config_read_modulation(Ebus::Telegram &telegram) {
-  VERIFY_RESPONSE_LENGTH(2);
-  float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 10.0;
-  emit_float_value(zebus_events::EVNT_RECVD_MODULATION, val, "Modulation");
+  emit_float_value(zebus_events::EVNT_RECVD_MODULATION, telegram, 10.0, "Modulation");
 }
 
 void handle_device_config_read_max_flow_setpoint(Ebus::Telegram &telegram) {
-  VERIFY_RESPONSE_LENGTH(2);
-  float val = BYTES_TO_WORD(telegram.getResponseByte(1), telegram.getResponseByte(0)) / 16.0;
-  emit_float_value(zebus_events::EVNT_RECVD_MAX_FLOW_SETPOINT, val, "Max Flow Setpoint");
+  emit_float_value(zebus_events::EVNT_RECVD_MAX_FLOW_SETPOINT, telegram, 16.0, "Max Flow Setpoint");
 }
 
 void handle_error(Ebus::Telegram &telegram) {
