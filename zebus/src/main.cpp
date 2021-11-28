@@ -1,12 +1,12 @@
 #include "main.h"
 
-#include "zebus-display.h"
+#include "display/zebus-display.h"
+#include "network/zebus-wifi.h"
 #include "zebus-ebus.h"
 #include "zebus-events.h"
 #include "zebus-state.h"
 #include "zebus-system-info.h"
 #include "zebus-temp-control.h"
-#include "network/zebus-wifi.h"
 
 struct system_info_t* system_info = new system_info_t();
 
