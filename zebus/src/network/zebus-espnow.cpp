@@ -2,6 +2,7 @@
 
 #include <esp_now.h>
 #include <esp_wifi.h>
+#include <string.h>
 
 #include "espnow-config.h"
 #include "espnow-hmac.h"
