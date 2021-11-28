@@ -14,54 +14,54 @@ TFT_eSprite *spriteEbusQueue;
 
 // prototype
 TFT_eSprite *init_sprite(TFT_eSPI *tft, int16_t width, int16_t height);
+void init_4bit_palette();
 
 // 4-bit Palette colour table
 uint16_t palette[16];
 
 // upfront implementations
 // for now this is just to keep the defines with the palette
-#define EBUS_4BIT_BLACK 0
-#define EBUS_4BIT_DARKCYAN 3
-#define EBUS_4BIT_DARKGREY 7
-#define EBUS_4BIT_ORANGE 8
-#define EBUS_4BIT_GREEN 10
-#define EBUS_4BIT_CYAN 11
-#define EBUS_4BIT_RED 12
-#define EBUS_4BIT_NAVY 13
-#define EBUS_4BIT_YELLOW 14
-#define EBUS_4BIT_WHITE 15
+#define SPRITE_COLORS \
+X(BLACK)      \
+X(ORANGE)     \
+X(DARKGREEN)  \
+X(DARKCYAN)   \
+X(MAROON)     \
+X(PURPLE)     \
+X(OLIVE)      \
+X(DARKGREY)   \
+X(VIOLET)     \
+X(BLUE)       \
+X(GREEN)      \
+X(CYAN)       \
+X(RED)        \
+X(NAVY)       \
+X(YELLOW)     \
+X(WHITE)
 
-void init4BitPalette() {
-  palette[EBUS_4BIT_BLACK]      = TFT_BLACK;
-  palette[1]                    = TFT_ORANGE;
-  palette[2]                    = TFT_DARKGREEN;
-  palette[EBUS_4BIT_DARKCYAN]   = TFT_DARKCYAN;
-  palette[4]                    = TFT_MAROON;
-  palette[5]                    = TFT_PURPLE;
-  palette[6]                    = TFT_OLIVE;
-  palette[EBUS_4BIT_DARKGREY]   = TFT_DARKGREY;
-  palette[EBUS_4BIT_ORANGE]     = TFT_ORANGE;
-  palette[9]                    = TFT_BLUE;
-  palette[EBUS_4BIT_GREEN]      = TFT_GREEN;
-  palette[EBUS_4BIT_CYAN]       = TFT_CYAN;
-  palette[EBUS_4BIT_RED]        = TFT_RED;
-  palette[EBUS_4BIT_NAVY]       = TFT_NAVY;
-  palette[EBUS_4BIT_YELLOW]     = TFT_YELLOW;
-  palette[EBUS_4BIT_WHITE]      = TFT_WHITE;
-}
-
+#define X(color) EBUS_4BIT_##color,
+enum zebus_palette_color : uint8_t {
+  SPRITE_COLORS
+};
+#undef X
 
 void init_sprites(TFT_eSPI *tft) {
   if (sprite_init_done) {
     return;
   }
   sprite_init_done = true;
-  init4BitPalette();
+  init_4bit_palette();
   spriteShower = init_sprite(tft, 30, 30);
   spriteHeater = init_sprite(tft, 30, 30);
   spriteWifiStrength = init_sprite(tft, 16, 16);
   spriteEbusQueue = init_sprite(tft, 16, 16);
 }
+
+#define X(color) palette[EBUS_4BIT_##color] = TFT_##color;
+void  init_4bit_palette() {
+  SPRITE_COLORS
+}
+#undef X
 
 TFT_eSprite *init_sprite(TFT_eSPI *tft, int16_t width, int16_t height) {
   TFT_eSprite *sprite = new TFT_eSprite(tft);
