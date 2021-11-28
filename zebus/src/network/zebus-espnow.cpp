@@ -18,10 +18,14 @@ void handle_espnow_ping(const uint8_t *mac_addr, const uint8_t *incomingData, in
 void handle_espnow_temperature_sensor(const uint8_t *mac_addr, const uint8_t *incomingData, int len);
 
 // implementation
-void setup_espnow() {
+void espnow_setup() {
   ESP_ERROR_CHECK(esp_now_init());
   ESP_ERROR_CHECK(esp_now_register_send_cb(espnow_data_sent));
   ESP_ERROR_CHECK(esp_now_register_recv_cb(espnow_data_received));
+}
+
+void espnow_disable() {
+  esp_now_deinit();
 }
 
 void espnow_data_sent(const uint8_t *mac_addr, esp_now_send_status_t status) {
