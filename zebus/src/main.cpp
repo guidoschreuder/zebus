@@ -6,7 +6,7 @@
 #include "zebus-state.h"
 #include "zebus-system-info.h"
 #include "zebus-temp-control.h"
-#include "zebus-wifi.h"
+#include "network/zebus-wifi.h"
 
 struct system_info_t* system_info = new system_info_t();
 
