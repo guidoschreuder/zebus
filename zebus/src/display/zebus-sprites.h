@@ -1,6 +1,7 @@
 #ifndef ZEBUS_SPRITES_H
 #define ZEBUS_SPRITES_H
 
+#include "zebus-config.h"
 #include <TFT_eSPI.h>
 
 void init_sprites(TFT_eSPI *tft);

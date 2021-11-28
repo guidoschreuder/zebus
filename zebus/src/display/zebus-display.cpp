@@ -4,7 +4,6 @@
 #include <time.h>
 #include "driver/ledc.h"
 
-#include "zebus-config.h"
 #include "zebus-events.h"
 #include "zebus-messages.h"
 #include "zebus-sprites.h"

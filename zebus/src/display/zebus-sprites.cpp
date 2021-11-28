@@ -1,6 +1,5 @@
 #include "zebus-sprites.h"
 
-#include "zebus-config.h"
 #include "zebus-system-info.h"
 
 bool sprite_init_done;
