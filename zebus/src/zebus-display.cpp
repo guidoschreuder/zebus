@@ -257,14 +257,14 @@ void updateDisplay() {
   tft.setCursor(0, 195, 1);
   tft.printf("Self  : %s, sw: %s, hw: %s\n", system_info->ebus.self_id.device, system_info->ebus.self_id.sw_version, system_info->ebus.self_id.hw_version);
   tft.printf("Heater: %s, sw: %s, hw: %s\n", system_info->ebus.heater_id.device, system_info->ebus.heater_id.sw_version, system_info->ebus.heater_id.hw_version);
-  tft.printf("Flame : %s       \n", flame.valid() ? (flame.value ? "ON" : "OFF") : "UNKNOWN");
-  tft.printf("Flow  : %.2f     \n", flow.valid() ? flow.value : -1 );
+  tft.printf("Flame : %s       \n", measurement_valid(flame) ? (flame.value ? "ON" : "OFF") : "UNKNOWN");
+  tft.printf("Flow  : %.2f     \n", measurement_valid(flow) ? flow.value : -1 );
 
-  if (flame.valid() && flow.valid()) {
+  if (measurement_valid(flame) && measurement_valid(flow)) {
     drawSpriteHeater(280, 0, flame.value && !flow.value);
   }
-  if (flow.valid()) {
-    drawSpriteShower(280, 40, flow.valid() ? flow.value : 0);
+  if (measurement_valid(flow)) {
+    drawSpriteShower(280, 40, flow.value);
   }
   drawSpriteWifiStrength(280, 80, system_info->wifi.rssi);
   drawSpriteEbusQueue(280, 120, queue_size);

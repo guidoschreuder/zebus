@@ -30,9 +30,9 @@ void temparatureControlTask(void *pvParameter) {
   while (1) {
     initTempControl();
 
-    if (outdoor_temp.valid() &&
-        current_room_temp.valid() &&
-        max_flow_setpoint.valid()) {
+    if (measurement_valid(outdoor_temp) &&
+        measurement_valid(current_room_temp) &&
+        measurement_valid(max_flow_setpoint)) {
 
       // TODO: should be set by user on room controller
       desired_room_temp = 19.5;

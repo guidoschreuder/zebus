@@ -234,7 +234,7 @@ void handleTemperatureSensor(const uint8_t *mac_addr, const uint8_t *incomingDat
   measurement_temperature_sensor data;
 
   data.timestamp = get_rtc_millis();
-  memcpy(&data.value, &message, sizeof(message));
+  data.value = message;
 
   ESP_LOGD(ZEBUS_LOG_TAG, "Temperature Sensor: {location: %s, temp: %f, voltage: %f}",
            message.location,

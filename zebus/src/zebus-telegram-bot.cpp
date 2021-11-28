@@ -41,7 +41,7 @@ void setupTelegram() {
 }
 
 void add_sensor_to_reply(String &reply, measurement_temperature_sensor &sensor) {
-  if (sensor.valid()) {
+  if (measurement_valid(sensor)) {
     reply += "\nSensor " + String(sensor.value.location) + ":\n  Temperature: ";
     reply += sensor.value.temperatureC;
     reply += "\n  Voltage: ";
