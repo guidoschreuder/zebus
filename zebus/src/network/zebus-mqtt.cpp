@@ -1,7 +1,6 @@
 #include "zebus-mqtt.h"
 
 #include <mqtt_client.h>
-#include <WString.h>
 
 #include "zebus-config.h"
 #include "zebus-events.h"
@@ -39,26 +38,34 @@ void mqtt_setup() {
   ESP_ERROR_CHECK(esp_event_handler_register(ZEBUS_EVENTS, zebus_events::EVNT_RECVD_FLAME, mqtt_handle_bool, (void*) "zebus/heater/flame/onoff"));
 }
 
-#define MQTT_LOG(predicate, client, topic, value) do { \
+#define MQTT_LOG(predicate, client, topic, data, data_len) do { \
   if (predicate) { \
-    esp_mqtt_client_publish(client, topic, String(value).c_str(), 0, 1, 0); \
+    esp_mqtt_client_publish(client, topic, data, data_len, 1, 0); \
   } \
 } while(0)
 
+const char* float_to_str(float val) {
+  static char float_str[16];
+  snprintf(float_str, sizeof(float_str), "%.3f", val);
+  return float_str;
+}
+
 void mqtt_handle_float(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
   measurement_float data = *((measurement_float*) event_data);
-  MQTT_LOG(true, mqtt_client, ((const char*) event_handler_arg), data.value);
+  MQTT_LOG(true, mqtt_client, ((const char*) event_handler_arg), float_to_str(data.value), 0);
 }
 
 void mqtt_handle_bool(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
   measurement_bool data = *((measurement_bool*) event_data);
-  MQTT_LOG(true, mqtt_client, ((const char*) event_handler_arg), data.value);
+  MQTT_LOG(true, mqtt_client, ((const char*) event_handler_arg), data.value ? "1" : "0", 0);
 }
 
 void mqtt_handle_sensor(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
   measurement_temperature_sensor data = *((measurement_temperature_sensor*) event_data);
-  String topic_base = "zebus/sensor/" + String(data.value.location);
-  MQTT_LOG(true, mqtt_client, (topic_base + "/temperature").c_str(), data.value.temperatureC);
-  MQTT_LOG(true, mqtt_client, (topic_base + "/voltage").c_str(), data.value.supplyVoltage);
+  char topic[64];
+  snprintf(topic, sizeof(topic), "zebus/sensor/%s/temperature", data.value.location);
+  MQTT_LOG(true, mqtt_client, topic, float_to_str(data.value.temperatureC), 0);
+  snprintf(topic, sizeof(topic), "zebus/sensor/%s/voltage", data.value.location);
+  MQTT_LOG(true, mqtt_client, topic, float_to_str(data.value.supplyVoltage), 0);
 }
 
