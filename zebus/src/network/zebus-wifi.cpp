@@ -121,7 +121,7 @@ void disableWiFi() {
 
 void runConfigPortal() {
   char apName[16] = {0};
-  sprintf(apName, "%s %x", ZEBUS_APPNAME, (uint32_t)ESP.getEfuseMac());
+  snprintf(apName, sizeof(apName), "%s %x", ZEBUS_APPNAME, (uint32_t)ESP.getEfuseMac());
 
   system_info->wifi.rssi = WIFI_NO_SIGNAL;
   system_info->wifi.config_ap.ap_name = strdup(apName);

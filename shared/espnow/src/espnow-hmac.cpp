@@ -38,15 +38,15 @@ bool verifyHmac(espnow_msg_base *base, size_t len) {
 
 bool validate_and_copy(void *target, int targetLen, const uint8_t *data, int dataLen) {
   if (dataLen != targetLen) {
-    sprintf(lastError, "Invalid packet length, expected %d, got %d", targetLen, dataLen);
+    snprintf(lastError, sizeof(lastError), "Invalid packet length, expected %d, got %d", targetLen, dataLen);
     return false;
   }
   memcpy(target, data, dataLen);
   if (((espnow_msg_base *) target)->nonce == 0) {
-    sprintf(lastError, "No nonce in message");
+    snprintf(lastError, sizeof(lastError), "No nonce in message");
   }
   if (!verifyHmac((espnow_msg_base *) target, targetLen)) {
-    sprintf(lastError, "Invalid HMAC");
+    snprintf(lastError, sizeof(lastError), "Invalid HMAC");
     return false;
   }
   return true;

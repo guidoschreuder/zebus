@@ -140,8 +140,8 @@ void handle_identification(Ebus::Telegram &telegram) {
   for (int i = 0; i < 5; i++) {
     identity.device[i] = telegram.getResponseByte(i + 1);
   }
-  sprintf(identity.sw_version, "%02X.%02X", (uint8_t)telegram.getResponseByte(6), (uint8_t)telegram.getResponseByte(7));
-  sprintf(identity.hw_version, "%02X.%02X", (uint8_t)telegram.getResponseByte(8), (uint8_t)telegram.getResponseByte(9));
+  snprintf(identity.sw_version, sizeof(identity.sw_version), "%02X.%02X", (uint8_t)telegram.getResponseByte(6), (uint8_t)telegram.getResponseByte(7));
+  snprintf(identity.hw_version, sizeof(identity.hw_version), "%02X.%02X", (uint8_t)telegram.getResponseByte(8), (uint8_t)telegram.getResponseByte(9));
 
   switch (telegram.getZZ()) {
   case EBUS_SLAVE_ADDRESS(EBUS_MASTER_ADDRESS):
