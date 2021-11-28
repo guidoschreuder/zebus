@@ -1,7 +1,7 @@
 #include "network/zebus-espnow.h"
 
 #include <esp_now.h>
-#include <WiFi.h>
+#include <esp_wifi.h>
 
 #include "espnow-config.h"
 #include "espnow-hmac.h"
@@ -62,7 +62,10 @@ void handle_espnow_ping(const uint8_t *mac_addr, const uint8_t *incomingData, in
   }
 
   espnow_msg_ping_reply ping_reply;
-  ping_reply.channel = WiFi.channel();
+
+  wifi_second_chan_t secondCh;
+  esp_wifi_get_channel(&ping_reply.channel, &secondCh);
+
   ping_reply.expected_interval_millis = ZEBUS_SENSOR_INTERVAL_MS;
   ping_reply.base.type = espnow_ping_reply;
 
